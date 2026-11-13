@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>채비 서울 충전소 지도 (STEP 1 예비)</title>
+<title>채비 충전소 지도 (STEP 1 예비)</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
@@ -69,14 +69,14 @@ tbody tr:hover{background:var(--page)}
 <body>
 <div class="app">
   <aside class="side">
-    <h1>채비 충전소 지도 · 서울특별시 (아파트 제외)</h1>
+    <h1>채비 충전소 지도 · 전국 (아파트 제외)</h1>
     <p class="sub">STEP 1 예비 대시보드 · 환경공단 충전기 상태 기록 기준 · <span id="period"></span></p>
 
     <div class="kpis" id="kpis"></div>
 
     <h2>보기 조건</h2>
     <div class="filters">
-      <div><label for="sido">구</label><select id="sido"><option value="">전체</option></select></div>
+      <div><label for="sido">시·도</label><select id="sido"><option value="">전체</option></select></div>
       <div><label for="kind">시설 종류</label><select id="kind"><option value="">전체</option></select></div>
       <div><label for="speed">충전 속도</label><select id="speed"><option value="">전체</option><option value="fast">급속 있음</option><option value="slow">완속만</option></select></div>
       <div><label for="q">이름·주소 검색</label><input id="q" type="search" placeholder="예: 성수"></div>
@@ -101,7 +101,7 @@ tbody tr:hover{background:var(--page)}
     <h2>선택한 충전소</h2>
     <div class="card" id="detail"><p>지도의 점이나 아래 표의 줄을 누르면 시간대별 이용률이 나옴</p></div>
 
-    <h2>서울 전체 시간대별 이용률 (충전중인 충전기 비율, %)</h2>
+    <h2>전체 시간대별 이용률 (충전중인 충전기 비율, %)</h2>
     <div class="legend" style="margin:0 0 4px">
       <span><i class="line" style="background:var(--s1)"></i>급속</span>
       <span><i class="line" style="background:var(--s3)"></i>완속</span>
@@ -129,7 +129,7 @@ function showTip(e, html){ tip.innerHTML = html; tip.style.display = 'block';
 const hideTip = () => tip.style.display = 'none';
 
 let D, markers = [], selected = null, hour = 19;
-const map = L.map('map', {preferCanvas:true}).setView([37.55, 126.99], 11);
+const map = L.map('map', {preferCanvas:true}).setView([36.3, 127.8], 7);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19,
   attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자'}).addTo(map);
 
@@ -144,7 +144,7 @@ function init(){
   $('#sido').insertAdjacentHTML('beforeend', opts(C.sido).map(v => `<option>${v}</option>`).join(''));
   $('#kind').insertAdjacentHTML('beforeend', opts(C.kind).map(v => `<option>${v}</option>`).join(''));
   $('#limits').innerHTML = [
-    `범위는 주소가 서울특별시인 충전소만이고 아파트 충전소는 뺌. 수집 기간이 ${m.first.slice(0,10)} ~ ${m.last.slice(0,10)}로 짧고 중간에 끊긴 구간이 있음. 시각마다 겹친 날 수가 1~3일이라 요일 차이는 볼 수 없음`,
+    `범위는 전국이고 아파트 충전소는 뺌. 수집 기간이 ${m.first.slice(0,10)} ~ ${m.last.slice(0,10)}로 짧고 중간에 끊긴 구간이 있음. 시각마다 겹친 날 수가 1~3일이라 요일 차이는 볼 수 없음`,
     '이용률 = 충전중 대수 ÷ (충전대기 + 충전중) 대수. 통신이상·상태미확인 충전기는 계산에서 뺌',
     '바뀐 것만 담긴 기록(delta)은 직전 상태를 그대로 이어 붙여 계산함. 끊긴 구간 직후 값은 실제와 다를 수 있음',
     `충전 1회 시간 중앙값: 급속 ${m.med_fast_min}분, 완속 ${m.med_slow_min}분 (충전 ${f(m.n_sessions)}회 기준, 1분 미만·24시간 초과 제외)`
@@ -152,7 +152,7 @@ function init(){
 
   const canvas = L.canvas({padding:0.3});
   D.stations.forEach(s => {
-    const mk = L.circleMarker([s[C.lat], s[C.lng]], {renderer:canvas, radius: s[C.stay] ? 11 : 7,
+    const mk = L.circleMarker([s[C.lat], s[C.lng]], {renderer:canvas, radius: s[C.stay] ? 9 : 5,
       weight: s[C.stay] ? 3 : 1, color: s[C.stay] ? css('--stay') : 'rgba(0,0,0,.55)', fillOpacity:.9});
     mk.s = s;
     mk.bindTooltip(() => `${s[C.name]} · ${hour}시 ${s[C.occ][hour] < 0 ? '기록 없음' : s[C.occ][hour] + '%'}`);
@@ -232,7 +232,7 @@ function drawNational(){
   const path = a => a.map((v, h) => (h ? 'L' : 'M') + x(h).toFixed(1) + ',' + y(v).toFixed(1)).join('');
   const grid = [0, max / 2, max].map(v => `<line x1="${L0}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${L0 - 4}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join('');
   const xl = [0,6,12,18,23].map(h => `<text x="${x(h)}" y="${H - 4}" text-anchor="middle">${h}시</text>`).join('');
-  $('#national').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="서울 전체 시간대별 이용률 선 그래프">${grid}
+  $('#national').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="전체 시간대별 이용률 선 그래프">${grid}
     <path d="${path(n.slow)}" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round"/>
     <path d="${path(n.fast)}" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"/>
     <text x="${x(23) + 5}" y="${y(n.fast[23]) + 3}">급속</text><text x="${x(23) + 5}" y="${y(n.slow[23]) + 3}">완속</text>

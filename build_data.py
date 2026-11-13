@@ -20,9 +20,9 @@ stn = pd.read_csv(os.path.join(R, "stations.csv"))
 chg = pd.read_csv(os.path.join(R, "chargers.csv"), dtype={"chgerId": str})
 st = pd.concat([pd.read_csv(f, dtype={"chgerId": str})
                 for f in sorted(glob.glob(os.path.join(R, "status_daily", "status_*.csv")))])
-# 범위: 서울특별시 (주소 첫 단어 기준), 아파트(is_apt) 제외
-REGION = "서울특별시"
-stn = stn[(stn["addr"].str.split().str[0] == REGION) & (~stn["is_apt"].astype(bool))].reset_index(drop=True)  # 아파트 제외
+# 범위: 전국, 아파트(is_apt) 제외
+REGION = "전국"
+stn = stn[~stn["is_apt"].astype(bool)].reset_index(drop=True)  # 아파트 제외
 chg = chg[chg["statId"].isin(stn["statId"])]
 st = st[st["statId"].isin(stn["statId"])]
 st["collected_at"] = pd.to_datetime(st["collected_at"])
@@ -71,7 +71,7 @@ for r in stn.itertuples():
     o = occ_h[r.statId] if r.statId in occ_h.columns else None
     oc = [-1 if (o is None or pd.isna(v)) else int(round(v * 100)) for v in (o if o is not None else [None] * 24)]
     rows.append([r.statId, r.statNm, r.addr, round(float(r.lat), 5), round(float(r.lng), 5),
-                 r.addr.split()[1], KIND.get(r.kind, r.kind), int(r.n_chargers), int(r.n_fast), int(r.max_kw),
+                 r.addr.split()[0], KIND.get(r.kind, r.kind), int(r.n_chargers), int(r.n_fast), int(r.max_kw),
                  int(bool(r.is_apt)), int(bool(r.is_chaevistay)), oc,
                  round(float(med_fast[r.statId]), 1) if r.statId in med_fast.index else -1,
                  int(n_ses.get(r.statId, 0)),
