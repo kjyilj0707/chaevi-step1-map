@@ -83,6 +83,9 @@ canvas.icons{position:absolute;left:0;top:0;pointer-events:none}
 .tabs button{border:0;background:transparent;border-radius:11px;padding:9px 0;font-size:14px;font-weight:600;color:var(--ink2)}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--navy);box-shadow:0 1px 4px rgba(20,58,82,.15)}
 .body{flex:1;overflow-y:auto;padding:0 14px 14px;-webkit-overflow-scrolling:touch}
+.sort{display:flex;gap:6px;margin:0 0 8px}
+.sort button{border:1px solid var(--axis);background:var(--surface);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--ink2)}
+.sort button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
 .hint{font-size:11px;color:var(--ink2);margin:0 2px 6px}
 .row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--grid);cursor:pointer}
 .row:hover{background:var(--mintbg)}
@@ -216,6 +219,7 @@ function showTip(e, html){ tip.innerHTML = html; tip.style.display = 'block';
 const hideTip = () => tip.style.display = 'none';
 let toastT; function toast(t){ const el = $('#toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => el.style.display = 'none', 4000); }
 
+let sortBy = 'near';
 let D, shown = [], selected = null, hour = new Date().getHours(), tab = 'near', me = null, meDot = null, meAcc = null;
 const F = {fast:false, slow:false, stay:false, free:false, busy:false};
 const SEOUL = [37.5665, 126.978];
@@ -332,10 +336,17 @@ function renderBody(){
   if (tab === 'all') return renderAll(el);
   const c = map.getCenter(), ref = [c.lat, c.lng];
   const list = shown.map(s => [km(ref, [s[C.lat], s[C.lng]]), s]).sort((a, b) => a[0] - b[0]).slice(0, 30);
-  el.innerHTML = `<p class="hint">지도 가운데에서 가까운 순 · ${hour}시 이용률 (${D.meta.days_by_hour[hour]}일치 평균) · 조건에 맞는 ${shown.length.toLocaleString('ko-KR')}곳</p>` +
+  // 이용률 낮은 순: 가까운 30곳 안에서 다시 줄 세움 (기록 없는 곳은 맨 뒤, 같으면 가까운 순)
+  if (sortBy === 'occ') list.sort((a, b) => { const x = a[1][C.occ][hour], y = b[1][C.occ][hour];
+    return (x < 0) - (y < 0) || x - y || a[0] - b[0]; });
+  el.innerHTML = `<div class="sort" role="group" aria-label="정렬 기준">
+      <button type="button" data-s="near" aria-pressed="${sortBy === 'near'}">가까운 순</button>
+      <button type="button" data-s="occ" aria-pressed="${sortBy === 'occ'}">이용률 낮은 순</button></div>
+    <p class="hint">${sortBy === 'near' ? '지도 가운데에서 가까운 30곳' : '지도 가운데에서 가까운 30곳 안에서 이용률 낮은 순'} · ${hour}시 이용률 (${D.meta.days_by_hour[hour]}일치 평균) · 조건에 맞는 ${shown.length.toLocaleString('ko-KR')}곳</p>` +
     (list.map(([d, s]) => `<div class="row" data-id="${s[C.id]}"><span class="dot" style="background:${RAMP[bin(s[C.occ][hour])]}"></span>
       <div class="nm"><b>${s[C.name]}${s[C.stay] ? ' <span class="badge">스테이</span>' : ''}</b><span>${kmTxt(d)} · 충전기 ${s[C.n]}대(급속 ${s[C.nfast]}) · 최대 ${s[C.kw]}kW</span></div>
       <div class="oc"><b>${occTxt(s[C.occ][hour])}</b><span>이용률</span></div></div>`).join('') || '<p class="hint">조건에 맞는 충전소 없음</p>');
+  el.querySelectorAll('.sort button').forEach(b => b.onclick = () => { sortBy = b.dataset.s; renderBody(); });
   el.querySelectorAll('.row').forEach(r => r.onclick = () => select(D.stations.find(x => x[C.id] === r.dataset.id), true));
   el.scrollTop = 0;
 }
