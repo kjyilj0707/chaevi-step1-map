@@ -28,23 +28,12 @@ body{background:#f4ede2;color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSys
 button{font:inherit;color:inherit;cursor:pointer}
 
 /* 시작 화면 */
-#intro{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:24px 16px;
-  background:radial-gradient(1200px 700px at 80% 0%,#2a6a88 0%,transparent 60%),linear-gradient(160deg,#1b4965 0%,#0f2c3f 100%);color:#fff;transition:opacity .35s}
+#intro{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:#fff;color:var(--navy);transition:opacity .35s}
 #intro.hide{opacity:0;pointer-events:none}
 .intro-in{max-width:520px;width:100%;text-align:center}
-.app-icon{width:132px;height:132px;border-radius:30px;background:#fff;margin:0 auto 22px;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 40px rgba(0,0,0,.35)}
-.app-icon svg{width:96px;height:auto}
-.tag{display:inline-block;font-size:12px;letter-spacing:.04em;color:var(--mint);border:1px solid rgba(88,221,208,.5);border-radius:99px;padding:3px 12px;margin-bottom:14px}
-#intro h1{font-size:30px;line-height:1.25;margin:0 0 10px;font-weight:700}
-#intro h1 em{font-style:normal;color:var(--mint)}
-#intro p{margin:0 0 20px;color:#cfe0e8;font-size:14px}
-.intro-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 22px}
-.intro-kpis div{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 4px}
-.intro-kpis b{display:block;font-size:18px;font-variant-numeric:tabular-nums}
-.intro-kpis span{font-size:11px;color:#b9cfda}
-#start{appearance:none;border:0;background:var(--mint);color:#0f2c3f;font-weight:700;font-size:16px;padding:13px 34px;border-radius:99px}
-#start:hover{background:#7be8de}
-.disc{margin-top:18px !important;font-size:11px !important;color:#9fb8c5 !important}
+#intro h1{font-size:34px;line-height:1.25;margin:0 0 28px;font-weight:800;letter-spacing:-.01em}
+#start{appearance:none;border:0;background:var(--navy);color:#fff;font-weight:700;font-size:16px;padding:14px 34px;border-radius:99px}
+#start:hover{background:var(--navy2)}
 
 /* 본 화면: 지도가 전체, 그 위에 떠 있는 조작부 */
 #map{position:fixed;inset:0;background:#f1e9dc;outline:none}
@@ -130,20 +119,15 @@ svg.chart text{fill:var(--muted);font-size:10px}
   #toast{bottom:28px}
   .leaflet-bottom{bottom:0}
 }
-@media (max-width:820px){ #intro h1{font-size:24px} .intro-kpis b{font-size:15px} }
+@media (max-width:820px){ #intro h1{font-size:28px} }
 </style>
 </head>
 <body>
 
 <div id="intro">
   <div class="intro-in">
-    <div class="app-icon" id="introIcon"></div>
-    <div class="tag">STEP 1 · 충전소 지도</div>
-    <h1>같은 충전소도<br><em>시간에 따라</em> 붐비는 정도가 다름</h1>
-    <p>내 위치 주변 채비 충전소와 시간대별 이용률을 지도에서 확인</p>
-    <div class="intro-kpis" id="introKpis"></div>
-    <button id="start" type="button">내 위치에서 시작</button>
-    <p class="disc">DArt-B 8기 학술제 "마채테" 팀의 예비 대시보드임 · 채비(CHAEVI)의 공식 서비스가 아님<br>위치는 이 기기 화면에서만 쓰이고 어디에도 저장·전송되지 않음<br>자료: 환경공단 충전기 상태 기록 · 지도: OpenStreetMap</p>
+    <h1>마채테 STEP1</h1>
+    <button id="start" type="button">내 위치에서 시작하기</button>
   </div>
 </div>
 
@@ -213,7 +197,7 @@ const markSVG = (body, halo, dark) => `<svg xmlns="http://www.w3.org/2000/svg" v
 <circle cx="24" cy="24" r="${halo ? 19 : 21}" fill="${body}" stroke="${halo ? '#ff7a59' : '#17303f'}" stroke-width="${halo ? 6 : 2.5}"/>
 <path transform="translate(9.6 9.2) scale(1.2)" d="${VPATH}" fill="${dark ? '#17303f' : '#fff'}"/></svg>`;
 const logoSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="${VPATH}" fill="#2ccdbf"/></svg>`;
-$('#introIcon').innerHTML = logoSVG; $('#barIcon').innerHTML = logoSVG;
+$('#barIcon').innerHTML = logoSVG;
 const sprites = {};
 const loadSprites = () => Promise.all([0,1].flatMap(st => RAMP.map((col, i) => new Promise(res => {
   const im = new Image(); im.onload = res; im.onerror = res;
@@ -314,7 +298,6 @@ Promise.all([fetch('data/stations.json').then(r => r.json()), loadSprites()]).th
 function init(){
   const m = D.meta, f = n => n.toLocaleString('ko-KR');
   const k = [[f(m.n_stations),'충전소'],[f(m.n_chargers),'충전기'],[f(m.n_fast),'급속 충전기'],[m.n_stay,'채비스테이']];
-  $('#introKpis').innerHTML = k.map(v => `<div><b>${v[0]}</b><span>${v[1]}</span></div>`).join('');
   D.stations.sort((a,b) => (a[C.stay] - b[C.stay]) || (b[C.lat] - a[C.lat]));   // 북쪽부터 그리고 채비스테이는 맨 위
   refresh();
 }
@@ -410,6 +393,7 @@ function renderAll(el){
       <div class="nm"><b>${s[C.name]}</b><span>${s[C.sido]} · 충전기 ${s[C.n]}대</span></div><div class="oc"><b>${s[C.occ][hour]}%</b><span>이용률</span></div></div>`).join('') +
     `<h4>읽을 때 주의</h4><ul class="limits">${[
       `범위는 전국이고 아파트 충전소는 뺌. 수집 기간이 ${m.first.slice(0,10)} ~ ${m.last.slice(0,10)}(${m.n_polls}회)로 짧고 중간에 끊긴 구간이 있음. 시각마다 겹친 날 수가 1~3일이라 요일 차이는 볼 수 없음`,
+      'DArt-B 8기 학술제 마채테 팀의 예비 대시보드이며 채비(CHAEVI)의 공식 서비스가 아님. 위치는 이 기기 화면에서만 쓰이고 저장·전송되지 않음',
       '지금 이 순간의 상태가 아니라 수집 기간의 같은 시각 평균임',
       '이용률 = 충전중 대수 ÷ (충전대기 + 충전중) 대수. 통신이상·상태미확인 충전기는 계산에서 뺌',
       '바뀐 것만 담긴 기록(delta)은 직전 상태를 그대로 이어 붙여 계산함. 끊긴 구간 직후 값은 실제와 다를 수 있음',
