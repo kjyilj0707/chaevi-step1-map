@@ -268,7 +268,7 @@ function locate(first){
 }
 
 /* 경로 안내: 중계 서버(카카오 길찾기)에 요청, 2분마다 또는 경로에서 50m 넘게 벗어나면 다시 계산 */
-const ROUTE_API = location.hostname === 'localhost' ? 'http://localhost:8787' : '';   // 배포한 중계 서버 주소
+const ROUTE_API = location.hostname === 'localhost' ? 'http://localhost:8787' : 'https://chaevi-step1-route.machaete.workers.dev';   // 배포한 중계 서버 주소
 const REROUTE_MS = 120000, OFF_M = 50;
 map.createPane('route').style.zIndex = 350;
 let route = null, routeLine = null, routeTimer = null, watchId = null, lastReq = 0;
