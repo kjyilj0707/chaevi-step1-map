@@ -3,21 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#fffdf8">
 <title>충전소 지도 (STEP 1 예비)</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 :root{
-  --navy:#1b4965; --navy2:#143a52; --mint:#58ddd0; --mint2:#17a99a; --mintbg:#e9faf8;
-  --surface:#ffffff; --ink:#1d2730; --ink2:#5b6670; --muted:#919aa1;
-  --grid:#e8ecee; --axis:#c9d1d6; --accent:#ff7a59; --me:#2a78d6;
+  --navy:#1b4965; --navy2:#143a52; --mint:#58ddd0; --mint2:#17a99a; --mintbg:#f8f0e2;
+  --surface:#fffdf8; --ink:#2b2622; --ink2:#6b625a; --muted:#9a9087;
+  --grid:#efe8dc; --axis:#d6ccbe; --accent:#ff7a59; --me:#2a78d6;
   --q1:#d3f6f1; --q2:#8ee6dc; --q3:#3fcabd; --q4:#1f8f8f; --q5:#1b4965; --nodata:#b9bfc4;
-  --s1:#1b4965; --s3:#17a99a; --shadow:0 4px 16px rgba(20,58,82,.18);
+  --s1:#1b4965; --s3:#17a99a; --shadow:0 4px 16px rgba(74,52,28,.20);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0;overflow:hidden}
-body{background:#eef2f3;color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
+body{background:#f4ede2;color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
 button{font:inherit;color:inherit;cursor:pointer}
 
 /* 시작 화면 */
@@ -40,9 +40,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .disc{margin-top:18px !important;font-size:11px !important;color:#9fb8c5 !important}
 
 /* 본 화면: 지도가 전체, 그 위에 떠 있는 조작부 */
-#map{position:fixed;inset:0;background:#e9eef0;outline:none}
+#map{position:fixed;inset:0;background:#f1e9dc;outline:none}
 canvas.icons{position:absolute;left:0;top:0;pointer-events:none}
-.leaflet-tile-pane{filter:saturate(.55) brightness(1.07) contrast(.94)}
+.leaflet-tile-pane{filter:sepia(.28) saturate(.95) brightness(1.04) contrast(.95)}
 .top{position:fixed;z-index:1000;top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;max-width:520px;pointer-events:none}
 .top > *{pointer-events:auto}
 .search{display:flex;align-items:center;gap:10px;height:52px;background:var(--surface);border-radius:26px;box-shadow:var(--shadow);padding:0 8px 0 14px}
@@ -52,7 +52,7 @@ canvas.icons{position:absolute;left:0;top:0;pointer-events:none}
 .search button{flex:none;border:0;background:var(--mintbg);color:var(--navy);font-size:12px;font-weight:600;border-radius:99px;padding:8px 12px}
 .chips{display:flex;gap:8px;margin-top:10px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px}
 .chips::-webkit-scrollbar{display:none}
-.chip{flex:none;border:1px solid transparent;background:var(--surface);box-shadow:0 2px 8px rgba(20,58,82,.14);border-radius:99px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.chip{flex:none;border:1px solid transparent;background:var(--surface);box-shadow:0 2px 8px rgba(74,52,28,.16);border-radius:99px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;white-space:nowrap}
 .chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
 .chip[aria-pressed="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
 .hourpill{position:fixed;z-index:1000;left:12px;top:calc(132px + env(safe-area-inset-top));width:58px;background:var(--surface);border-radius:29px;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;padding:6px 0}
@@ -75,11 +75,11 @@ canvas.icons{position:absolute;left:0;top:0;pointer-events:none}
 .legendbox i.me{background:var(--me);border:2px solid #fff;box-shadow:0 0 0 1px var(--me)}
 
 /* 아래 서랍 */
-.sheet{position:fixed;z-index:1100;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -4px 20px rgba(20,58,82,.18);
+.sheet{position:fixed;z-index:1100;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -4px 20px rgba(74,52,28,.20);
   height:var(--sheet-h,190px);max-height:calc(100vh - 150px);display:flex;flex-direction:column;transition:height .25s;padding-bottom:env(safe-area-inset-bottom)}
 .handle{flex:none;border:0;background:transparent;width:100%;height:22px;display:flex;align-items:center;justify-content:center}
 .handle::before{content:"";width:44px;height:5px;border-radius:3px;background:var(--axis)}
-.tabs{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#eef2f3;border-radius:14px;padding:4px;margin:0 12px 8px}
+.tabs{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#f3ebdf;border-radius:14px;padding:4px;margin:0 12px 8px}
 .tabs button{border:0;background:transparent;border-radius:11px;padding:9px 0;font-size:14px;font-weight:600;color:var(--ink2)}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--navy);box-shadow:0 1px 4px rgba(20,58,82,.15)}
 .body{flex:1;overflow-y:auto;padding:0 14px 14px;-webkit-overflow-scrolling:touch}
