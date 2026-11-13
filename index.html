@@ -25,7 +25,7 @@ body{background:var(--page);color:var(--ink);font:14px/1.5 -apple-system,BlinkMa
 #intro.hide{opacity:0;pointer-events:none}
 .intro-in{max-width:520px;width:100%;text-align:center}
 .app-icon{width:132px;height:132px;border-radius:30px;background:#fff;margin:0 auto 22px;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 40px rgba(0,0,0,.35)}
-.app-icon svg{width:92px;height:auto}
+.app-icon svg{width:96px;height:auto}
 .tag{display:inline-block;font-size:12px;letter-spacing:.04em;color:var(--mint);border:1px solid rgba(88,221,208,.5);border-radius:99px;padding:3px 12px;margin-bottom:14px}
 #intro h1{font-size:30px;line-height:1.25;margin:0 0 10px;font-weight:700}
 #intro h1 em{font-style:normal;color:var(--mint)}
@@ -41,7 +41,7 @@ body{background:var(--page);color:var(--ink);font:14px/1.5 -apple-system,BlinkMa
 /* 본 화면 */
 .bar{height:52px;background:var(--navy);color:#fff;display:flex;align-items:center;gap:10px;padding:0 16px}
 .bar .logo{width:32px;height:32px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;flex:none}
-.bar .logo svg{width:22px;height:auto}
+.bar .logo svg{width:24px;height:auto}
 .bar b{font-size:16px}
 .bar span{font-size:12px;color:#b9cfda;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar button{margin-left:auto;appearance:none;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;font:inherit;font-size:12px;border-radius:99px;padding:4px 12px;cursor:pointer;flex:none}
@@ -66,7 +66,7 @@ input[type=checkbox],input[type=range]{accent-color:var(--mint2)}
 .hour b{min-width:44px;font-variant-numeric:tabular-nums;font-size:16px;color:var(--navy)}
 .note{font-size:11px;color:var(--ink2);margin:4px 0 0}
 .legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--ink2);margin-top:8px}
-.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;border:1px solid rgba(23,48,63,.55);vertical-align:-1px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:4px;border:1px solid rgba(23,48,63,.55);vertical-align:-1px}
 .legend i.line{border:0;border-radius:0;height:2px;width:14px;vertical-align:3px}
 .legend i.stay{border-radius:50%;background:#fff;border:3px solid var(--accent)}
 .card{border:1px solid var(--grid);border-radius:10px;padding:10px;border-left:4px solid var(--mint)}
@@ -131,7 +131,7 @@ canvas.icons{position:absolute;left:0;top:0;pointer-events:none}
       <div class="checks"><label><input type="checkbox" id="stayonly"> 채비스테이만</label></div>
     </div>
 
-    <h2>시각 선택 (아이콘 색 = 이 시각의 이용률)</h2>
+    <h2>시각 선택 (표시 색 = 이 시각의 이용률)</h2>
     <div class="hour"><input type="range" id="hour" min="0" max="23" value="19" aria-label="시각"><b id="hourLabel">19시</b></div>
     <p class="note" id="hourNote"></p>
     <div class="legend">
@@ -145,7 +145,7 @@ canvas.icons{position:absolute;left:0;top:0;pointer-events:none}
     </div>
 
     <h2>선택한 충전소</h2>
-    <div class="card" id="detail"><p>지도의 충전기 아이콘이나 아래 표의 줄을 누르면 시간대별 이용률이 나옴</p></div>
+    <div class="card" id="detail"><p>지도의 표시나 아래 표의 줄을 누르면 시간대별 이용률이 나옴</p></div>
 
     <h2>전체 시간대별 이용률 (충전중인 충전기 비율, %)</h2>
     <div class="legend" style="margin:0 0 4px">
@@ -171,24 +171,18 @@ const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).
 const RAMP = ['--nodata','--q1','--q2','--q3','--q4','--q5'].map(css);
 const bin = v => v < 0 ? 0 : v < 10 ? 1 : v < 25 ? 2 : v < 50 ? 3 : v < 75 ? 4 : 5;
 
-/* 충전기 아이콘 (직접 그린 그림, 몸통 색만 바뀜) */
-const chargerSVG = (body, halo) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 58" width="48" height="58">
-${halo ? '<circle cx="24" cy="28" r="23" fill="#fff" stroke="#ff7a59" stroke-width="3"/>' : ''}
-<ellipse cx="25" cy="52" rx="15" ry="3" fill="rgba(15,44,63,.22)"/>
-<rect x="10" y="6" width="29" height="44" rx="5" fill="${body}" stroke="#17303f" stroke-width="2"/>
-<rect x="14" y="10" width="15" height="36" rx="2.5" fill="#263340"/>
-<rect x="14" y="10" width="15" height="3.2" rx="1.5" fill="#a8f7f0"/>
-<rect x="17" y="18" width="9" height="8" rx="1.5" fill="#6b7a88"/>
-<circle cx="21.5" cy="36" r="3.2" fill="none" stroke="#a8f7f0" stroke-width="1.8"/>
-<path d="M21 36 C9 37 4 48 12 51" fill="none" stroke="#263340" stroke-width="3.6" stroke-linecap="round"/>
-<path d="M35.2 19 l-3.4 7.4 h3 l-1.6 6.6 l4.6-8.6 h-3 l1.6-5.4z" fill="#fff" stroke="#17303f" stroke-width=".6" stroke-linejoin="round"/>
-</svg>`;
-$('#introIcon').innerHTML = chargerSVG(css('--mint'), false);
-$('#barIcon').innerHTML = chargerSVG(css('--mint'), false);
+/* 표시 = 동그라미(이용률 색) + V 마크 */
+const VPATH = 'M2 5 H8.6 L12 12.4 L14.4 8 H12.9 L16.6 5 H22 L19.6 8.6 H21.1 L12.6 20 H11.2 Z';
+const markSVG = (body, halo, dark) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+<circle cx="24" cy="24" r="${halo ? 19 : 21}" fill="${body}" stroke="${halo ? '#ff7a59' : '#17303f'}" stroke-width="${halo ? 6 : 2.5}"/>
+<path transform="translate(9.6 9.2) scale(1.2)" d="${VPATH}" fill="${dark ? '#17303f' : '#fff'}"/></svg>`;
+const logoSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="${VPATH}" fill="#2ccdbf"/></svg>`;
+$('#introIcon').innerHTML = logoSVG;
+$('#barIcon').innerHTML = logoSVG;
 const sprites = {};
 const loadSprites = () => Promise.all([0,1].flatMap(st => RAMP.map((col, i) => new Promise(res => {
   const im = new Image(); im.onload = res; im.onerror = res;
-  im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(chargerSVG(col, !!st));
+  im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(markSVG(col, !!st, i < 4));
   sprites[st + '_' + i] = im; }))));
 
 const tip = $('#tip');
@@ -202,7 +196,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19,
   attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자'}).addTo(map);
 
 /* 아이콘을 한 장의 캔버스에 그리는 층 */
-const iconW = () => { const z = map.getZoom(); return z < 8 ? 13 : z < 10 ? 17 : z < 12 ? 22 : z < 14 ? 28 : 36; };
+const iconW = () => { const z = map.getZoom(); return z < 8 ? 9 : z < 10 ? 12 : z < 12 ? 16 : z < 14 ? 22 : 28; };
 const cv = L.DomUtil.create('canvas', 'icons leaflet-zoom-hide', map.getPanes().overlayPane);
 function draw(){
   const size = map.getSize(), dpr = window.devicePixelRatio || 1;
@@ -212,12 +206,12 @@ function draw(){
   const w0 = iconW();
   shown.forEach(s => {
     const p = map.latLngToContainerPoint([s[C.lat], s[C.lng]]);
-    const w = s[C.stay] ? w0 * 1.7 : w0, h = w * 58 / 48;
-    s._x = p.x; s._y = p.y - h / 2; s._r = w / 2 + 3;
+    const w = s[C.stay] ? w0 * 1.7 : w0, h = w;
+    s._x = p.x; s._y = p.y; s._r = w / 2 + 3;
     if (p.x < -w || p.y < -h || p.x > size.x + w || p.y > size.y + h){ s._x = -9999; return; }
-    if (s === selected){ g.beginPath(); g.arc(p.x, p.y - h / 2, w * .78, 0, 6.3); g.fillStyle = 'rgba(88,221,208,.45)'; g.fill(); g.lineWidth = 2; g.strokeStyle = '#1b4965'; g.stroke(); }
+    if (s === selected){ g.beginPath(); g.arc(p.x, p.y, w * .8, 0, 6.3); g.fillStyle = 'rgba(88,221,208,.45)'; g.fill(); g.lineWidth = 2; g.strokeStyle = '#1b4965'; g.stroke(); }
     const im = sprites[s[C.stay] + '_' + bin(s[C.occ][hour])];
-    if (im && im.complete) g.drawImage(im, p.x - w / 2, p.y - h, w, h);
+    if (im && im.complete) g.drawImage(im, p.x - w / 2, p.y - h / 2, w, h);
   });
 }
 map.on('move zoomend resize viewreset', draw);
