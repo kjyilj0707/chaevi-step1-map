@@ -2,22 +2,23 @@
 <html lang="ko" data-theme="light">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1b4965">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
 <title>충전소 지도 (STEP 1 예비)</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 :root{
   --navy:#1b4965; --navy2:#143a52; --mint:#58ddd0; --mint2:#17a99a; --mintbg:#e9faf8;
-  --page:#f2f5f6; --surface:#ffffff; --ink:#232323; --ink2:#5b6670; --muted:#919191;
-  --grid:#e5e9eb; --axis:#c9d1d6; --accent:#ff7a59;
+  --surface:#ffffff; --ink:#1d2730; --ink2:#5b6670; --muted:#919aa1;
+  --grid:#e8ecee; --axis:#c9d1d6; --accent:#ff7a59; --me:#2a78d6;
   --q1:#d3f6f1; --q2:#8ee6dc; --q3:#3fcabd; --q4:#1f8f8f; --q5:#1b4965; --nodata:#b9bfc4;
-  --s1:#1b4965; --s3:#17a99a;
+  --s1:#1b4965; --s3:#17a99a; --shadow:0 4px 16px rgba(20,58,82,.18);
 }
-*{box-sizing:border-box}
-html,body{height:100%;margin:0}
-body{background:var(--page);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:#eef2f3;color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
 
 /* 시작 화면 */
 #intro{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:24px 16px;
@@ -34,67 +35,92 @@ body{background:var(--page);color:var(--ink);font:14px/1.5 -apple-system,BlinkMa
 .intro-kpis div{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 4px}
 .intro-kpis b{display:block;font-size:18px;font-variant-numeric:tabular-nums}
 .intro-kpis span{font-size:11px;color:#b9cfda}
-#start{appearance:none;border:0;background:var(--mint);color:#0f2c3f;font:inherit;font-weight:700;font-size:16px;padding:13px 34px;border-radius:99px;cursor:pointer}
+#start{appearance:none;border:0;background:var(--mint);color:#0f2c3f;font-weight:700;font-size:16px;padding:13px 34px;border-radius:99px}
 #start:hover{background:#7be8de}
 .disc{margin-top:18px !important;font-size:11px !important;color:#9fb8c5 !important}
 
-/* 본 화면 */
-.bar{height:52px;background:var(--navy);color:#fff;display:flex;align-items:center;gap:10px;padding:0 16px}
-.bar .logo{width:32px;height:32px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;flex:none}
-.bar .logo svg{width:24px;height:auto}
-.bar b{font-size:16px}
-.bar span{font-size:12px;color:#b9cfda;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar button{margin-left:auto;appearance:none;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;font:inherit;font-size:12px;border-radius:99px;padding:4px 12px;cursor:pointer;flex:none}
-.app{display:grid;grid-template-columns:400px 1fr;height:calc(100vh - 52px)}
-.side{overflow-y:auto;padding:16px;border-right:1px solid var(--grid);background:var(--surface)}
-#map{height:100%;background:#dfe7ea;outline:none}
-.sub{color:var(--ink2);font-size:12px;margin:0 0 12px}
-h2{font-size:13px;margin:18px 0 8px;color:var(--navy);font-weight:700}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.kpi{background:var(--mintbg);border-radius:10px;padding:8px}
-.kpi b{display:block;font-size:17px;color:var(--navy);font-variant-numeric:tabular-nums}
-.kpi span{font-size:11px;color:var(--ink2)}
-.filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.filters label{font-size:11px;color:var(--ink2);display:block}
-select,input[type=search]{width:100%;padding:7px 8px;border:1px solid var(--axis);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit}
-select:focus,input:focus{outline:2px solid var(--mint);outline-offset:0;border-color:var(--mint2)}
-.checks{grid-column:1/-1;display:flex;gap:14px;flex-wrap:wrap}
-.checks label{font-size:13px;color:var(--ink);display:flex;gap:5px;align-items:center}
-input[type=checkbox],input[type=range]{accent-color:var(--mint2)}
-.hour{display:flex;align-items:center;gap:10px}
-.hour input{flex:1}
-.hour b{min-width:44px;font-variant-numeric:tabular-nums;font-size:16px;color:var(--navy)}
-.note{font-size:11px;color:var(--ink2);margin:4px 0 0}
-.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--ink2);margin-top:8px}
-.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:4px;border:1px solid rgba(23,48,63,.55);vertical-align:-1px}
-.legend i.line{border:0;border-radius:0;height:2px;width:14px;vertical-align:3px}
-.legend i.stay{border-radius:50%;background:#fff;border:3px solid var(--accent)}
-.card{border:1px solid var(--grid);border-radius:10px;padding:10px;border-left:4px solid var(--mint)}
-.card h3{margin:0;font-size:15px;color:var(--navy)}
-.card p{margin:2px 0;font-size:12px;color:var(--ink2)}
-.badge{font-size:11px;color:#fff;background:var(--accent);border-radius:99px;padding:1px 8px;font-weight:500;vertical-align:1px}
-.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
-.facts div{font-size:11px;color:var(--ink2)}
-.facts b{display:block;font-size:14px;color:var(--ink)}
-svg.chart{display:block;width:100%;height:auto;overflow:visible}
-svg.chart text{fill:var(--muted);font-size:10px}
-table{width:100%;border-collapse:collapse;font-size:12px}
-td,th{padding:5px 4px;border-bottom:1px solid var(--grid);text-align:left}
-th{color:var(--ink2);font-weight:500;font-size:11px}
-td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
-tbody tr{cursor:pointer}
-tbody tr:hover{background:var(--mintbg)}
-#tip{position:fixed;pointer-events:none;background:var(--navy2);color:#fff;padding:4px 9px;border-radius:6px;font-size:12px;display:none;z-index:4000;white-space:nowrap}
-.limits{font-size:11px;color:var(--ink2);padding-left:16px;margin:6px 0}
+/* 본 화면: 지도가 전체, 그 위에 떠 있는 조작부 */
+#map{position:fixed;inset:0;background:#e9eef0;outline:none}
 canvas.icons{position:absolute;left:0;top:0;pointer-events:none}
-@media (max-width:820px){
-  .app{grid-template-columns:1fr;height:auto}
-  #map{height:58vh;order:-1}
-  .side{border-right:0}
-  .bar span{display:none}
-  #intro h1{font-size:24px}
-  .intro-kpis b{font-size:15px}
+.leaflet-tile-pane{filter:saturate(.55) brightness(1.07) contrast(.94)}
+.top{position:fixed;z-index:1000;top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;max-width:520px;pointer-events:none}
+.top > *{pointer-events:auto}
+.search{display:flex;align-items:center;gap:10px;height:52px;background:var(--surface);border-radius:26px;box-shadow:var(--shadow);padding:0 8px 0 14px}
+.search .logo{width:28px;height:28px;flex:none}
+.search input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:var(--ink)}
+.search input::placeholder{color:var(--muted)}
+.search button{flex:none;border:0;background:var(--mintbg);color:var(--navy);font-size:12px;font-weight:600;border-radius:99px;padding:8px 12px}
+.chips{display:flex;gap:8px;margin-top:10px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid transparent;background:var(--surface);box-shadow:0 2px 8px rgba(20,58,82,.14);border-radius:99px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.chip[aria-pressed="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+.hourpill{position:fixed;z-index:1000;left:12px;top:calc(132px + env(safe-area-inset-top));width:58px;background:var(--surface);border-radius:29px;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;padding:6px 0}
+.hourpill button{border:0;background:transparent;width:44px;height:34px;font-size:15px;color:var(--navy);border-radius:17px}
+.hourpill button:active{background:var(--mintbg)}
+.hourpill b{font-size:19px;color:var(--navy);font-variant-numeric:tabular-nums;line-height:1.1}
+.hourpill span{font-size:10px;color:var(--ink2)}
+.hourpill hr{width:26px;border:0;border-top:3px solid var(--mint);border-radius:2px;margin:3px 0}
+.fabs{position:fixed;z-index:1000;right:12px;top:calc(132px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:10px}
+.fab{width:50px;height:50px;border-radius:50%;border:0;background:var(--surface);box-shadow:var(--shadow);font-size:12px;font-weight:700;color:var(--navy);display:flex;align-items:center;justify-content:center}
+.fab[aria-pressed="true"]{background:var(--navy);color:#fff}
+.fab svg{width:24px;height:24px}
+#locate{position:fixed;z-index:1000;right:12px;bottom:calc(var(--sheet-h, 190px) + 14px);color:var(--me)}
+.legendbox{position:fixed;z-index:1000;right:72px;top:calc(132px + env(safe-area-inset-top));background:var(--surface);border-radius:14px;box-shadow:var(--shadow);padding:10px 12px;font-size:12px;color:var(--ink2);display:none}
+.legendbox.on{display:block}
+.legendbox b{display:block;color:var(--navy);margin-bottom:4px;font-size:12px}
+.legendbox div{display:flex;align-items:center;gap:6px;line-height:1.7}
+.legendbox i{width:12px;height:12px;border-radius:50%;border:1px solid rgba(23,48,63,.55);display:inline-block}
+.legendbox i.stay{background:#fff;border:3px solid var(--accent)}
+.legendbox i.me{background:var(--me);border:2px solid #fff;box-shadow:0 0 0 1px var(--me)}
+
+/* 아래 서랍 */
+.sheet{position:fixed;z-index:1100;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -4px 20px rgba(20,58,82,.18);
+  height:var(--sheet-h,190px);max-height:calc(100vh - 150px);display:flex;flex-direction:column;transition:height .25s;padding-bottom:env(safe-area-inset-bottom)}
+.handle{flex:none;border:0;background:transparent;width:100%;height:22px;display:flex;align-items:center;justify-content:center}
+.handle::before{content:"";width:44px;height:5px;border-radius:3px;background:var(--axis)}
+.tabs{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#eef2f3;border-radius:14px;padding:4px;margin:0 12px 8px}
+.tabs button{border:0;background:transparent;border-radius:11px;padding:9px 0;font-size:14px;font-weight:600;color:var(--ink2)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--navy);box-shadow:0 1px 4px rgba(20,58,82,.15)}
+.body{flex:1;overflow-y:auto;padding:0 14px 14px;-webkit-overflow-scrolling:touch}
+.hint{font-size:11px;color:var(--ink2);margin:0 2px 6px}
+.row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--grid);cursor:pointer}
+.row:hover{background:var(--mintbg)}
+.row .dot{width:14px;height:14px;border-radius:50%;border:1px solid rgba(23,48,63,.55);flex:none}
+.row .nm{flex:1;min-width:0}
+.row .nm b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .nm span{font-size:11px;color:var(--ink2)}
+.row .oc{text-align:right;flex:none;font-variant-numeric:tabular-nums}
+.row .oc b{display:block;font-size:14px;color:var(--navy)}
+.row .oc span{font-size:11px;color:var(--ink2)}
+.badge{font-size:10px;color:#fff;background:var(--accent);border-radius:99px;padding:1px 7px;font-weight:600;vertical-align:1px}
+.back{border:0;background:var(--mintbg);color:var(--navy);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;margin-bottom:8px}
+h3{margin:0;font-size:17px;color:var(--navy)}
+.det p{margin:2px 0;font-size:12px;color:var(--ink2)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}
+.facts div{font-size:11px;color:var(--ink2);background:var(--mintbg);border-radius:10px;padding:7px 8px}
+.facts b{display:block;font-size:15px;color:var(--navy)}
+h4{font-size:13px;margin:14px 0 6px;color:var(--navy)}
+.lg{display:flex;gap:12px;font-size:11px;color:var(--ink2);margin-bottom:4px}
+.lg i{display:inline-block;height:2px;width:14px;vertical-align:3px;margin-right:4px}
+svg.chart{display:block;width:100%;max-width:520px;height:auto;overflow:visible}
+svg.chart text{fill:var(--muted);font-size:10px}
+.limits{font-size:11px;color:var(--ink2);padding-left:16px;margin:6px 0}
+#tip{position:fixed;pointer-events:none;background:var(--navy2);color:#fff;padding:4px 9px;border-radius:6px;font-size:12px;display:none;z-index:4000;white-space:nowrap}
+#toast{position:fixed;z-index:4500;left:50%;transform:translateX(-50%);bottom:calc(var(--sheet-h,190px) + 20px);background:rgba(20,58,82,.94);color:#fff;font-size:13px;border-radius:99px;padding:8px 16px;display:none;max-width:calc(100vw - 90px);text-align:center}
+.leaflet-control-attribution{font-size:9px}
+.leaflet-bottom{bottom:var(--sheet-h,190px)}
+
+@media (min-width:821px){
+  .sheet{left:12px;right:auto;bottom:12px;width:400px;border-radius:20px;box-shadow:var(--shadow);max-height:calc(100vh - 230px)}
+  .top{max-width:400px}
+  .hourpill,.fabs,.legendbox{top:24px}
+  .hourpill{left:424px}
+  #locate{bottom:24px}
+  #toast{bottom:28px}
+  .leaflet-bottom{bottom:0}
 }
+@media (max-width:820px){ #intro h1{font-size:24px} .intro-kpis b{font-size:15px} }
 </style>
 </head>
 <body>
@@ -104,65 +130,64 @@ canvas.icons{position:absolute;left:0;top:0;pointer-events:none}
     <div class="app-icon" id="introIcon"></div>
     <div class="tag">STEP 1 · 충전소 지도</div>
     <h1>같은 충전소도<br><em>시간에 따라</em> 붐비는 정도가 다름</h1>
-    <p>채비 충전소의 위치와 시간대별 이용률을 지도에서 확인</p>
+    <p>내 위치 주변 채비 충전소와 시간대별 이용률을 지도에서 확인</p>
     <div class="intro-kpis" id="introKpis"></div>
-    <button id="start" type="button">지도 보기</button>
-    <p class="disc">DArt-B 8기 학술제 "마채테" 팀의 예비 대시보드임 · 채비(CHAEVI)의 공식 서비스가 아님<br>자료: 환경공단 충전기 상태 기록 · 지도: OpenStreetMap</p>
+    <button id="start" type="button">내 위치에서 시작</button>
+    <p class="disc">DArt-B 8기 학술제 "마채테" 팀의 예비 대시보드임 · 채비(CHAEVI)의 공식 서비스가 아님<br>위치는 이 기기 화면에서만 쓰이고 어디에도 저장·전송되지 않음<br>자료: 환경공단 충전기 상태 기록 · 지도: OpenStreetMap</p>
   </div>
 </div>
 
-<header class="bar">
-  <div class="logo" id="barIcon"></div>
-  <b>충전소 지도</b>
-  <span>전국 (아파트 제외) · 학술제 팀 프로젝트(비공식) · <span id="period"></span></span>
-  <button id="home" type="button">처음 화면</button>
-</header>
+<div id="map"></div>
 
-<div class="app">
-  <aside class="side">
-    <div class="kpis" id="kpis"></div>
-
-    <h2>보기 조건</h2>
-    <div class="filters">
-      <div><label for="sido">시·도</label><select id="sido"><option value="">전체</option></select></div>
-      <div><label for="kind">시설 종류</label><select id="kind"><option value="">전체</option></select></div>
-      <div><label for="speed">충전 속도</label><select id="speed"><option value="">전체</option><option value="fast">급속 있음</option><option value="slow">완속만</option></select></div>
-      <div><label for="q">이름·주소 검색</label><input id="q" type="search" placeholder="예: 성수"></div>
-      <div class="checks"><label><input type="checkbox" id="stayonly"> 채비스테이만</label></div>
-    </div>
-
-    <h2>시각 선택 (표시 색 = 이 시각의 이용률)</h2>
-    <div class="hour"><input type="range" id="hour" min="0" max="23" value="19" aria-label="시각"><b id="hourLabel">19시</b></div>
-    <p class="note" id="hourNote"></p>
-    <div class="legend">
-      <span><i style="background:var(--q1)"></i>10% 미만</span>
-      <span><i style="background:var(--q2)"></i>10~25%</span>
-      <span><i style="background:var(--q3)"></i>25~50%</span>
-      <span><i style="background:var(--q4)"></i>50~75%</span>
-      <span><i style="background:var(--q5)"></i>75% 이상</span>
-      <span><i style="background:var(--nodata)"></i>기록 없음</span>
-      <span><i class="stay"></i>채비스테이</span>
-    </div>
-
-    <h2>선택한 충전소</h2>
-    <div class="card" id="detail"><p>지도의 표시나 아래 표의 줄을 누르면 시간대별 이용률이 나옴</p></div>
-
-    <h2>전체 시간대별 이용률 (충전중인 충전기 비율, %)</h2>
-    <div class="legend" style="margin:0 0 4px">
-      <span><i class="line" style="background:var(--s1)"></i>급속</span>
-      <span><i class="line" style="background:var(--s3)"></i>완속</span>
-    </div>
-    <div id="national"></div>
-
-    <h2 id="topTitle">이 시각 이용률 높은 곳</h2>
-    <table><thead><tr><th>충전소</th><th class="n">충전기</th><th class="n">이용률</th></tr></thead><tbody id="top"></tbody></table>
-
-    <h2>읽을 때 주의</h2>
-    <ul class="limits" id="limits"></ul>
-  </aside>
-  <div id="map"></div>
+<div class="top">
+  <div class="search">
+    <span class="logo" id="barIcon"></span>
+    <input id="q" type="search" placeholder="충전소 이름·주소 검색" autocomplete="off">
+    <button id="home" type="button">처음</button>
+  </div>
+  <div class="chips" id="chips">
+    <button class="chip" data-f="fast" aria-pressed="false">급속</button>
+    <button class="chip" data-f="slow" aria-pressed="false">완속만</button>
+    <button class="chip" data-f="stay" aria-pressed="false"><i style="background:var(--accent)"></i>채비스테이</button>
+    <button class="chip" data-f="free" aria-pressed="false"><i style="background:var(--q2)"></i>한가한 곳</button>
+    <button class="chip" data-f="busy" aria-pressed="false"><i style="background:var(--q5)"></i>붐비는 곳</button>
+  </div>
 </div>
-<div id="tip"></div>
+
+<div class="hourpill" aria-label="시각 선택">
+  <button id="hUp" type="button" aria-label="한 시간 뒤">▲</button>
+  <b id="hourLabel">19시</b><hr><span>이용률</span>
+  <button id="hDown" type="button" aria-label="한 시간 앞">▼</button>
+</div>
+
+<div class="fabs">
+  <button class="fab" id="legendBtn" type="button" aria-pressed="false">범례</button>
+  <button class="fab" id="allBtn" type="button">전국</button>
+</div>
+<div class="legendbox" id="legendbox">
+  <b>표시 색 = 선택한 시각의 이용률</b>
+  <div><i style="background:var(--q1)"></i>10% 미만</div>
+  <div><i style="background:var(--q2)"></i>10~25%</div>
+  <div><i style="background:var(--q3)"></i>25~50%</div>
+  <div><i style="background:var(--q4)"></i>50~75%</div>
+  <div><i style="background:var(--q5)"></i>75% 이상</div>
+  <div><i style="background:var(--nodata)"></i>기록 없음</div>
+  <div><i class="stay"></i>채비스테이</div>
+  <div><i class="me"></i>내 위치</div>
+</div>
+<button class="fab" id="locate" type="button" aria-label="내 위치로">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>
+</button>
+
+<section class="sheet" id="sheet">
+  <button class="handle" id="handle" type="button" aria-label="서랍 펼치기·접기"></button>
+  <div class="tabs" role="tablist">
+    <button id="tabNear" role="tab" aria-selected="true" type="button">주변 충전소</button>
+    <button id="tabAll" role="tab" aria-selected="false" type="button">전국 추세</button>
+  </div>
+  <div class="body" id="body"></div>
+</section>
+<div id="tip"></div><div id="toast"></div>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -170,6 +195,7 @@ const C = {id:0,name:1,addr:2,lat:3,lng:4,sido:5,kind:6,n:7,nfast:8,kw:9,apt:10,
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const RAMP = ['--nodata','--q1','--q2','--q3','--q4','--q5'].map(css);
 const bin = v => v < 0 ? 0 : v < 10 ? 1 : v < 25 ? 2 : v < 50 ? 3 : v < 75 ? 4 : 5;
+const occTxt = v => v < 0 ? '기록 없음' : v + '%';
 
 /* 표시 = 동그라미(이용률 색) + V 마크 */
 const VPATH = 'M2 5 H8.6 L12 12.4 L14.4 8 H12.9 L16.6 5 H22 L19.6 8.6 H21.1 L12.6 20 H11.2 Z';
@@ -177,8 +203,7 @@ const markSVG = (body, halo, dark) => `<svg xmlns="http://www.w3.org/2000/svg" v
 <circle cx="24" cy="24" r="${halo ? 19 : 21}" fill="${body}" stroke="${halo ? '#ff7a59' : '#17303f'}" stroke-width="${halo ? 6 : 2.5}"/>
 <path transform="translate(9.6 9.2) scale(1.2)" d="${VPATH}" fill="${dark ? '#17303f' : '#fff'}"/></svg>`;
 const logoSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="${VPATH}" fill="#2ccdbf"/></svg>`;
-$('#introIcon').innerHTML = logoSVG;
-$('#barIcon').innerHTML = logoSVG;
+$('#introIcon').innerHTML = logoSVG; $('#barIcon').innerHTML = logoSVG;
 const sprites = {};
 const loadSprites = () => Promise.all([0,1].flatMap(st => RAMP.map((col, i) => new Promise(res => {
   const im = new Image(); im.onload = res; im.onerror = res;
@@ -189,13 +214,16 @@ const tip = $('#tip');
 function showTip(e, html){ tip.innerHTML = html; tip.style.display = 'block';
   const x = Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8); tip.style.left = x + 'px'; tip.style.top = (e.clientY - 34) + 'px'; }
 const hideTip = () => tip.style.display = 'none';
+let toastT; function toast(t){ const el = $('#toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => el.style.display = 'none', 4000); }
 
-let D, shown = [], selected = null, hour = 19;
-const map = L.map('map').setView([36.3, 127.8], 7);
+let D, shown = [], selected = null, hour = new Date().getHours(), tab = 'near', me = null, meDot = null, meAcc = null;
+const F = {fast:false, slow:false, stay:false, free:false, busy:false};
+const SEOUL = [37.5665, 126.978];
+const map = L.map('map', {zoomControl:false}).setView(SEOUL, 12);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19,
   attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자'}).addTo(map);
 
-/* 아이콘을 한 장의 캔버스에 그리는 층 */
+/* 표시를 한 장의 캔버스에 그리는 층 */
 const iconW = () => { const z = map.getZoom(); return z < 8 ? 9 : z < 10 ? 12 : z < 12 ? 16 : z < 14 ? 22 : 28; };
 const cv = L.DomUtil.create('canvas', 'icons leaflet-zoom-hide', map.getPanes().overlayPane);
 function draw(){
@@ -206,106 +234,140 @@ function draw(){
   const w0 = iconW();
   shown.forEach(s => {
     const p = map.latLngToContainerPoint([s[C.lat], s[C.lng]]);
-    const w = s[C.stay] ? w0 * 1.7 : w0, h = w;
-    s._x = p.x; s._y = p.y; s._r = w / 2 + 3;
-    if (p.x < -w || p.y < -h || p.x > size.x + w || p.y > size.y + h){ s._x = -9999; return; }
-    if (s === selected){ g.beginPath(); g.arc(p.x, p.y, w * .8, 0, 6.3); g.fillStyle = 'rgba(88,221,208,.45)'; g.fill(); g.lineWidth = 2; g.strokeStyle = '#1b4965'; g.stroke(); }
+    const w = s[C.stay] ? w0 * 1.7 : w0;
+    s._x = p.x; s._y = p.y; s._r = w / 2 + 4;
+    if (p.x < -w || p.y < -w || p.x > size.x + w || p.y > size.y + w){ s._x = -9999; return; }
+    if (s === selected){ g.beginPath(); g.arc(p.x, p.y, w * .85, 0, 6.3); g.fillStyle = 'rgba(88,221,208,.45)'; g.fill(); g.lineWidth = 2; g.strokeStyle = '#1b4965'; g.stroke(); }
     const im = sprites[s[C.stay] + '_' + bin(s[C.occ][hour])];
-    if (im && im.complete) g.drawImage(im, p.x - w / 2, p.y - h / 2, w, h);
+    if (im && im.complete) g.drawImage(im, p.x - w / 2, p.y - w / 2, w, w);
   });
 }
 map.on('move zoomend resize viewreset', draw);
+map.on('moveend', () => { if (D && tab === 'near' && !selected) renderBody(); });
 function hit(pt){ let best = null, bd = 1e9;
   for (const s of shown){ if (s._x === undefined) continue; const d = Math.hypot(s._x - pt.x, s._y - pt.y); if (d < s._r && d < bd){ bd = d; best = s; } }
   return best; }
-map.on('click', e => { const s = hit(e.containerPoint); if (s) select(s); });
+map.on('click', e => { const s = hit(e.containerPoint); if (s) select(s, false); });
 map.on('mousemove', e => { const s = hit(e.containerPoint); map.getContainer().style.cursor = s ? 'pointer' : '';
-  if (s) showTip(e.originalEvent, `${s[C.name]} · ${hour}시 ${s[C.occ][hour] < 0 ? '기록 없음' : s[C.occ][hour] + '%'}`); else hideTip(); });
+  if (s) showTip(e.originalEvent, `${s[C.name]} · ${hour}시 ${occTxt(s[C.occ][hour])}`); else hideTip(); });
 map.on('mouseout', hideTip);
 
-$('#start').onclick = () => $('#intro').classList.add('hide');
+/* 내 위치 */
+function locate(first){
+  if (!navigator.geolocation){ toast('이 브라우저는 위치 기능이 없어 서울 중심으로 보여 줌'); return; }
+  navigator.geolocation.getCurrentPosition(p => {
+    me = [p.coords.latitude, p.coords.longitude];
+    if (!meDot){
+      meAcc = L.circle(me, {radius:p.coords.accuracy, color:css('--me'), weight:1, fillOpacity:.12, interactive:false}).addTo(map);
+      meDot = L.circleMarker(me, {radius:8, color:'#fff', weight:3, fillColor:css('--me'), fillOpacity:1, interactive:false}).addTo(map);
+    } else { meDot.setLatLng(me); meAcc.setLatLng(me).setRadius(p.coords.accuracy); }
+    map.setView(me, Math.max(map.getZoom(), 14));
+  }, err => toast(err.code === 1 ? '위치 권한이 꺼져 있어 서울 중심으로 보여 줌' : '위치를 가져오지 못해 서울 중심으로 보여 줌'),
+  {enableHighAccuracy:true, timeout:10000, maximumAge:60000});
+}
+$('#locate').onclick = () => locate(false);
+$('#start').onclick = () => { $('#intro').classList.add('hide'); locate(true); };
 $('#home').onclick = () => $('#intro').classList.remove('hide');
-if (location.hash === '#map') $('#intro').classList.add('hide');
+if (location.hash === '#map'){ $('#intro').classList.add('hide'); locate(true); }
+
+/* 서랍 높이 */
+let sheetOpen = false;
+function setSheet(open){ sheetOpen = open; const wide = innerWidth > 820;
+  const h = open ? Math.round(innerHeight * (wide ? .62 : .6)) : (wide ? 250 : 190);
+  document.documentElement.style.setProperty('--sheet-h', h + 'px'); }
+$('#handle').onclick = () => setSheet(!sheetOpen);
+addEventListener('resize', () => setSheet(sheetOpen));
+setSheet(false);
+
+$('#legendBtn').onclick = () => { const on = $('#legendbox').classList.toggle('on'); $('#legendBtn').setAttribute('aria-pressed', on); };
+if (innerWidth > 820) $('#legendBtn').click();
+$('#allBtn').onclick = () => map.setView([36.3, 127.8], innerWidth > 820 ? 7 : 6);
+$('#hUp').onclick = () => { hour = (hour + 1) % 24; refresh(); };
+$('#hDown').onclick = () => { hour = (hour + 23) % 24; refresh(); };
+$('#chips').querySelectorAll('.chip').forEach(b => b.onclick = () => {
+  const k = b.dataset.f; F[k] = !F[k];
+  if (k === 'fast' && F.fast) F.slow = false; if (k === 'slow' && F.slow) F.fast = false;
+  if (k === 'free' && F.free) F.busy = false; if (k === 'busy' && F.busy) F.free = false;
+  $('#chips').querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', F[c.dataset.f]));
+  selected = null; refresh();
+  if (F.stay && shown.length) map.fitBounds(L.latLngBounds(shown.map(s => [s[C.lat], s[C.lng]])).pad(0.2), {maxZoom:14});
+});
+$('#q').addEventListener('input', () => { selected = null; refresh();
+  if ($('#q').value.trim() && shown.length && shown.length <= 200) map.fitBounds(L.latLngBounds(shown.map(s => [s[C.lat], s[C.lng]])).pad(0.2), {maxZoom:15}); });
+$('#tabNear').onclick = () => setTab('near'); $('#tabAll').onclick = () => setTab('all');
+function setTab(t){ tab = t; selected = null; $('#tabNear').setAttribute('aria-selected', t === 'near'); $('#tabAll').setAttribute('aria-selected', t === 'all');
+  if (t === 'all') setSheet(true); renderBody(); draw(); }
 
 Promise.all([fetch('data/stations.json').then(r => r.json()), loadSprites()]).then(([d]) => { D = d; init(); });
 
 function init(){
   const m = D.meta, f = n => n.toLocaleString('ko-KR');
-  $('#period').textContent = m.first.slice(5,16) + ' ~ ' + m.last.slice(5,16) + ' (수집 ' + m.n_polls + '회)';
   const k = [[f(m.n_stations),'충전소'],[f(m.n_chargers),'충전기'],[f(m.n_fast),'급속 충전기'],[m.n_stay,'채비스테이']];
-  $('#kpis').innerHTML = k.map(v => `<div class="kpi"><b>${v[0]}</b><span>${v[1]}</span></div>`).join('');
   $('#introKpis').innerHTML = k.map(v => `<div><b>${v[0]}</b><span>${v[1]}</span></div>`).join('');
-  const opts = i => [...new Set(D.stations.map(s => s[i]))].sort((a,b) => a.localeCompare(b,'ko'));
-  $('#sido').insertAdjacentHTML('beforeend', opts(C.sido).map(v => `<option>${v}</option>`).join(''));
-  $('#kind').insertAdjacentHTML('beforeend', opts(C.kind).map(v => `<option>${v}</option>`).join(''));
-  $('#limits').innerHTML = [
-    `범위는 전국이고 아파트 충전소는 뺌. 수집 기간이 ${m.first.slice(0,10)} ~ ${m.last.slice(0,10)}로 짧고 중간에 끊긴 구간이 있음. 시각마다 겹친 날 수가 1~3일이라 요일 차이는 볼 수 없음`,
-    '이용률 = 충전중 대수 ÷ (충전대기 + 충전중) 대수. 통신이상·상태미확인 충전기는 계산에서 뺌',
-    '바뀐 것만 담긴 기록(delta)은 직전 상태를 그대로 이어 붙여 계산함. 끊긴 구간 직후 값은 실제와 다를 수 있음',
-    `충전 1회 시간 중앙값: 급속 ${m.med_fast_min}분, 완속 ${m.med_slow_min}분 (충전 ${f(m.n_sessions)}회 기준, 1분 미만·24시간 초과 제외)`
-  ].map(t => `<li>${t}</li>`).join('');
-  // 그리는 순서: 북쪽부터, 채비스테이는 맨 위
-  D.stations.sort((a,b) => (a[C.stay] - b[C.stay]) || (b[C.lat] - a[C.lat]));
-  ['sido','kind','speed','stayonly'].forEach(id => $('#' + id).addEventListener('change', () => refresh(true)));
-  $('#q').addEventListener('input', () => refresh(false));
-  $('#hour').addEventListener('input', e => { hour = +e.target.value; refresh(false); });
-  drawNational();
-  refresh(false);
+  D.stations.sort((a,b) => (a[C.stay] - b[C.stay]) || (b[C.lat] - a[C.lat]));   // 북쪽부터 그리고 채비스테이는 맨 위
+  refresh();
 }
 
 function passes(s){
-  const sido = $('#sido').value, kind = $('#kind').value, sp = $('#speed').value, q = $('#q').value.trim();
-  if (sido && s[C.sido] !== sido) return false;
-  if (kind && s[C.kind] !== kind) return false;
-  if (sp === 'fast' && s[C.nfast] === 0) return false;
-  if (sp === 'slow' && s[C.nfast] > 0) return false;
-  if ($('#stayonly').checked && !s[C.stay]) return false;
+  const q = $('#q').value.trim(), o = s[C.occ][hour];
+  if (F.fast && s[C.nfast] === 0) return false;
+  if (F.slow && s[C.nfast] > 0) return false;
+  if (F.stay && !s[C.stay]) return false;
+  if (F.free && !(o >= 0 && o < 25)) return false;
+  if (F.busy && !(o >= 50)) return false;
   if (q && !(s[C.name].includes(q) || s[C.addr].includes(q))) return false;
   return true;
 }
+function refresh(){ $('#hourLabel').textContent = hour + '시'; shown = D.stations.filter(passes); draw(); renderBody(); }
 
-function refresh(fit){
-  $('#hourLabel').textContent = hour + '시';
-  $('#hourNote').textContent = `${hour}시대 수집 ${D.meta.polls_by_hour[hour]}회 · ${D.meta.days_by_hour[hour]}일치 평균`;
-  shown = D.stations.filter(passes);
-  if (fit && shown.length) map.fitBounds(L.latLngBounds(shown.map(s => [s[C.lat], s[C.lng]])).pad(0.1), {maxZoom:14});
-  draw();
-  const top = shown.filter(s => s[C.occ][hour] >= 0 && s[C.n] >= 2)
-    .sort((a,b) => b[C.occ][hour] - a[C.occ][hour] || b[C.n] - a[C.n]).slice(0, 10);
-  $('#topTitle').textContent = `${hour}시 이용률 높은 곳 (조건에 맞는 ${shown.length.toLocaleString('ko-KR')}곳 중, 충전기 2대 이상)`;
-  $('#top').innerHTML = top.map(s => `<tr data-id="${s[C.id]}"><td>${s[C.name]}</td><td class="n">${s[C.n]}</td><td class="n">${s[C.occ][hour]}%</td></tr>`).join('')
-    || '<tr><td colspan="3">조건에 맞는 충전소 없음</td></tr>';
-  $('#top').querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => {
-    const s = D.stations.find(x => x[C.id] === tr.dataset.id); select(s); map.setView([s[C.lat], s[C.lng]], Math.max(map.getZoom(), 14)); });
-  if (selected) drawDetail();
+const km = (a, b) => { const R = 6371, r = Math.PI / 180, dLa = (b[0] - a[0]) * r, dLo = (b[1] - a[1]) * r;
+  const x = Math.sin(dLa / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
+const kmTxt = d => d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(d < 10 ? 1 : 0) + 'km';
+
+function select(s, pan){ selected = s; if (pan) map.setView([s[C.lat], s[C.lng]], Math.max(map.getZoom(), 15)); setSheet(true); renderBody(); draw(); }
+
+function renderBody(){
+  const el = $('#body');
+  if (selected) return renderDetail(el);
+  if (tab === 'all') return renderAll(el);
+  const c = map.getCenter(), ref = [c.lat, c.lng];
+  const list = shown.map(s => [km(ref, [s[C.lat], s[C.lng]]), s]).sort((a, b) => a[0] - b[0]).slice(0, 30);
+  el.innerHTML = `<p class="hint">지도 가운데에서 가까운 순 · ${hour}시 이용률 (${D.meta.days_by_hour[hour]}일치 평균) · 조건에 맞는 ${shown.length.toLocaleString('ko-KR')}곳</p>` +
+    (list.map(([d, s]) => `<div class="row" data-id="${s[C.id]}"><span class="dot" style="background:${RAMP[bin(s[C.occ][hour])]}"></span>
+      <div class="nm"><b>${s[C.name]}${s[C.stay] ? ' <span class="badge">스테이</span>' : ''}</b><span>${kmTxt(d)} · 충전기 ${s[C.n]}대(급속 ${s[C.nfast]}) · 최대 ${s[C.kw]}kW</span></div>
+      <div class="oc"><b>${occTxt(s[C.occ][hour])}</b><span>이용률</span></div></div>`).join('') || '<p class="hint">조건에 맞는 충전소 없음</p>');
+  el.querySelectorAll('.row').forEach(r => r.onclick = () => select(D.stations.find(x => x[C.id] === r.dataset.id), true));
+  el.scrollTop = 0;
 }
 
-function select(s){ selected = s; drawDetail(); draw(); }
-
-function drawDetail(){
+function renderDetail(el){
   const s = selected, o = s[C.occ], W = 360, H = 130, L0 = 26, B = 18, T = 8, bw = (W - L0) / 24;
   const y = v => T + (H - T - B) * (1 - v / 100);
   let bars = '';
   for (let h = 0; h < 24; h++){
     const v = o[h], x = L0 + h * bw + 1;
-    if (v >= 0){
-      const top = y(v), ht = H - B - top, r = Math.min(3, ht);
-      bars += `<path d="M${x},${H-B} V${top + r} Q${x},${top} ${x + r},${top} H${x + bw - 2 - r} Q${x + bw - 2},${top} ${x + bw - 2},${top + r} V${H-B} Z" fill="${h === hour ? 'var(--s1)' : 'var(--q3)'}"/>`;
-    }
-    bars += `<rect x="${L0 + h * bw}" y="${T}" width="${bw}" height="${H - T - B}" fill="transparent" data-t="${h}시 · ${v < 0 ? '기록 없음' : v + '%'}"/>`;
+    if (v >= 0){ const top = y(v), ht = H - B - top, r = Math.min(3, ht);
+      bars += `<path d="M${x},${H-B} V${top + r} Q${x},${top} ${x + r},${top} H${x + bw - 2 - r} Q${x + bw - 2},${top} ${x + bw - 2},${top + r} V${H-B} Z" fill="${h === hour ? 'var(--s1)' : 'var(--q3)'}"/>`; }
+    bars += `<rect x="${L0 + h * bw}" y="${T}" width="${bw}" height="${H - T - B}" fill="transparent" data-t="${h}시 · ${occTxt(v)}"/>`;
   }
   const grid = [0,50,100].map(v => `<line x1="${L0}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${L0 - 4}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join('');
   const xl = [0,6,12,18,23].map(h => `<text x="${L0 + h * bw + bw / 2}" y="${H - 4}" text-anchor="middle">${h}시</text>`).join('');
-  $('#detail').innerHTML = `<h3>${s[C.name]}${s[C.stay] ? ' <span class="badge">채비스테이</span>' : ''}</h3>
-    <p>${s[C.addr]}</p><p>${s[C.kind]}</p>
-    <div class="facts"><div><b>${s[C.n]}대</b>충전기 (급속 ${s[C.nfast]})</div><div><b>${s[C.kw]}kW</b>최대 출력</div>
+  const dist = me ? ` · 내 위치에서 ${kmTxt(km(me, [s[C.lat], s[C.lng]]))}` : '';
+  el.innerHTML = `<div class="det"><button class="back" id="back" type="button">← 목록</button>
+    <h3>${s[C.name]}${s[C.stay] ? ' <span class="badge">채비스테이</span>' : ''}</h3>
+    <p>${s[C.addr]}</p><p>${s[C.kind]}${dist}</p>
+    <div class="facts"><div><b>${occTxt(o[hour])}</b>${hour}시 이용률</div><div><b>${s[C.n]}대</b>충전기 (급속 ${s[C.nfast]})</div>
     <div><b>${s[C.med] < 0 ? '-' : s[C.med] + '분'}</b>급속 1회 중앙값</div></div>
-    <p>시간대별 이용률(%) · 남색 막대 = 선택한 ${hour}시 (${o[hour] < 0 ? '기록 없음' : o[hour] + '%'})${s[C.bad] > 0 ? ' · 통신이상 ' + s[C.bad] + '%' : ''}</p>
-    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="시간대별 이용률 막대 그래프">${grid}${bars}${xl}</svg>`;
-  $('#detail').querySelectorAll('rect[data-t]').forEach(r => { r.onmousemove = e => showTip(e, r.dataset.t); r.onmouseleave = hideTip; });
+    <h4>시간대별 이용률 (%) · 남색 막대 = ${hour}시</h4>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="시간대별 이용률 막대 그래프">${grid}${bars}${xl}</svg>
+    <p>최대 출력 ${s[C.kw]}kW${s[C.bad] > 0 ? ' · 통신이상 ' + s[C.bad] + '%' : ''}</p></div>`;
+  $('#back').onclick = () => { selected = null; renderBody(); draw(); };
+  el.querySelectorAll('rect[data-t]').forEach(r => { r.onmousemove = e => showTip(e, r.dataset.t); r.onmouseleave = hideTip; });
+  el.scrollTop = 0;
 }
 
-function drawNational(){
+function renderAll(el){
+  const m = D.meta, f = n => n.toLocaleString('ko-KR');
   const W = 360, H = 150, L0 = 26, B = 18, T = 8, R = 30, n = D.national;
   const max = Math.ceil(Math.max(...n.fast, ...n.slow) / 10) * 10;
   const x = h => L0 + (W - L0 - R) * h / 23, y = v => T + (H - T - B) * (1 - v / max);
@@ -313,17 +375,35 @@ function drawNational(){
   const grid = [0, max / 2, max].map(v => `<line x1="${L0}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${L0 - 4}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join('');
   const xl = [0,6,12,18,23].map(h => `<text x="${x(h)}" y="${H - 4}" text-anchor="middle">${h}시</text>`).join('');
   let yf = y(n.fast[23]) + 3, ys = y(n.slow[23]) + 3; if (Math.abs(yf - ys) < 11){ if (yf > ys) yf = ys + 11; else ys = yf + 11; }
-  $('#national').innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="전체 시간대별 이용률 선 그래프">${grid}
+  const top = shown.filter(s => s[C.occ][hour] >= 0 && s[C.n] >= 2).sort((a,b) => b[C.occ][hour] - a[C.occ][hour] || b[C.n] - a[C.n]).slice(0, 10);
+  el.innerHTML = `<div class="facts" style="grid-template-columns:repeat(4,1fr)"><div><b>${f(m.n_stations)}</b>충전소</div><div><b>${f(m.n_chargers)}</b>충전기</div><div><b>${f(m.n_fast)}</b>급속</div><div><b>${m.n_stay}</b>스테이</div></div>
+    <h4>전국 시간대별 이용률 (충전중인 충전기 비율, %)</h4>
+    <div class="lg"><span><i style="background:var(--s1)"></i>급속</span><span><i style="background:var(--s3)"></i>완속</span></div>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="전국 시간대별 이용률 선 그래프">${grid}
+    <line x1="${x(hour)}" x2="${x(hour)}" y1="${T}" y2="${H - B}" stroke="var(--mint)" stroke-width="2"/>
     <path d="${path(n.slow)}" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round"/>
     <path d="${path(n.fast)}" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"/>
     <text x="${x(23) + 5}" y="${yf}">급속</text><text x="${x(23) + 5}" y="${ys}">완속</text>
     <line id="cross" y1="${T}" y2="${H - B}" stroke="var(--axis)" style="display:none"/>
-    ${xl}<rect id="hit" x="${L0}" y="${T}" width="${W - L0 - R}" height="${H - T - B}" fill="transparent"/></svg>`;
+    ${xl}<rect id="hit" x="${L0}" y="${T}" width="${W - L0 - R}" height="${H - T - B}" fill="transparent"/></svg>
+    <p class="hint">민트색 세로선 = 선택한 ${hour}시 (급속 ${n.fast[hour]}% · 완속 ${n.slow[hour]}%)</p>
+    <h4>${hour}시 이용률 높은 곳 (충전기 2대 이상)</h4>` +
+    top.map(s => `<div class="row" data-id="${s[C.id]}"><span class="dot" style="background:${RAMP[bin(s[C.occ][hour])]}"></span>
+      <div class="nm"><b>${s[C.name]}</b><span>${s[C.sido]} · 충전기 ${s[C.n]}대</span></div><div class="oc"><b>${s[C.occ][hour]}%</b><span>이용률</span></div></div>`).join('') +
+    `<h4>읽을 때 주의</h4><ul class="limits">${[
+      `범위는 전국이고 아파트 충전소는 뺌. 수집 기간이 ${m.first.slice(0,10)} ~ ${m.last.slice(0,10)}(${m.n_polls}회)로 짧고 중간에 끊긴 구간이 있음. 시각마다 겹친 날 수가 1~3일이라 요일 차이는 볼 수 없음`,
+      '지금 이 순간의 상태가 아니라 수집 기간의 같은 시각 평균임',
+      '이용률 = 충전중 대수 ÷ (충전대기 + 충전중) 대수. 통신이상·상태미확인 충전기는 계산에서 뺌',
+      '바뀐 것만 담긴 기록(delta)은 직전 상태를 그대로 이어 붙여 계산함. 끊긴 구간 직후 값은 실제와 다를 수 있음',
+      `충전 1회 시간 중앙값: 급속 ${m.med_fast_min}분, 완속 ${m.med_slow_min}분 (충전 ${f(m.n_sessions)}회 기준, 1분 미만·24시간 초과 제외)`
+    ].map(t => `<li>${t}</li>`).join('')}</ul>`;
+  el.querySelectorAll('.row').forEach(r => r.onclick = () => select(D.stations.find(x => x[C.id] === r.dataset.id), true));
   const hitR = $('#hit'), cross = $('#cross');
   hitR.onmousemove = e => { const b = hitR.getBoundingClientRect(), h = Math.max(0, Math.min(23, Math.round((e.clientX - b.left) / b.width * 23)));
     cross.setAttribute('x1', x(h)); cross.setAttribute('x2', x(h)); cross.style.display = '';
     showTip(e, `${h}시 · 급속 ${n.fast[h]}% · 완속 ${n.slow[h]}%`); };
   hitR.onmouseleave = () => { cross.style.display = 'none'; hideTip(); };
+  el.scrollTop = 0;
 }
 </script>
 </body>
