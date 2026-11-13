@@ -1,0 +1,5 @@
+name = "chaevi-step1-route"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+# 카카오 키는 여기에 적지 않음. 배포 후 `npx wrangler secret put KAKAO_REST_API_KEY` 로 넣음.
