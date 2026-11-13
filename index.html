@@ -176,9 +176,9 @@ svg.chart text{fill:var(--muted);font-size:10px}
   <div><i style="background:var(--q5)"></i>75% 이상</div>
   <div><i style="background:var(--nodata)"></i>기록 없음</div>
   <div><i class="stay"></i>채비스테이</div>
-  <div><i class="me"></i>내 위치</div>
+  <div><img src="car.png" alt="" style="width:12px;height:19px;margin:0 0"> 내 위치</div>
 </div>
-<button class="fab" id="locate" type="button" aria-label="내 위치로">
+<button class="fab" id="locate" type="button" aria-label="내 위치로" style="color:var(--mint2)">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>
 </button>
 
@@ -262,8 +262,8 @@ function locate(first){
   navigator.geolocation.getCurrentPosition(p => {
     me = [p.coords.latitude, p.coords.longitude];
     if (!meDot){
-      meAcc = L.circle(me, {radius:p.coords.accuracy, color:css('--me'), weight:1, fillOpacity:.12, interactive:false}).addTo(map);
-      meDot = L.circleMarker(me, {radius:8, color:'#fff', weight:3, fillColor:css('--me'), fillOpacity:1, interactive:false}).addTo(map);
+      meAcc = L.circle(me, {radius:p.coords.accuracy, color:css('--mint2'), weight:1, fillColor:css('--mint'), fillOpacity:.18, interactive:false}).addTo(map);
+      meDot = L.marker(me, {icon:L.icon({iconUrl:'car.png', iconSize:[38,60], iconAnchor:[19,30]}), interactive:false, keyboard:false, zIndexOffset:1000}).addTo(map);
     } else { meDot.setLatLng(me); meAcc.setLatLng(me).setRadius(p.coords.accuracy); }
     map.setView(me, Math.max(map.getZoom(), 14));
   }, err => toast(err.code === 1 ? '위치 권한이 꺼져 있어 서울 중심으로 보여 줌' : '위치를 가져오지 못해 서울 중심으로 보여 줌'),
