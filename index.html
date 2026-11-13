@@ -69,7 +69,7 @@ tbody tr:hover{background:var(--page)}
 <body>
 <div class="app">
   <aside class="side">
-    <h1>채비 충전소 지도 · 서울특별시</h1>
+    <h1>채비 충전소 지도 · 서울특별시 (아파트 제외)</h1>
     <p class="sub">STEP 1 예비 대시보드 · 환경공단 충전기 상태 기록 기준 · <span id="period"></span></p>
 
     <div class="kpis" id="kpis"></div>
@@ -81,7 +81,6 @@ tbody tr:hover{background:var(--page)}
       <div><label for="speed">충전 속도</label><select id="speed"><option value="">전체</option><option value="fast">급속 있음</option><option value="slow">완속만</option></select></div>
       <div><label for="q">이름·주소 검색</label><input id="q" type="search" placeholder="예: 성수"></div>
       <div class="checks">
-        <label><input type="checkbox" id="noapt"> 아파트 제외</label>
         <label><input type="checkbox" id="stayonly"> 채비스테이만</label>
       </div>
     </div>
@@ -145,7 +144,7 @@ function init(){
   $('#sido').insertAdjacentHTML('beforeend', opts(C.sido).map(v => `<option>${v}</option>`).join(''));
   $('#kind').insertAdjacentHTML('beforeend', opts(C.kind).map(v => `<option>${v}</option>`).join(''));
   $('#limits').innerHTML = [
-    `범위는 주소가 서울특별시인 충전소만임. 수집 기간이 ${m.first.slice(0,10)} ~ ${m.last.slice(0,10)}로 짧고 중간에 끊긴 구간이 있음. 시각마다 겹친 날 수가 1~3일이라 요일 차이는 볼 수 없음`,
+    `범위는 주소가 서울특별시인 충전소만이고 아파트 충전소는 뺌. 수집 기간이 ${m.first.slice(0,10)} ~ ${m.last.slice(0,10)}로 짧고 중간에 끊긴 구간이 있음. 시각마다 겹친 날 수가 1~3일이라 요일 차이는 볼 수 없음`,
     '이용률 = 충전중 대수 ÷ (충전대기 + 충전중) 대수. 통신이상·상태미확인 충전기는 계산에서 뺌',
     '바뀐 것만 담긴 기록(delta)은 직전 상태를 그대로 이어 붙여 계산함. 끊긴 구간 직후 값은 실제와 다를 수 있음',
     `충전 1회 시간 중앙값: 급속 ${m.med_fast_min}분, 완속 ${m.med_slow_min}분 (충전 ${f(m.n_sessions)}회 기준, 1분 미만·24시간 초과 제외)`
@@ -160,7 +159,7 @@ function init(){
     mk.on('click', () => select(s));
     markers.push(mk);
   });
-  ['sido','kind','speed','noapt','stayonly'].forEach(id => $('#' + id).addEventListener('change', () => refresh(true)));
+  ['sido','kind','speed','stayonly'].forEach(id => $('#' + id).addEventListener('change', () => refresh(true)));
   $('#q').addEventListener('input', () => refresh(false));
   $('#hour').addEventListener('input', e => { hour = +e.target.value; refresh(false); });
   drawNational();
@@ -175,7 +174,6 @@ function passes(s){
   if (kind && s[C.kind] !== kind) return false;
   if (sp === 'fast' && s[C.nfast] === 0) return false;
   if (sp === 'slow' && s[C.nfast] > 0) return false;
-  if ($('#noapt').checked && s[C.apt]) return false;
   if ($('#stayonly').checked && !s[C.stay]) return false;
   if (q && !(s[C.name].includes(q) || s[C.addr].includes(q))) return false;
   return true;

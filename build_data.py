@@ -20,9 +20,9 @@ stn = pd.read_csv(os.path.join(R, "stations.csv"))
 chg = pd.read_csv(os.path.join(R, "chargers.csv"), dtype={"chgerId": str})
 st = pd.concat([pd.read_csv(f, dtype={"chgerId": str})
                 for f in sorted(glob.glob(os.path.join(R, "status_daily", "status_*.csv")))])
-# 범위: 서울특별시 (주소 첫 단어 기준)
+# 범위: 서울특별시 (주소 첫 단어 기준), 아파트(is_apt) 제외
 REGION = "서울특별시"
-stn = stn[stn["addr"].str.split().str[0] == REGION].reset_index(drop=True)
+stn = stn[(stn["addr"].str.split().str[0] == REGION) & (~stn["is_apt"].astype(bool))].reset_index(drop=True)  # 아파트 제외
 chg = chg[chg["statId"].isin(stn["statId"])]
 st = st[st["statId"].isin(stn["statId"])]
 st["collected_at"] = pd.to_datetime(st["collected_at"])
