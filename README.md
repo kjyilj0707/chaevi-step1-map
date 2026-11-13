@@ -1,4 +1,6 @@
-# 채비 충전소 지도 (STEP 1 예비 대시보드)
+# 채비 서울 충전소 지도 (STEP 1 예비 대시보드)
+
+- 범위: 주소가 서울특별시인 충전소만
 
 - 지도 바탕: OpenStreetMap (Leaflet)
 - 자료: 환경공단 충전기 상태 기록 (팀 드라이브 `01_충전소_지도/raw`의 `stations.csv`, `chargers.csv`, `status_daily/`)

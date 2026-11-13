@@ -20,6 +20,11 @@ stn = pd.read_csv(os.path.join(R, "stations.csv"))
 chg = pd.read_csv(os.path.join(R, "chargers.csv"), dtype={"chgerId": str})
 st = pd.concat([pd.read_csv(f, dtype={"chgerId": str})
                 for f in sorted(glob.glob(os.path.join(R, "status_daily", "status_*.csv")))])
+# 범위: 서울특별시 (주소 첫 단어 기준)
+REGION = "서울특별시"
+stn = stn[stn["addr"].str.split().str[0] == REGION].reset_index(drop=True)
+chg = chg[chg["statId"].isin(stn["statId"])]
+st = st[st["statId"].isin(stn["statId"])]
 st["collected_at"] = pd.to_datetime(st["collected_at"])
 st["key"] = st["statId"] + "|" + st["chgerId"]
 st = st.sort_values("collected_at")
@@ -43,7 +48,7 @@ occ_h = occ.groupby(polls.hour).mean()                   # 시 x 충전소
 occ_h = occ_h.reindex(range(24))
 n_polls_h = pd.Series(polls.hour).value_counts().reindex(range(24), fill_value=0).sort_index()
 
-# 전국 급속/완속 시별 이용률
+# 범위 전체 급속/완속 시별 이용률
 def nat(mask):
     b = busy.loc[:, mask].sum(axis=1); u = usable.loc[:, mask].sum(axis=1)
     return (b / u).groupby(polls.hour).mean().reindex(range(24))
@@ -66,7 +71,7 @@ for r in stn.itertuples():
     o = occ_h[r.statId] if r.statId in occ_h.columns else None
     oc = [-1 if (o is None or pd.isna(v)) else int(round(v * 100)) for v in (o if o is not None else [None] * 24)]
     rows.append([r.statId, r.statNm, r.addr, round(float(r.lat), 5), round(float(r.lng), 5),
-                 r.addr.split()[0], KIND.get(r.kind, r.kind), int(r.n_chargers), int(r.n_fast), int(r.max_kw),
+                 r.addr.split()[1], KIND.get(r.kind, r.kind), int(r.n_chargers), int(r.n_fast), int(r.max_kw),
                  int(bool(r.is_apt)), int(bool(r.is_chaevistay)), oc,
                  round(float(med_fast[r.statId]), 1) if r.statId in med_fast.index else -1,
                  int(n_ses.get(r.statId, 0)),
@@ -75,7 +80,7 @@ for r in stn.itertuples():
 pc = lambda s: [None if pd.isna(v) else round(float(v) * 100, 1) for v in s]
 out = {
     "meta": {
-        "first": str(polls.min()), "last": str(polls.max()), "n_polls": int(len(polls)),
+        "region": REGION, "first": str(polls.min()), "last": str(polls.max()), "n_polls": int(len(polls)),
         "n_records": int(len(st)), "n_stations": int(len(stn)), "n_chargers": int(len(chg)),
         "n_fast": int(chg["is_fast"].sum()), "n_stay": int(stn["is_chaevistay"].sum()),
         "n_sessions": int(len(ses)),
