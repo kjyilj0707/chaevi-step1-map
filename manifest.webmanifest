@@ -1,0 +1,21 @@
+{
+ "name": "충전소 지도 (학술제 예비)",
+ "short_name": "충전소 지도",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#fffdf8",
+ "theme_color": "#fffdf8",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  }
+ ]
+}
