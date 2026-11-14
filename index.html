@@ -163,8 +163,43 @@ svg.chart text{fill:var(--muted);font-size:10px}
 body.nav .top,body.nav .hourpill,body.nav #legendBtn,body.nav #allBtn,body.nav .legendbox,body.nav .sheet,body.nav #locate{display:none}
 body.nav .fabs{top:calc(112px + env(safe-area-inset-top))}
 body.nav .navtop{display:flex}
-.navtop{position:fixed;z-index:1200;top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;max-width:520px;min-height:78px;align-items:center;gap:12px;
-  background:var(--navy);color:#fff;border-radius:18px;box-shadow:var(--shadow);padding:12px 18px}
+.navtop{position:fixed;z-index:1200;top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;max-width:520px;flex-direction:column;
+  background:var(--navy);color:#fff;border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+.navmain{display:flex;align-items:center;gap:12px;min-height:78px;padding:12px 18px}
+.navnote{display:flex;align-items:center;gap:12px;background:var(--navy2);padding:0 16px;max-height:0;opacity:0;transition:max-height .35s ease, opacity .35s ease, padding .35s ease}
+.navnote.on{max-height:80px;opacity:1;padding:12px 16px}
+.navnote .noteic{width:40px;height:40px;border-radius:11px;background:#fff;flex:none;display:flex;align-items:center;justify-content:center}
+.navnote .noteic svg{width:26px;height:26px}
+.navnote b{display:block;font-size:17px !important;font-weight:700;line-height:1.3 !important}
+.navnote span{font-size:15px;color:#cfe0e8}
+/* 도보 안내: 흰 동그라미 안 화살표 + 그 아래 거리, 오른쪽에 방향 */
+body.walk .navmain{display:grid;grid-template-columns:76px 1fr;column-gap:14px;row-gap:4px;align-items:center;padding:16px 20px 14px}
+body.walk .navarrow{grid-column:1;grid-row:1;width:64px;height:64px;border-radius:50%;background:#fff;color:var(--navy);align-items:center;justify-content:center;justify-self:center}
+body.walk .navarrow svg{width:36px;height:36px}
+body.walk #navDist{grid-column:1;grid-row:2;font-size:17px;font-weight:700;text-align:center}
+body.walk #navText{grid-column:2;grid-row:1;font-size:26px !important;font-weight:700}
+body.walk .fabs{top:calc(176px + env(safe-area-inset-top))}
+body.nav.walk .navfabs,body.nav.walk .navcard{display:none}
+.walkfab,.walkcard{display:none}
+body.walk .walkfab{display:flex;position:fixed;z-index:1000;bottom:calc(124px + env(safe-area-inset-bottom))}
+#walkOverview{left:12px} #walkRe{right:12px}
+body.walk .walkcard{display:block}
+.walkcard{position:fixed;z-index:1200;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -4px 20px rgba(74,52,28,.20);padding:8px 14px calc(18px + env(safe-area-inset-bottom)) 18px}
+.wgrip{display:block;width:44px;height:5px;border-radius:3px;background:var(--axis);margin:0 auto 10px}
+.wrow{display:flex;align-items:center;gap:10px}
+.wmain{flex:1;min-width:0}
+.wline{display:flex;align-items:baseline;gap:10px;color:var(--navy);white-space:nowrap}
+.wline b{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.wline b small{font-size:16px;font-weight:700}
+.wline i{width:1px;height:14px;background:var(--axis);align-self:center}
+.wline span{font-size:16px;font-weight:600;color:var(--mint2)}
+.wbar{position:relative;height:6px;border-radius:3px;background:var(--grid);margin:14px 6px 4px 10px}
+.wfill{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--navy);width:0;transition:width .4s}
+.wdot{position:absolute;top:50%;left:0;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:#fff;border:3px solid var(--navy);color:var(--navy);display:flex;align-items:center;justify-content:center;transition:left .4s}
+#walkMenu{flex:none;width:48px;height:48px;border:0;background:transparent;color:var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center}
+body.walk .recenter{bottom:calc(124px + env(safe-area-inset-bottom))}
+body.walk .navdetail{bottom:calc(112px + env(safe-area-inset-bottom))}
+body.walk .maplibregl-ctrl-bottom-left{display:none}
 .navarrow{width:46px;height:46px;flex:none;color:var(--mint);display:flex}
 .navarrow svg{width:100%;height:100%}
 .navtop b{font-size:32px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -191,7 +226,7 @@ body.nav .navdetail.on{display:block}
 .navdetail{position:fixed;z-index:1150;left:12px;right:12px;max-width:520px;bottom:calc(122px + env(safe-area-inset-bottom));background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:14px}
 .navdetail p{margin:2px 0;font-size:13px;color:var(--ink2)}
 .navdetail p b{color:var(--navy)}
-@media (min-width:821px){ .navtop,.navcard,.navdetail{left:50%;right:auto;width:520px;transform:translateX(-50%)} }
+@media (min-width:821px){ .navtop,.navcard,.navdetail,.walkcard{left:50%;right:auto;width:520px;transform:translateX(-50%)} }
 #tip{position:fixed;pointer-events:none;background:var(--navy2);color:#fff;padding:4px 9px;border-radius:6px;font-size:12px;display:none;z-index:4000;white-space:nowrap}
 #toast{position:fixed;z-index:4500;left:50%;transform:translateX(-50%);bottom:calc(var(--sheet-h,190px) + 20px);background:rgba(20,58,82,.94);color:#fff;font-size:13px;border-radius:99px;padding:8px 16px;display:none;max-width:calc(100vw - 90px);text-align:center}
 .maplibregl-ctrl-attrib{font-size:9px}
@@ -272,7 +307,10 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>
 </button>
 
-<div class="navtop" id="navTop"><span class="navarrow" id="navArrow"></span><b id="navDist"></b><span id="navText"></span></div>
+<div class="navtop" id="navTop">
+  <div class="navnote" id="navNote"><span class="noteic" id="noteIc"></span><div><b>길안내를 시작합니다.</b><span id="noteTxt"></span></div></div>
+  <div class="navmain"><span class="navarrow" id="navArrow"></span><b id="navDist"></b><span id="navText"></span></div>
+</div>
 <div class="navfabs">
   <button class="fab" id="zin" type="button" aria-label="확대">＋</button>
   <button class="fab" id="zout" type="button" aria-label="축소">－</button>
@@ -280,6 +318,18 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
 </div>
 <button class="recenter" id="recenter" type="button"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M21 3 L3 10.5 L10.5 13.5 L13.5 21 Z" fill="currentColor"/></svg>내 위치로</button>
 <div class="navdetail" id="navDetail"></div>
+<button class="fab walkfab" id="walkOverview" type="button" aria-label="경로 전체 보기"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="17.5" cy="5.5" r="2.5"/><path d="M4 19h9a3.5 3.5 0 0 0 0-7H8.5a3.5 3.5 0 0 1 0-7H12"/><circle cx="4" cy="19" r="1.2" fill="currentColor"/></svg></button>
+<button class="fab walkfab" id="walkRe" type="button" aria-label="다시 계산"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg></button>
+<div class="walkcard" id="walkCard">
+  <i class="wgrip"></i>
+  <div class="wrow">
+    <div class="wmain">
+      <div class="wline"><b id="wMin"></b><i></i><b id="wDist"></b><i></i><span id="wEta"></span></div>
+      <div class="wbar"><div class="wfill" id="wFill"></div><span class="wdot" id="wDot"><svg viewBox="0 0 24 24" width="12" height="12"><path d="M8 5l11 7-11 7z" fill="currentColor"/></svg></span></div>
+    </div>
+    <button id="walkMenu" type="button" aria-label="자세히"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</div>
 <div class="navcard" id="navCard">
   <button id="navRe" type="button" aria-label="다시 계산"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-14 5.3"/><path d="M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4"/><path d="M6 21v-4h4"/></svg></button>
   <div class="navmid"><span id="navName"></span><div><b id="navEta"></b><b id="navRem"></b></div></div>
@@ -333,7 +383,9 @@ $('#barIcon').innerHTML = logoSVG;
 const sprites = {};
 const loadPins = () => Promise.all(PICON.map((_, i) => new Promise(res => { const im = new Image(96, 96); im.onload = res; im.onerror = res;
   im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pinSVG(i)); sprites['p' + i] = im; })));
-const loadSprites = () => Promise.all([loadPins()].concat([0,1].flatMap(st => RAMP.map((col, i) => new Promise(res => {
+const loadChev = () => new Promise(res => { const im = new Image(48, 48); im.onload = res; im.onerror = res;      // 경로선 위 진행 방향 표시
+  im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48"><path d="M7 4 L20 12 L7 20 L10.5 12 Z" fill="#143a52"/></svg>'); sprites.chev = im; });
+const loadSprites = () => Promise.all([loadPins(), loadChev()].concat([0,1].flatMap(st => RAMP.map((col, i) => new Promise(res => {
   const im = new Image(96, 96); im.onload = res; im.onerror = res;
   im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(markSVG(col, !!st, i < 4));
   sprites['m' + st + '_' + i] = im; })))));
@@ -364,10 +416,13 @@ const zoomSize = (z, lo, hi) => lo + (hi - lo) * Math.max(0, Math.min(1, (z - 7)
 const sizeExpr = (lo, hi) => ['interpolate', ['linear'], ['zoom'], 7, ['*', ['get', 'k'], lo / 48], 16, ['*', ['get', 'k'], hi / 48]];
 const mapLoaded = new Promise(res => map.on('load', () => {
   Object.entries(sprites).forEach(([k, im]) => map.addImage(k, im, {pixelRatio:2}));
-  ['route','acc','ring','poi','sel','st','stay'].forEach(id => map.addSource(id, {type:'geojson', data:EMPTY}));
+  ['route','conn','acc','ring','poi','sel','st','stay'].forEach(id => map.addSource(id, {type:'geojson', data:EMPTY}));
   map.addLayer({id:'acc', type:'fill', source:'acc', paint:{'fill-color':'#58ddd0', 'fill-opacity':0.18, 'fill-outline-color':'#17a99a'}});
-  map.addLayer({id:'route-case', type:'line', source:'route', layout:{'line-cap':'round', 'line-join':'round'}, paint:{'line-color':'#143a52', 'line-width':['interpolate',['linear'],['zoom'],8,6,16,13]}});
-  map.addLayer({id:'route-line', type:'line', source:'route', layout:{'line-cap':'round', 'line-join':'round'}, paint:{'line-color':'#58ddd0', 'line-width':['interpolate',['linear'],['zoom'],8,3,16,8]}});
+  map.addLayer({id:'route-case', type:'line', source:'route', layout:{'line-cap':'round', 'line-join':'round'}, paint:{'line-color':'#143a52', 'line-width':['interpolate',['linear'],['zoom'],8,6,16,14,18,17]}});
+  map.addLayer({id:'route-line', type:'line', source:'route', layout:{'line-cap':'round', 'line-join':'round'}, paint:{'line-color':'#58ddd0', 'line-width':['interpolate',['linear'],['zoom'],8,3,16,9,18,12]}});
+  map.addLayer({id:'conn', type:'line', source:'conn', layout:{'line-cap':'round'}, paint:{'line-color':'#8d99a3', 'line-width':5, 'line-dasharray':[0.1, 2.2]}});
+  map.addLayer({id:'route-arrows', type:'symbol', source:'route', layout:{'symbol-placement':'line', 'symbol-spacing':['interpolate',['linear'],['zoom'],12,34,18,56],
+    'icon-image':'chev', 'icon-size':['interpolate',['linear'],['zoom'],12,0.4,16,0.62,18,0.8], 'icon-allow-overlap':true, 'icon-ignore-placement':true, 'icon-rotation-alignment':'map'}});
   map.addLayer({id:'ring-fill', type:'fill', source:'ring', paint:{'fill-color':'#1b4965', 'fill-opacity':0.05}});
   map.addLayer({id:'ring', type:'line', source:'ring', paint:{'line-color':'#1b4965', 'line-width':1.5, 'line-dasharray':[3, 3]}});
   map.addLayer({id:'poi', type:'symbol', source:'poi', layout:{'icon-image':['concat', 'p', ['to-string', ['get', 'c']]],
@@ -389,7 +444,7 @@ function updateMap(){
   if (!selected || route) clearPoi(); else if (poi.s === selected) drawPoi();
   if (route && route.mode === 'walk'){ const d = route.dest;       // 도보 안내 중에는 목적지 핀 하나만 남김
     map.getSource('poi').setData({type:'FeatureCollection', features:[{type:'Feature', geometry:{type:'Point', coordinates:[d.lng, d.lat]}, properties:{n:d.name, c:d.c, s:d.sub, d:d.d}}]}); }
-  map.setPaintProperty('route-line', 'line-dasharray', route && route.mode === 'walk' ? [0.1, 1.8] : [1, 0]);
+
 }
 const draw = updateMap;
 const byId = id => D.stations.find(x => x[C.id] === id);
@@ -527,6 +582,7 @@ async function requestRoute(why){
       Object.assign(route, {path:r.path, cum:prepPath(r.path), dist:r.distance, rem:r.distance, dur:r.duration, guides:r.guides || [], gi:1, pos:0, at:new Date(), why, n:(route.n || 0) + 1, err:null, off:0});
       route.guides.forEach(g => { g.s = progress([g.lat, g.lng], route.path, route.cum).s; });   // 각 안내 지점이 경로의 몇 m 지점인지
       map.getSource('route').setData({type:'Feature', geometry:{type:'LineString', coordinates:r.path.map(p => [p[1], p[0]])}, properties:{}});
+      map.getSource('conn').setData({type:'Feature', geometry:{type:'LineString', coordinates:[[from[1], from[0]], [r.path[0][1], r.path[0][0]]]}, properties:{}});   // 출발점에서 길까지
       if (first){ if (route.track) setFollow(true); else overview(); }
     }
   } catch (e){ if (route === cur) route.err = '경로 서버에 연결하지 못함'; }
@@ -542,10 +598,15 @@ function onMove(p){
   renderNav();
   if (route.off > off && Date.now() - lastReq > 10000) requestRoute('경로에서 ' + Math.round(route.off) + 'm 벗어남');
 }
+let noteT = null;
+function showNote(r){       // 안내 시작 알림: 몇 초 보였다가 접힘
+  $('#noteIc').innerHTML = logoSVG; $('#noteTxt').textContent = `${r.dest.name}까지 ${r.mode === 'walk' ? '도보 ' : ''}이동`;
+  $('#navNote').classList.add('on'); clearTimeout(noteT); noteT = setTimeout(() => $('#navNote').classList.remove('on'), 4500);
+}
 function beginRoute(r){
   stopRoute(true); route = Object.assign({n:0}, r); document.body.classList.add('nav'); document.body.classList.toggle('walk', r.mode === 'walk');
   carEl.src = r.mode === 'walk' ? WALKER : 'car.png';
-  hideTip(); hidePlace(); renderBody(); updateMap();
+  hideTip(); hidePlace(); renderBody(); updateMap(); showNote(r);
 }
 function startRoute(s){        // 자동차: 내 위치 → 충전소
   if (!navigator.geolocation){ toast('이 브라우저는 위치 기능이 없어 경로를 계산하지 못함'); return; }
@@ -566,7 +627,8 @@ function startWalk(place){     // 도보: 충전소(또는 그 근처의 내 위
 }
 function stopRoute(quiet){
   clearInterval(routeTimer); routeTimer = null;
-  if (ready) map.getSource('route').setData(EMPTY);
+  if (ready){ map.getSource('route').setData(EMPTY); map.getSource('conn').setData(EMPTY); }
+  clearTimeout(noteT); $('#navNote').classList.remove('on');
   const wasWalk = route && route.mode === 'walk';
   document.body.classList.remove('nav', 'walk'); $('#navDetail').classList.remove('on'); $('#recenter').classList.remove('on');
   carEl.src = 'car.png';
@@ -579,7 +641,7 @@ function overview(){        // 경로 전체가 보이게
   if (!route || !route.path) return; setFollow(false);
   let a = [180, 90, -180, -90]; route.path.concat(route.track && me ? [me] : []).forEach(([lat, lng]) => { a = [Math.min(a[0], lng), Math.min(a[1], lat), Math.max(a[2], lng), Math.max(a[3], lat)]; });
   map.setPadding({top:0, bottom:0, left:0, right:0});
-  map.fitBounds([[a[0], a[1]], [a[2], a[3]]], {padding:{top:130, bottom:160, left:50, right:80}, pitch:0, bearing:0, maxZoom:18, duration:800});
+  map.fitBounds([[a[0], a[1]], [a[2], a[3]]], {padding:{top:route.mode === 'walk' ? 220 : 130, bottom:route.mode === 'walk' ? 190 : 160, left:50, right:80}, pitch:0, bearing:0, maxZoom:18, duration:800});
 }
 const WALKER = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96"><circle cx="24" cy="24" r="20" fill="#1b4965" stroke="#fff" stroke-width="4"/><path d="M24 10 L34 34 L24 28.5 L14 34 Z" fill="#58ddd0"/></svg>');
 
@@ -751,7 +813,8 @@ function renderNav(){
   $('#navName').textContent = (walk ? '도보 · ' : '') + route.dest.name;
   if (!route.path){
     $('#navArrow').innerHTML = ARROW.straight; $('#navDist').textContent = ''; $('#navText').textContent = route.err || '경로 계산 중…';
-    $('#navEta').textContent = '--:--'; $('#navRem').textContent = ''; $('#navDetail').innerHTML = detailHTML(); bindDetail(); return;
+    $('#navEta').textContent = '--:--'; $('#navRem').textContent = ''; $('#navDetail').innerHTML = detailHTML(); bindDetail();
+    $('#wMin').textContent = '--'; $('#wDist').textContent = ''; $('#wEta').textContent = route.err || '경로 계산 중…'; return;
   }
   const g = route.guides, last = route.gi >= g.length - 1, cur = g[Math.min(route.gi, g.length - 1)];
   const d = last || !cur ? route.rem : Math.max(0, cur.s - (route.pos || 0));      // 다음 안내 지점까지 경로를 따라 남은 거리
@@ -761,6 +824,13 @@ function renderNav(){
   $('#navEta').textContent = hm(eta);
   $('#navRem').innerHTML = (rem < 1 ? Math.round(rem * 1000) + '<small>m</small>' : rem.toFixed(1) + '<small>km</small>');
   $('#navDetail').innerHTML = detailHTML(); bindDetail();
+  if (walk){      // 도보: 남은 시간 | 남은 거리 | 도착 시각 + 진행 막대
+    const frac = Math.max(0, Math.min(1, 1 - route.rem / (route.dist || 1))), left = route.dur * (1 - frac), mins = Math.max(1, Math.round(left / 60));
+    $('#wMin').innerHTML = mins >= 60 ? `${Math.floor(mins / 60)}<small>시간</small> ${mins % 60}<small>분</small>` : `${mins}<small>분</small>`;
+    $('#wDist').innerHTML = rem < 1 ? Math.round(rem * 1000) + '<small>m</small>' : rem.toFixed(1) + '<small>km</small>';
+    $('#wEta').textContent = hm(new Date(Date.now() + left * 1000)) + ' 도착';
+    $('#wFill').style.width = frac * 100 + '%'; $('#wDot').style.left = frac * 100 + '%';
+  }
 }
 function detailHTML(){
   const d = route.dest, walk = route.mode === 'walk'; let info = `<p>${route.err || '경로 계산 중…'}</p>`;
@@ -778,6 +848,9 @@ function detailHTML(){
 function bindDetail(){ const b = $('#stopRoute'); if (b) b.onclick = () => stopRoute(); }
 $('#navRe').onclick = () => requestRoute('직접 다시 계산');
 $('#navMenu').onclick = () => $('#navDetail').classList.toggle('on');
+$('#walkMenu').onclick = () => $('#navDetail').classList.toggle('on');
+$('#walkRe').onclick = () => requestRoute('직접 다시 계산');
+$('#walkOverview').onclick = () => overview();
 $('#recenter').onclick = () => setFollow(true);
 $('#zin').onclick = () => map.easeTo({zoom:map.getZoom() + 1, duration:300});
 $('#zout').onclick = () => map.easeTo({zoom:map.getZoom() - 1, duration:300});
