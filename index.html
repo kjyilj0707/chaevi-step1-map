@@ -100,17 +100,37 @@ body.dragging #map{pointer-events:none}
 .act.ghost{background:var(--mintbg);color:var(--navy)}
 .next{background:var(--mintbg);border-radius:10px;padding:8px 10px;color:var(--ink) !important;font-size:14px !important}
 .next b{color:var(--navy);margin-right:6px}
-.pchips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
-.pchips button{border:1px solid var(--axis);background:var(--surface);border-radius:99px;padding:5px 10px;font-size:12px;color:var(--ink);display:flex;align-items:center;gap:5px}
-.pchips button i{width:9px;height:9px;border-radius:50%;display:inline-block}
-.pchips button b{font-variant-numeric:tabular-nums}
-.pchips button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
-.prow{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--grid);cursor:pointer}
-.prow .dot{width:11px;height:11px;border-radius:50%;flex:none}
+.infrabar,#infraChips,.listbtn{display:none}
+body.infra .search,body.infra #chips{display:none}
+body.infra .infrabar{display:flex}
+body.infra #infraChips{display:flex}
+.infrabar{align-items:center;gap:6px;height:52px;background:var(--navy);color:#fff;border-radius:26px;box-shadow:var(--shadow);padding:0 6px}
+.infrabar button{flex:none;width:40px;height:40px;border:0;background:transparent;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.infrabar button:active{background:rgba(255,255,255,.15)}
+.infrabar div{flex:1;min-width:0;line-height:1.2}
+.infrabar b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.infrabar span{font-size:11px;color:#b9cfda}
+.chip .ic{display:flex;align-items:center}
+.chip b{font-variant-numeric:tabular-nums;color:var(--ink2);font-weight:600}
+.chip[aria-pressed="true"] b{color:#cfe0e8}
+body.infra .listbtn{display:flex}
+.listbtn{position:fixed;z-index:1090;left:50%;transform:translateX(-50%);bottom:calc(var(--sheet-h,190px) + 14px);border:0;background:var(--navy);color:#fff;border-radius:99px;
+  padding:10px 18px;font-size:14px;font-weight:700;align-items:center;gap:7px;box-shadow:var(--shadow);transition:bottom .32s cubic-bezier(.2,.85,.25,1)}
+body.dragging .listbtn{transition:none}
+body.nav .listbtn{display:none}
+.prow{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--grid);cursor:pointer}
+.prow:hover{background:var(--mintbg)}
+.prow .pin,.placepop .pin{width:30px;height:30px;border-radius:50%;flex:none;color:#fff;display:flex;align-items:center;justify-content:center}
 .prow .nm{flex:1;min-width:0}
-.prow .nm b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .nm b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prow .nm span{font-size:11px;color:var(--ink2)}
 .prow .oc b{font-size:13px;color:var(--navy);font-variant-numeric:tabular-nums}
+.placepop .maplibregl-popup-content{display:flex;align-items:center;gap:9px;border-radius:14px;padding:9px 12px;box-shadow:var(--shadow);background:var(--surface);font:inherit}
+.placepop .pin{width:28px;height:28px}
+.placepop b{display:block;font-size:14px;color:var(--ink)}
+.placepop span{font-size:11px;color:var(--ink2)}
+.placepop .maplibregl-popup-tip{border-top-color:var(--surface);border-bottom-color:var(--surface)}
+@media (min-width:821px){ .listbtn{display:none !important} }
 .back{border:0;background:var(--mintbg);color:var(--navy);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;margin-bottom:8px}
 h3{margin:0;font-size:17px;color:var(--navy)}
 .det p{margin:2px 0;font-size:12px;color:var(--ink2)}
@@ -196,6 +216,12 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
     <input id="q" type="search" placeholder="충전소 이름·주소 검색" autocomplete="off">
     <button id="home" type="button">처음</button>
   </div>
+  <div class="infrabar" id="infraBar">
+    <button id="infraBack" type="button" aria-label="목록으로"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div><b id="infraTitle"></b><span id="infraSub"></span></div>
+    <button id="infraClear" type="button" aria-label="전체 종류 보기"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="chips" id="infraChips"></div>
   <div class="chips" id="chips">
     <button class="chip" data-f="fast" aria-pressed="false">급속</button>
     <button class="chip" data-f="slow" aria-pressed="false">완속만</button>
@@ -244,6 +270,7 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
   <div class="navmid"><span id="navName"></span><div><b id="navEta"></b><b id="navRem"></b></div></div>
   <button id="navMenu" type="button" aria-label="자세히"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 </div>
+<button class="listbtn" id="listBtn" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.5" cy="7" r="1" fill="currentColor"/><circle cx="4.5" cy="12" r="1" fill="currentColor"/><circle cx="4.5" cy="17" r="1" fill="currentColor"/></svg><span id="listBtnTxt">목록 보기</span></button>
 <section class="sheet" id="sheet">
   <button class="handle" id="handle" type="button" aria-label="서랍 펼치기·접기"></button>
   <div class="tabs" role="tablist">
@@ -264,6 +291,17 @@ const bin = v => v < 0 ? 0 : v < 10 ? 1 : v < 25 ? 2 : v < 50 ? 3 : v < 75 ? 4 :
 const occTxt = v => v < 0 ? '기록 없음' : v + '%';
 const wide = () => innerWidth > 820;
 
+/* 주변 인프라 종류 아이콘 (직접 그린 단순한 모양, 24x24, 색은 currentColor) */
+const PICON = [
+  '<rect x="5.6" y="10" width="2" height="11" rx="1"/><ellipse cx="6.6" cy="7" rx="3" ry="4.2"/><path d="M14 3h1.4v5h1.1V3h1.4v5H19V3h1.4v6.2a2.2 2.2 0 0 1-2.2 2.2V20a1 1 0 0 1-2 0v-8.6A2.2 2.2 0 0 1 14 9.2z"/>',
+  '<path d="M4 6.5h12.5V13a5.5 5.5 0 0 1-5.5 5.5H9.5A5.5 5.5 0 0 1 4 13z"/><path d="M16.5 8h1.7a3.3 3.3 0 0 1 0 6.6h-1.7v-1.9h1.7a1.4 1.4 0 0 0 0-2.8h-1.7z"/><rect x="4" y="19.6" width="12.5" height="1.7" rx=".85"/>',
+  '<path d="M3.5 10.2a8.5 6.4 0 0 1 17 0z"/><rect x="3" y="11.6" width="18" height="3" rx="1.5"/><path d="M3.8 16h16.4v1.2a3.2 3.2 0 0 1-3.2 3.2H7a3.2 3.2 0 0 1-3.2-3.2z"/>',
+  '<path d="M4.6 8.2h14.8l-1 11.6a1.7 1.7 0 0 1-1.7 1.5H7.3a1.7 1.7 0 0 1-1.7-1.5z"/><path d="M8.6 8.4V6.6a3.4 3.4 0 0 1 6.8 0v1.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>',
+  '<path d="M2.6 10h18.8l-1.7 9.3a1.7 1.7 0 0 1-1.7 1.4H6a1.7 1.7 0 0 1-1.7-1.4z"/><path d="M7.4 10.2L12 4l4.6 6.2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>',
+  '<path d="M2.6 6.6h18.8v3.6a1.8 1.8 0 0 0 0 3.6v3.6H2.6v-3.6a1.8 1.8 0 0 0 0-3.6z"/>',
+  '<rect x="4.6" y="4.8" width="14.8" height="10.6" rx="1.7"/><path d="M2 17h20v.9a1.9 1.9 0 0 1-1.9 1.9H3.9A1.9 1.9 0 0 1 2 17.9z"/>'];
+const picon = (i, size) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="currentColor">${PICON[i]}</svg>`;
+const pinSVG = i => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96"><circle cx="24" cy="24" r="21" fill="${POI_COL[i]}" stroke="#fff" stroke-width="3"/><g transform="translate(11 11) scale(1.083)" fill="#fff" color="#fff">${PICON[i].replace(/currentColor/g, '#fff')}</g></svg>`;
 /* 표시 = 동그라미(이용률 색) + 번개 모양 */
 const VPATH = 'M13.6 2 L5 13.4 H10.9 L9.6 22 L19 9.6 H12.6 Z';
 const markSVG = (body, halo, dark) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96">
@@ -272,10 +310,12 @@ const markSVG = (body, halo, dark) => `<svg xmlns="http://www.w3.org/2000/svg" v
 const logoSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="${VPATH}" fill="#2ccdbf"/></svg>`;
 $('#barIcon').innerHTML = logoSVG;
 const sprites = {};
-const loadSprites = () => Promise.all([0,1].flatMap(st => RAMP.map((col, i) => new Promise(res => {
+const loadPins = () => Promise.all(PICON.map((_, i) => new Promise(res => { const im = new Image(96, 96); im.onload = res; im.onerror = res;
+  im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pinSVG(i)); sprites['p' + i] = im; })));
+const loadSprites = () => Promise.all([loadPins()].concat([0,1].flatMap(st => RAMP.map((col, i) => new Promise(res => {
   const im = new Image(96, 96); im.onload = res; im.onerror = res;
   im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(markSVG(col, !!st, i < 4));
-  sprites['m' + st + '_' + i] = im; }))));
+  sprites['m' + st + '_' + i] = im; })))));
 
 const tip = $('#tip');
 function showTip(e, html){ tip.innerHTML = html; tip.style.display = 'block';
@@ -309,9 +349,8 @@ const mapLoaded = new Promise(res => map.on('load', () => {
   map.addLayer({id:'route-line', type:'line', source:'route', layout:{'line-cap':'round', 'line-join':'round'}, paint:{'line-color':'#58ddd0', 'line-width':['interpolate',['linear'],['zoom'],8,3,16,8]}});
   map.addLayer({id:'ring-fill', type:'fill', source:'ring', paint:{'fill-color':'#1b4965', 'fill-opacity':0.05}});
   map.addLayer({id:'ring', type:'line', source:'ring', paint:{'line-color':'#1b4965', 'line-width':1.5, 'line-dasharray':[3, 3]}});
-  map.addLayer({id:'poi', type:'circle', source:'poi', paint:{'circle-radius':['interpolate',['linear'],['zoom'],13,2.5,16,5.5,18,8],
-    'circle-color':['match',['get','c'],0,POI_COL[0],1,POI_COL[1],2,POI_COL[2],3,POI_COL[3],4,POI_COL[4],5,POI_COL[5],POI_COL[6]],
-    'circle-stroke-color':'#fff', 'circle-stroke-width':1.2}});
+  map.addLayer({id:'poi', type:'symbol', source:'poi', layout:{'icon-image':['concat', 'p', ['to-string', ['get', 'c']]],
+    'icon-size':['interpolate',['linear'],['zoom'],13,0.2,15.5,0.42,18,0.62], 'icon-allow-overlap':true, 'icon-ignore-placement':true}});
   map.addLayer({id:'sel', type:'circle', source:'sel', paint:{'circle-radius':['interpolate',['linear'],['zoom'],7,['*',['get','k'],9],16,['*',['get','k'],26]],
     'circle-color':'rgba(88,221,208,.45)', 'circle-stroke-color':'#1b4965', 'circle-stroke-width':2, 'circle-pitch-alignment':'map'}});
   const sym = {'icon-image':['get','img'], 'icon-size':sizeExpr(9, 30), 'icon-allow-overlap':true, 'icon-ignore-placement':true};
@@ -332,8 +371,14 @@ const draw = updateMap;
 const byId = id => D.stations.find(x => x[C.id] === id);
 function hit(pt){ const fs = map.queryRenderedFeatures([[pt.x - 6, pt.y - 6], [pt.x + 6, pt.y + 6]], {layers:['stay','st']}); return fs.length ? byId(fs[0].properties.id) : null; }
 map.on('click', e => { if (!ready) return; const s = hit(e.point); if (s){ select(s, false); return; }
-  const f = map.queryRenderedFeatures([[e.point.x - 7, e.point.y - 7], [e.point.x + 7, e.point.y + 7]], {layers:['poi']})[0];
-  if (f) toast(`${f.properties.n} · ${f.properties.s} · ${f.properties.d}m`); });
+  const f = map.queryRenderedFeatures([[e.point.x - 9, e.point.y - 9], [e.point.x + 9, e.point.y + 9]], {layers:['poi']})[0];
+  if (f) showPlace(f.properties.n, f.properties.c, f.properties.s, f.properties.d, f.geometry.coordinates); else if (placePop) placePop.remove(); });
+let placePop = null;
+function showPlace(n, c, s, d, lngLat){
+  if (placePop) placePop.remove();
+  placePop = new maplibregl.Popup({closeButton:false, offset:16, maxWidth:'260px', className:'placepop'}).setLngLat(lngLat)
+    .setHTML(`<span class="pin" style="background:${POI_COL[c]}">${picon(c, 16)}</span><div><b>${n}</b><span>${s} · 충전소에서 ${d}m</span></div>`).addTo(map);
+}
 map.on('mousemove', e => { if (!ready) return; const s = hit(e.point); map.getCanvas().style.cursor = s ? 'pointer' : '';
   if (s) showTip(e.originalEvent, `${s[C.name]} · ${hour}시 ${occTxt(s[C.occ][hour])}`); else hideTip(); });
 map.on('mouseout', hideTip);
@@ -475,7 +520,7 @@ const maxH = () => innerHeight - (wide() ? 230 : 150);
 const snaps = () => [96, baseH(), Math.round(innerHeight * .6), maxH()];      // 멈추는 높이: 최소 / 기본 / 중간 / 최대
 function setSheetH(h){ sheetH = h; document.documentElement.style.setProperty('--sheet-h', h + 'px'); }
 function setSheet(open){ sheetOpen = open; setSheetH(open ? Math.round(innerHeight * .6) : baseH()); }
-$('#handle').onclick = () => setSheet(!sheetOpen);
+$('#handle').onclick = () => { setSheet(!sheetOpen); if (D) renderPoi(); };
 addEventListener('resize', () => setSheetH(Math.min(sheetH, maxH())));
 setSheet(false);
 /* 서랍을 손가락으로 끌어 올리고 내림: 끄는 동안은 손가락을 그대로 따라가고, 놓으면 가까운 높이에 부드럽게 멈춤 */
@@ -499,7 +544,7 @@ const endDrag = () => {
   document.body.classList.remove('dragging'); justDragged = true; setTimeout(() => justDragged = false, 60);
   const aim = sheetH + d.v * 220;                         // 놓는 순간의 빠르기만큼 더 간 자리
   const to = snaps().reduce((a, b) => Math.abs(b - aim) < Math.abs(a - aim) ? b : a);
-  sheetOpen = to > baseH(); setSheetH(to);
+  sheetOpen = to > baseH(); setSheetH(to); if (D) renderPoi();
 };
 addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
 
@@ -529,6 +574,7 @@ Promise.all([fetch('data/stations.json').then(r => r.json()), loadSprites().then
 /* STEP 2 예비: 충전소를 눌렀을 때만 그 충전소의 주변 상권(반경 300m) 파일을 읽어 옴 */
 let poi = {s:null, data:null, cat:-1, state:''};
 function clearPoi(){ if (!poi.s && !poi.data) return; poi = {s:null, data:null, cat:-1, state:''};
+  document.body.classList.remove('infra'); if (placePop) placePop.remove();
   if (ready){ map.getSource('poi').setData(EMPTY); map.getSource('ring').setData(EMPTY); } }
 function drawPoi(){
   if (!ready || !poi.s) return; const s = poi.s, R = D.meta.poi.radius;
@@ -548,20 +594,32 @@ function loadPoi(s){
     .catch(() => { if (poi.s === s){ poi.state = 'error'; renderPoi(); } });
 }
 function renderPoi(){
+  const m = D.meta.poi, on = !!selected && poi.s === selected && poi.state === 'ok';
+  document.body.classList.toggle('infra', on && !route);
+  if (on){      // 위쪽 띠와 종류 단추
+    const d = poi.data, sum = d.n.reduce((a, b) => a + b, 0);
+    $('#infraTitle').textContent = selected[C.name];
+    $('#infraSub').textContent = `주변 ${m.radius}m · ${poi.cat < 0 ? '전체 ' + sum.toLocaleString('ko-KR') + '곳' : m.cats[poi.cat] + ' ' + d.n[poi.cat] + '곳'}`;
+    $('#infraClear').style.visibility = poi.cat < 0 ? 'hidden' : 'visible';
+    $('#infraChips').innerHTML = m.cats.map((c, i) => `<button class="chip" type="button" data-c="${i}" aria-pressed="${poi.cat === i}"><span class="ic" style="color:${POI_COL[i]}">${picon(i, 18)}</span>${c} <b>${d.n[i]}</b></button>`).join('');
+    $('#infraChips').querySelectorAll('.chip').forEach(b => b.onclick = () => { const c = +b.dataset.c; poi.cat = poi.cat === c ? -1 : c; if (placePop) placePop.remove(); drawPoi(); renderPoi(); });
+    $('#listBtnTxt').textContent = sheetH > baseH() ? '지도 보기' : '목록 보기';
+  }
   const el = $('#poiBox'); if (!el || !selected || poi.s !== selected) return;
-  const m = D.meta.poi;
   if (poi.state === 'none'){ el.innerHTML = ''; return; }
-  if (poi.state === 'uncovered'){ el.innerHTML = `<h4>주변 상권</h4><p>${selected[C.sido]}은(는) 상권 자료가 아직 없음 (현재 ${m.covered.length}개 시·도만 있음)</p>`; return; }
-  if (poi.state === 'loading'){ el.innerHTML = `<h4>주변 상권 (반경 ${m.radius}m)</h4><p>불러오는 중…</p>`; return; }
-  if (poi.state === 'error'){ el.innerHTML = `<h4>주변 상권</h4><p>상권 자료를 불러오지 못함</p>`; return; }
-  const d = poi.data, list = d.p.filter(x => poi.cat < 0 || x[1] === poi.cat).slice(0, 40), sum = d.n.reduce((a, b) => a + b, 0);
-  el.innerHTML = `<h4>주변 상권 (반경 ${m.radius}m · ${sum.toLocaleString('ko-KR')}곳)</h4>
-    <div class="pchips">${m.cats.map((c, i) => `<button type="button" data-c="${i}" aria-pressed="${poi.cat === i}"><i style="background:${POI_COL[i]}"></i>${c} <b>${d.n[i]}</b></button>`).join('')}</div>
-    <p class="hint">${poi.cat < 0 ? '종류를 누르면 그 종류만 지도와 목록에 남음' : m.cats[poi.cat] + '만 보는 중 · 다시 누르면 전체'} · 가까운 순 ${list.length}곳${sum > d.p.length ? ` · 지도에는 가까운 ${d.p.length}곳만 표시` : ''}</p>` +
-    (list.map(x => `<div class="prow" data-lat="${x[3]}" data-lng="${x[4]}"><span class="dot" style="background:${POI_COL[x[1]]}"></span><div class="nm"><b>${x[0]}</b><span>${x[2]}</span></div><div class="oc"><b>${x[5]}m</b></div></div>`).join('') || '<p class="hint">해당하는 가게 없음</p>');
-  el.querySelectorAll('.pchips button').forEach(b => b.onclick = () => { const c = +b.dataset.c; poi.cat = poi.cat === c ? -1 : c; drawPoi(); renderPoi(); });
-  el.querySelectorAll('.prow').forEach(r => r.onclick = () => map.easeTo({center:[+r.dataset.lng, +r.dataset.lat], zoom:Math.max(map.getZoom(), 17), duration:500}));
+  if (poi.state === 'uncovered'){ el.innerHTML = `<h4>주변 인프라</h4><p>${selected[C.sido]}은(는) 상권 자료가 아직 없음 (현재 ${m.covered.length}개 시·도만 있음)</p>`; return; }
+  if (poi.state === 'loading'){ el.innerHTML = `<h4>주변 인프라 (반경 ${m.radius}m)</h4><p>불러오는 중…</p>`; return; }
+  if (poi.state === 'error'){ el.innerHTML = `<h4>주변 인프라</h4><p>상권 자료를 불러오지 못함</p>`; return; }
+  const d = poi.data, list = d.p.filter(x => poi.cat < 0 || x[1] === poi.cat).slice(0, 60), sum = d.n.reduce((a, b) => a + b, 0);
+  el.innerHTML = `<h4>주변 인프라 · ${poi.cat < 0 ? '전체' : m.cats[poi.cat]} (가까운 순 ${list.length}곳)</h4>
+    ${sum > d.p.length ? `<p class="hint">가게가 많아 지도와 목록에는 가까운 ${d.p.length}곳까지만 나옴</p>` : ''}` +
+    (list.map((x, k) => `<div class="prow" data-k="${k}"><span class="pin" style="background:${POI_COL[x[1]]}">${picon(x[1], 17)}</span><div class="nm"><b>${x[0]}</b><span>${x[2]}</span></div><div class="oc"><b>${x[5]}m</b></div></div>`).join('') || '<p class="hint">해당하는 곳 없음</p>');
+  el.querySelectorAll('.prow').forEach(r => r.onclick = () => { const x = list[+r.dataset.k]; setSheet(false); renderPoi();
+    map.easeTo({center:[x[4], x[3]], zoom:Math.max(map.getZoom(), 17), duration:500}); showPlace(x[0], x[1], x[2], x[5], [x[4], x[3]]); });
 }
+$('#infraBack').onclick = () => { selected = null; renderBody(); updateMap(); };
+$('#infraClear').onclick = () => { poi.cat = -1; if (placePop) placePop.remove(); drawPoi(); renderPoi(); };
+$('#listBtn').onclick = () => { setSheet(!(sheetH > baseH())); renderPoi(); };
 
 function passes(s){
   const q = $('#q').value.trim(), o = s[C.occ][hour];
@@ -579,7 +637,7 @@ const km = (a, b) => { const R = 6371, r = Math.PI / 180, dLa = (b[0] - a[0]) * 
   const x = Math.sin(dLa / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
 const kmTxt = d => d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(d < 10 ? 1 : 0) + 'km';
 
-function select(s, pan){ selected = s; if (pan && !s[C.poi]) flyTo(s[C.lat], s[C.lng], 15); if (!route) setSheet(true); renderBody(); updateMap(); if (!route) loadPoi(s); renderPoi(); }
+function select(s, pan){ selected = s; if (pan && !s[C.poi]) flyTo(s[C.lat], s[C.lng], 15); if (!route) setSheet(!s[C.poi]); renderBody(); updateMap(); if (!route) loadPoi(s); renderPoi(); }
 
 function renderBody(){
   const el = $('#body');
