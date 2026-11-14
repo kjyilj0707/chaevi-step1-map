@@ -38,6 +38,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* 본 화면: 지도가 전체, 그 위에 떠 있는 조작부 */
 #map{position:fixed;inset:0;background:#f1e9dc;outline:none}
 canvas.icons{position:absolute;left:0;top:0;pointer-events:none}
+.leaflet-marker-icon.car{transition:width .2s ease-out,height .2s ease-out,margin .2s ease-out}
+.leaflet-zoom-anim .leaflet-marker-icon.car{transition:transform .25s cubic-bezier(0,0,.25,1),width .25s cubic-bezier(0,0,.25,1),height .25s cubic-bezier(0,0,.25,1),margin .25s cubic-bezier(0,0,.25,1)}
 .leaflet-tile-pane{filter:sepia(.28) saturate(.95) brightness(1.04) contrast(.95)}
 .top{position:fixed;z-index:1000;top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;max-width:520px;pointer-events:none}
 .top > *{pointer-events:auto}
@@ -224,7 +226,8 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19,
   attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자'}).addTo(map);
 
 /* 표시를 한 장의 캔버스에 그리는 층 */
-const iconW = () => { const z = map.getZoom(); return z < 8 ? 9 : z < 10 ? 12 : z < 12 ? 16 : z < 14 ? 22 : 28; };
+const zoomSize = (z, lo, hi) => lo + (hi - lo) * Math.max(0, Math.min(1, (z - 7) / 9));   // 확대 7~16 사이에서 크기가 고르게 변함
+const iconW = () => zoomSize(map.getZoom(), 9, 30);
 const cv = L.DomUtil.create('canvas', 'icons leaflet-zoom-hide', map.getPanes().overlayPane);
 function draw(){
   const size = map.getSize(), dpr = window.devicePixelRatio || 1;
@@ -257,9 +260,15 @@ function setMe(p){
   me = [p.coords.latitude, p.coords.longitude];
   if (!meDot){
     meAcc = L.circle(me, {radius:p.coords.accuracy, color:css('--mint2'), weight:1, fillColor:css('--mint'), fillOpacity:.18, interactive:false}).addTo(map);
-    meDot = L.marker(me, {icon:L.icon({iconUrl:'car.png', iconSize:[38,60], iconAnchor:[19,30]}), interactive:false, keyboard:false, zIndexOffset:1000}).addTo(map);
+    meDot = L.marker(me, {icon:L.icon({iconUrl:'car.png', iconSize:[38,60], iconAnchor:[19,30], className:'car'}), interactive:false, keyboard:false, zIndexOffset:1000}).addTo(map);
+    sizeCar(map.getZoom());
   } else { meDot.setLatLng(me); meAcc.setLatLng(me).setRadius(p.coords.accuracy); }
 }
+function sizeCar(z){ const el = meDot && meDot.getElement(); if (!el) return;
+  const w = zoomSize(z, 16, 42), hh = w * 60 / 38;
+  el.style.width = w + 'px'; el.style.height = hh + 'px'; el.style.marginLeft = -w / 2 + 'px'; el.style.marginTop = -hh / 2 + 'px'; }
+map.on('zoomanim', e => sizeCar(e.zoom));     // 확대·축소가 시작될 때 목표 크기로 함께 움직임
+map.on('zoom zoomend', () => sizeCar(map.getZoom()));
 const GEO = {enableHighAccuracy:true, timeout:10000, maximumAge:60000};
 function locate(first){
   if (!navigator.geolocation){ toast('이 브라우저는 위치 기능이 없어 서울 중심으로 보여 줌'); return; }
