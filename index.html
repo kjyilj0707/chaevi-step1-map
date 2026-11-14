@@ -70,8 +70,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* 아래 서랍 */
 .sheet{position:fixed;z-index:1100;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -4px 20px rgba(74,52,28,.20);
-  height:var(--sheet-h,190px);max-height:calc(100vh - 150px);display:flex;flex-direction:column;transition:height .25s;padding-bottom:env(safe-area-inset-bottom)}
-.handle{flex:none;border:0;background:transparent;width:100%;height:22px;display:flex;align-items:center;justify-content:center}
+  height:var(--sheet-h,190px);max-height:calc(100vh - 150px);display:flex;flex-direction:column;transition:height .32s cubic-bezier(.2,.85,.25,1);padding-bottom:env(safe-area-inset-bottom)}
+#locate,.maplibregl-ctrl-bottom-right{transition:bottom .32s cubic-bezier(.2,.85,.25,1)}
+body.dragging .sheet,body.dragging #locate,body.dragging .maplibregl-ctrl-bottom-right{transition:none}
+body.dragging #map{pointer-events:none}
+.handle,.tabs{touch-action:none;user-select:none;-webkit-user-select:none}
+.handle{flex:none;border:0;background:transparent;width:100%;height:28px;cursor:grab;display:flex;align-items:center;justify-content:center}
 .handle::before{content:"";width:44px;height:5px;border-radius:3px;background:var(--axis)}
 .tabs{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#f3ebdf;border-radius:14px;padding:4px;margin:0 12px 8px}
 .tabs button{border:0;background:transparent;border-radius:11px;padding:9px 0;font-size:14px;font-weight:600;color:var(--ink2)}
@@ -386,13 +390,40 @@ $('#home').onclick = () => $('#intro').classList.remove('hide');
 if (location.hash === '#map'){ $('#intro').classList.add('hide'); locate(); }
 
 /* 서랍 높이 */
-let sheetOpen = false;
-function setSheet(open){ sheetOpen = open;
-  const h = open ? Math.round(innerHeight * .6) : (wide() ? 250 : 190);
-  document.documentElement.style.setProperty('--sheet-h', h + 'px'); }
+let sheetOpen = false, sheetH = 190;
+const sheetEl = $('#sheet');
+const baseH = () => wide() ? 250 : 190;
+const maxH = () => innerHeight - (wide() ? 230 : 150);
+const snaps = () => [96, baseH(), Math.round(innerHeight * .6), maxH()];      // 멈추는 높이: 최소 / 기본 / 중간 / 최대
+function setSheetH(h){ sheetH = h; document.documentElement.style.setProperty('--sheet-h', h + 'px'); }
+function setSheet(open){ sheetOpen = open; setSheetH(open ? Math.round(innerHeight * .6) : baseH()); }
 $('#handle').onclick = () => setSheet(!sheetOpen);
-addEventListener('resize', () => setSheet(sheetOpen));
+addEventListener('resize', () => setSheetH(Math.min(sheetH, maxH())));
 setSheet(false);
+/* 서랍을 손가락으로 끌어 올리고 내림: 끄는 동안은 손가락을 그대로 따라가고, 놓으면 가까운 높이에 부드럽게 멈춤 */
+let drag = null, justDragged = false;
+[$('#handle'), document.querySelector('.tabs')].forEach(el => {
+  el.addEventListener('pointerdown', e => { drag = {y:e.clientY, h:sheetH, moved:false, t:performance.now(), ly:e.clientY, v:0}; });
+  el.addEventListener('click', e => { if (justDragged){ e.stopPropagation(); e.preventDefault(); } }, true);
+});
+addEventListener('pointermove', e => {          // 손가락이 서랍 밖(지도 위)으로 나가도 계속 따라가도록 화면 전체에서 받음
+  if (!drag) return;
+  const dy = drag.y - e.clientY;
+  if (!drag.moved && Math.abs(dy) > 5){ drag.moved = true; document.body.classList.add('dragging'); }
+  if (!drag.moved) return;
+  e.preventDefault();
+  const now = performance.now(); if (now > drag.t){ drag.v = (drag.ly - e.clientY) / (now - drag.t); drag.ly = e.clientY; drag.t = now; }
+  setSheetH(Math.max(64, Math.min(maxH(), drag.h + dy)));
+}, {passive:false});
+const endDrag = () => {
+  if (!drag) return; const d = drag; drag = null;
+  if (!d.moved) return;
+  document.body.classList.remove('dragging'); justDragged = true; setTimeout(() => justDragged = false, 60);
+  const aim = sheetH + d.v * 220;                         // 놓는 순간의 빠르기만큼 더 간 자리
+  const to = snaps().reduce((a, b) => Math.abs(b - aim) < Math.abs(a - aim) ? b : a);
+  sheetOpen = to > baseH(); setSheetH(to);
+};
+addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
 
 $('#legendBtn').onclick = () => { const on = $('#legendbox').classList.toggle('on'); $('#legendBtn').setAttribute('aria-pressed', on); };
 if (wide()) $('#legendBtn').click();
