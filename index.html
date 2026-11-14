@@ -71,8 +71,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* 아래 서랍 */
 .sheet{position:fixed;z-index:1100;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -4px 20px rgba(74,52,28,.20);
   height:var(--sheet-h,190px);max-height:calc(100vh - 150px);display:flex;flex-direction:column;transition:height .32s cubic-bezier(.2,.85,.25,1);padding-bottom:env(safe-area-inset-bottom)}
-#locate,.maplibregl-ctrl-bottom-right{transition:bottom .32s cubic-bezier(.2,.85,.25,1)}
-body.dragging .sheet,body.dragging #locate,body.dragging .maplibregl-ctrl-bottom-right{transition:none}
+#locate,.maplibregl-ctrl-bottom-left{transition:bottom .32s cubic-bezier(.2,.85,.25,1)}
+body.dragging .sheet,body.dragging #locate,body.dragging .maplibregl-ctrl-bottom-left{transition:none}
 body.dragging #map{pointer-events:none}
 .handle,.tabs{touch-action:none;user-select:none;-webkit-user-select:none}
 .handle{flex:none;border:0;background:transparent;width:100%;height:28px;cursor:grab;display:flex;align-items:center;justify-content:center}
@@ -112,13 +112,48 @@ h4{font-size:13px;margin:14px 0 6px;color:var(--navy)}
 svg.chart{display:block;width:100%;max-width:520px;height:auto;overflow:visible}
 svg.chart text{fill:var(--muted);font-size:10px}
 .limits{font-size:11px;color:var(--ink2);padding-left:16px;margin:6px 0}
+/* 경로 안내 화면 */
+.navtop,.navfabs,.recenter,.navdetail,.navcard{display:none}
+body.nav .top,body.nav .hourpill,body.nav #legendBtn,body.nav #allBtn,body.nav .legendbox,body.nav .sheet,body.nav #locate{display:none}
+body.nav .fabs{top:calc(112px + env(safe-area-inset-top))}
+body.nav .navtop{display:flex}
+.navtop{position:fixed;z-index:1200;top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;max-width:520px;min-height:78px;align-items:center;gap:12px;
+  background:var(--navy);color:#fff;border-radius:18px;box-shadow:var(--shadow);padding:12px 18px}
+.navarrow{width:46px;height:46px;flex:none;color:var(--mint);display:flex}
+.navarrow svg{width:100%;height:100%}
+.navtop b{font-size:32px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.navtop span#navText{font-size:24px;font-weight:600;line-height:1.15;min-width:0}
+body.nav .navfabs{display:flex}
+.navfabs{position:fixed;z-index:1000;right:12px;bottom:calc(132px + env(safe-area-inset-bottom));flex-direction:column;gap:10px}
+.navfabs .fab{font-size:13px}
+.navfabs #zin,.navfabs #zout{font-size:24px;font-weight:400}
+.recenter{position:fixed;z-index:1100;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom));border:0;background:var(--navy);color:#fff;
+  border-radius:99px;padding:12px 20px;font-size:16px;font-weight:700;align-items:center;gap:8px;box-shadow:var(--shadow)}
+body.nav .recenter.on{display:flex}
+body.nav .navcard{display:flex}
+.navcard{position:fixed;z-index:1200;left:12px;right:12px;max-width:520px;bottom:calc(14px + env(safe-area-inset-bottom));min-height:98px;align-items:center;gap:8px;
+  background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:10px 12px}
+.navcard > button{flex:none;width:48px;height:48px;border:0;background:transparent;color:var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.navcard > button:active{background:var(--mintbg)}
+.navmid{flex:1;min-width:0;text-align:center}
+.navmid span{display:block;font-size:15px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.navmid span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--accent);margin-right:6px;vertical-align:1px}
+.navmid div{display:flex;justify-content:center;align-items:baseline;gap:16px}
+.navmid b{font-size:30px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}
+.navmid b small{font-size:17px;font-weight:700;margin-left:2px}
+body.nav .navdetail.on{display:block}
+.navdetail{position:fixed;z-index:1150;left:12px;right:12px;max-width:520px;bottom:calc(122px + env(safe-area-inset-bottom));background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:14px}
+.navdetail p{margin:2px 0;font-size:13px;color:var(--ink2)}
+.navdetail p b{color:var(--navy)}
+@media (min-width:821px){ .navtop,.navcard,.navdetail{left:50%;right:auto;width:520px;transform:translateX(-50%)} }
 #tip{position:fixed;pointer-events:none;background:var(--navy2);color:#fff;padding:4px 9px;border-radius:6px;font-size:12px;display:none;z-index:4000;white-space:nowrap}
 #toast{position:fixed;z-index:4500;left:50%;transform:translateX(-50%);bottom:calc(var(--sheet-h,190px) + 20px);background:rgba(20,58,82,.94);color:#fff;font-size:13px;border-radius:99px;padding:8px 16px;display:none;max-width:calc(100vw - 90px);text-align:center}
 .maplibregl-ctrl-attrib{font-size:9px}
-.maplibregl-ctrl-bottom-right{bottom:var(--sheet-h,190px)}
+.maplibregl-ctrl-bottom-left{bottom:var(--sheet-h,190px)}
+body.nav .maplibregl-ctrl-bottom-left{bottom:calc(116px + env(safe-area-inset-bottom))}
 img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,58,82,.35))}
 #compass svg{transition:none}
-.sheet.routing .tabs{display:none}
+
 
 @media (min-width:821px){
   .sheet{left:12px;right:auto;bottom:12px;width:400px;border-radius:20px;box-shadow:var(--shadow);max-height:calc(100vh - 230px)}
@@ -127,7 +162,8 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
   .hourpill{left:424px}
   #locate{bottom:24px}
   #toast{bottom:28px}
-  .maplibregl-ctrl-bottom-right{bottom:0}
+  .maplibregl-ctrl-bottom-left{bottom:0;left:416px}
+  body.nav .maplibregl-ctrl-bottom-left{left:0;bottom:0}
 }
 @media (max-width:820px){ #intro h1{font-size:28px} }
 </style>
@@ -184,6 +220,19 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>
 </button>
 
+<div class="navtop" id="navTop"><span class="navarrow" id="navArrow"></span><b id="navDist"></b><span id="navText"></span></div>
+<div class="navfabs">
+  <button class="fab" id="zin" type="button" aria-label="확대">＋</button>
+  <button class="fab" id="zout" type="button" aria-label="축소">－</button>
+  <button class="fab" id="overview" type="button">전체</button>
+</div>
+<button class="recenter" id="recenter" type="button"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M21 3 L3 10.5 L10.5 13.5 L13.5 21 Z" fill="currentColor"/></svg>내 위치로</button>
+<div class="navdetail" id="navDetail"></div>
+<div class="navcard" id="navCard">
+  <button id="navRe" type="button" aria-label="다시 계산"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-14 5.3"/><path d="M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4"/><path d="M6 21v-4h4"/></svg></button>
+  <div class="navmid"><span id="navName"></span><div><b id="navEta"></b><b id="navRem"></b></div></div>
+  <button id="navMenu" type="button" aria-label="자세히"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+</div>
 <section class="sheet" id="sheet">
   <button class="handle" id="handle" type="button" aria-label="서랍 펼치기·접기"></button>
   <div class="tabs" role="tablist">
@@ -236,7 +285,7 @@ const map = new maplibregl.Map({container:'map', center:[SEOUL[1], SEOUL[0]], zo
     layers:[{id:'bg', type:'background', paint:{'background-color':'#f1e9dc'}},
       {id:'osm', type:'raster', source:'osm', paint:{'raster-saturation':-0.15, 'raster-contrast':-0.06, 'raster-brightness-max':1}},
       {id:'warm', type:'background', paint:{'background-color':'#f0c078', 'background-opacity':0.13}}]}});
-map.addControl(new maplibregl.AttributionControl({compact:true}), 'bottom-right');
+map.addControl(new maplibregl.AttributionControl({compact:true}), 'bottom-left');
 map.touchZoomRotate.enableRotation(); map.dragRotate.enable(); map.keyboard.enable();
 const zoomSize = (z, lo, hi) => lo + (hi - lo) * Math.max(0, Math.min(1, (z - 7) / 9));
 const sizeExpr = (lo, hi) => ['interpolate', ['linear'], ['zoom'], 7, ['*', ['get', 'k'], lo / 48], 16, ['*', ['get', 'k'], hi / 48]];
@@ -326,24 +375,29 @@ function locate(){
   navigator.geolocation.getCurrentPosition(p => { setMe(p); startWatch(); flyTo(me[0], me[1], 14); },
     err => toast(err.code === 1 ? '위치 권한이 꺼져 있어 서울 중심으로 보여 줌' : '위치를 가져오지 못해 서울 중심으로 보여 줌'), GEO);
 }
-function setFollow(on){      // 주행 화면: 내 위치를 가운데에 두고 진행 방향이 위로 오게 지도를 돌림
+function setFollow(on){      // 주행 화면: 내 위치를 화면 아래쪽에 두고 진행 방향이 위로 오게 지도를 돌림
   if (on && !me){ toast('내 위치를 아직 모름'); return; }
-  follow = on; const b = $('#followBtn'); if (b) b.textContent = on ? '주행 화면 끄기' : '주행 화면';
-  if (on){ setSheet(false); map.easeTo({center:[me[1], me[0]], zoom:Math.max(map.getZoom(), 16.5), pitch:50, bearing:heading == null ? map.getBearing() : heading, duration:900}); }
+  follow = on; $('#recenter').classList.toggle('on', !on && !!route);
+  if (on) map.easeTo({center:[me[1], me[0]], zoom:Math.max(map.getZoom(), 16.5), pitch:50, bearing:heading == null ? map.getBearing() : heading,
+    padding:{top:Math.round(innerHeight * .34), bottom:130, left:0, right:0}, duration:900});
 }
 
 /* 경로 안내: 중계 서버(카카오 길찾기)에 요청, 2분마다 또는 경로에서 50m 넘게 벗어나면 다시 계산 */
 const ROUTE_API = 'https://chaevi-step1-route.machaete.workers.dev';
 const REROUTE_MS = 120000, OFF_M = 50;
 let route = null, routeTimer = null, lastReq = 0;
-function distToPath(p, path){      // 내 위치에서 경로선까지 가장 가까운 거리(m)
-  const kx = Math.cos(p[0] * Math.PI / 180) * 111320, ky = 110540; let best = 1e9;
+function prepPath(path){           // 경로선의 누적 길이(m)
+  const cum = [0]; for (let i = 1; i < path.length; i++) cum.push(cum[i-1] + km(path[i-1], path[i]) * 1000); return cum;
+}
+function progress(p, path, cum){    // 내 위치에서 경로선까지 가장 가까운 거리(m)와, 그 지점부터 끝까지 남은 거리(m)
+  const kx = Math.cos(p[0] * Math.PI / 180) * 111320, ky = 110540; let best = 1e9, bi = 0, bt = 0;
   for (let i = 0; i < path.length - 1; i++){
     const ax = (path[i][1] - p[1]) * kx, ay = (path[i][0] - p[0]) * ky, bx = (path[i+1][1] - p[1]) * kx, by = (path[i+1][0] - p[0]) * ky;
     const dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy || 1)));
-    const d = Math.hypot(ax + t * dx, ay + t * dy); if (d < best) best = d;
+    const d = Math.hypot(ax + t * dx, ay + t * dy); if (d < best){ best = d; bi = i; bt = t; }
   }
-  return best;
+  const s = cum[bi] + bt * (cum[bi+1] - cum[bi]);      // 출발점부터 그 지점까지 경로를 따라 잰 거리
+  return {d:best, s, rem:cum[cum.length - 1] - s};
 }
 async function requestRoute(why){
   if (!route || !me) return;
@@ -354,9 +408,10 @@ async function requestRoute(why){
     if (!route || route.s !== s) return;
     if (r.error){ route.err = r.error === 'no_route' ? '경로를 찾지 못함' + (r.message ? ' (' + r.message + ')' : '') : '경로 서버 오류 (' + r.error + ')'; }
     else {
-      Object.assign(route, {path:r.path, dist:r.distance, dur:r.duration, guides:r.guides, at:new Date(), why, n:(route.n || 0) + 1, err:null, off:0});
+      Object.assign(route, {path:r.path, cum:prepPath(r.path), dist:r.distance, rem:r.distance, dur:r.duration, guides:r.guides || [], gi:1, at:new Date(), why, n:(route.n || 0) + 1, err:null, off:0});
+      route.guides.forEach(g => { g.s = progress([g.lat, g.lng], route.path, route.cum).s; });   // 각 안내 지점이 경로의 몇 m 지점인지
       map.getSource('route').setData({type:'Feature', geometry:{type:'LineString', coordinates:r.path.map(p => [p[1], p[0]])}, properties:{}});
-      if (first && !follow) fit(r.path, 16);
+      if (first) setFollow(true);
     }
   } catch (e){ if (route) route.err = '경로 서버에 연결하지 못함'; }
   if (route){ route.busy = false; renderBody(); }
@@ -365,12 +420,15 @@ function onMove(p){
   setMe(p); if (!route || !route.path) return;
   const s = route.s;
   if (km(me, [s[C.lat], s[C.lng]]) * 1000 < OFF_M){ toast(s[C.name] + '에 도착함'); stopRoute(); return; }
-  route.off = distToPath(me, route.path);
+  const pr = progress(me, route.path, route.cum); route.off = pr.d; route.rem = pr.rem;
+  const g = route.guides;      // 지나간 안내 지점은 넘김
+  route.pos = pr.s; while (route.gi < g.length - 1 && g[route.gi].s <= pr.s + 8) route.gi++;
+  renderNav();
   if (route.off > OFF_M && Date.now() - lastReq > 10000) requestRoute('경로에서 ' + Math.round(route.off) + 'm 벗어남');
 }
 function startRoute(s){
   if (!navigator.geolocation){ toast('이 브라우저는 위치 기능이 없어 경로를 계산하지 못함'); return; }
-  initCompass(); stopRoute(true); route = {s, n:0}; selected = s; $('#sheet').classList.add('routing'); setSheet(false); renderBody(); updateMap();
+  initCompass(); stopRoute(true); route = {s, n:0}; selected = s; document.body.classList.add('nav'); hideTip(); renderBody(); updateMap();
   const go = () => { if (!route) return; startWatch(); requestRoute('처음 계산');
     routeTimer = setInterval(() => requestRoute('2분 경과'), REROUTE_MS); };
   if (me) go(); else navigator.geolocation.getCurrentPosition(p => { setMe(p); go(); },
@@ -379,8 +437,8 @@ function startRoute(s){
 function stopRoute(quiet){
   clearInterval(routeTimer); routeTimer = null;
   if (ready) map.getSource('route').setData(EMPTY);
-  $('#sheet').classList.remove('routing');
-  if (follow){ follow = false; map.easeTo({pitch:0, bearing:0, duration:600}); }
+  document.body.classList.remove('nav'); $('#navDetail').classList.remove('on'); $('#recenter').classList.remove('on');
+  const was = follow; follow = false; map.easeTo({pitch:0, bearing:0, padding:{top:0, bottom:0, left:0, right:0}, duration:was ? 600 : 0});
   route = null; if (!quiet && D) renderBody();
 }
 
@@ -468,7 +526,7 @@ function select(s, pan){ selected = s; if (pan) flyTo(s[C.lat], s[C.lng], 15); i
 
 function renderBody(){
   const el = $('#body');
-  if (route) return renderRoute(el);
+  if (route) return renderNav();
   if (selected) return renderDetail(el);
   if (tab === 'all') return renderAll(el);
   const c = map.getCenter(), ref = [c.lat, c.lng];
@@ -488,26 +546,51 @@ function renderBody(){
   el.scrollTop = 0;
 }
 
-function renderRoute(el){
-  const s = route.s, hm = d => String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-  let mid;
-  if (route.err && !route.path) mid = `<p class="hint">${route.err}</p>`;
-  else if (!route.path) mid = '<p class="hint">경로 계산 중…</p>';
-  else {
-    const eta = new Date(route.at.getTime() + route.dur * 1000), oh = s[C.occ][eta.getHours()], g = (route.guides || [])[1];
-    mid = `<div class="facts"><div><b>${kmTxt(route.dist / 1000)}</b>남은 거리</div><div><b>${Math.max(1, Math.round(route.dur / 60))}분</b>예상 시간</div><div><b>${hm(eta)}</b>도착 예정</div></div>
-      ${g ? `<p class="next"><b>다음 안내</b> ${g.distance}m 앞 ${g.text}</p>` : ''}
-      <p>도착 시각(${eta.getHours()}시)의 이용률: <b>${occTxt(oh)}</b></p>
-      <p class="hint">마지막 계산 ${hm(route.at)}:${String(route.at.getSeconds()).padStart(2,'0')} · ${route.why} · 계산 ${route.n}회${route.busy ? ' · 다시 계산 중…' : ''}${route.err ? ' · ' + route.err : ''}<br>2분마다, 또는 경로에서 50m 넘게 벗어나면 다시 계산함 (실시간 교통 반영)</p>`;
+const ARROW = {
+  right:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 42V25a9 9 0 0 1 9-9h15"/><path d="M27 6l10 10-10 10"/></svg>',
+  left:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M36 42V25a9 9 0 0 0-9-9H12"/><path d="M21 6L11 16l10 10"/></svg>',
+  straight:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M24 42V9"/><path d="M12 19L24 7l12 12"/></svg>',
+  uturn:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M34 42V20a10 10 0 0 0-20 0v14"/><path d="M5 26l9 9 9-9"/></svg>',
+  dest:'<svg viewBox="0 0 48 48" fill="currentColor"><path d="M24 4a15 15 0 0 0-15 15c0 11 15 25 15 25s15-14 15-25A15 15 0 0 0 24 4zm0 21a6 6 0 1 1 0-12 6 6 0 0 1 0 12z"/></svg>'};
+const arrowFor = t => /유턴/.test(t) ? ARROW.uturn : /우회전|오른쪽/.test(t) ? ARROW.right : /좌회전|왼쪽/.test(t) ? ARROW.left : /목적지|도착/.test(t) ? ARROW.dest : ARROW.straight;
+const mTxt = d => d >= 1000 ? (d / 1000).toFixed(1) + 'km' : d >= 100 ? Math.round(d / 10) * 10 + 'm' : Math.max(0, Math.round(d)) + 'm';
+const hm = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+function renderNav(){
+  if (!route) return; const s = route.s;
+  $('#navName').textContent = s[C.name];
+  if (!route.path){
+    $('#navArrow').innerHTML = ARROW.straight; $('#navDist').textContent = ''; $('#navText').textContent = route.err || '경로 계산 중…';
+    $('#navEta').textContent = '--:--'; $('#navRem').textContent = ''; $('#navDetail').innerHTML = detailHTML(); bindDetail(); return;
   }
-  el.innerHTML = `<div class="det"><h3>${s[C.name]}${s[C.stay] ? ' <span class="badge">채비스테이</span>' : ''}</h3>${mid}<p>${s[C.addr]}</p>
-    <div class="acts"><button class="act" id="followBtn" type="button">${follow ? '주행 화면 끄기' : '주행 화면'}</button><button class="act ghost" id="reroute" type="button">다시 계산</button>
-    <a class="act" href="https://map.kakao.com/link/to/${encodeURIComponent(s[C.name])},${s[C.lat]},${s[C.lng]}" target="_blank" rel="noopener">카카오맵으로 길안내</a>
-    <button class="act ghost" id="stopRoute" type="button">안내 끝</button></div></div>`;
-  $('#reroute').onclick = () => requestRoute('직접 다시 계산');
-  $('#followBtn').onclick = () => setFollow(!follow);
-  $('#stopRoute').onclick = () => stopRoute();
+  const g = route.guides, last = route.gi >= g.length - 1, cur = g[Math.min(route.gi, g.length - 1)];
+  const d = last || !cur ? route.rem : Math.max(0, cur.s - (route.pos || 0));      // 다음 안내 지점까지 경로를 따라 남은 거리
+  const text = last || !cur ? '목적지' : (cur.text || '직진');
+  $('#navArrow').innerHTML = arrowFor(text); $('#navDist').textContent = mTxt(d); $('#navText').textContent = text;
+  const eta = new Date(route.at.getTime() + route.dur * 1000), rem = route.rem / 1000;
+  $('#navEta').textContent = hm(eta);
+  $('#navRem').innerHTML = (rem < 1 ? Math.round(rem * 1000) + '<small>m</small>' : rem.toFixed(1) + '<small>km</small>');
+  $('#navDetail').innerHTML = detailHTML(); bindDetail();
 }
+function detailHTML(){
+  const s = route.s; let info = `<p>${route.err || '경로 계산 중…'}</p>`;
+  if (route.path){ const eta = new Date(route.at.getTime() + route.dur * 1000);
+    info = `<p>예상 시간 <b>${Math.max(1, Math.round(route.dur / 60))}분</b> (마지막 계산 시점 기준) · 도착 시각(${eta.getHours()}시)의 이용률 <b>${occTxt(s[C.occ][eta.getHours()])}</b></p>
+      <p>마지막 계산 ${hm(route.at)}:${String(route.at.getSeconds()).padStart(2,'0')} · ${route.why} · 계산 ${route.n}회${route.busy ? ' · 다시 계산 중…' : ''}${route.err ? ' · ' + route.err : ''}</p>
+      <p>2분마다, 또는 경로에서 50m 넘게 벗어나면 다시 계산함</p>`; }
+  return `<p>${s[C.addr]}</p>${info}<div class="acts" style="margin-bottom:0">
+    <a class="act" href="https://map.kakao.com/link/to/${encodeURIComponent(s[C.name])},${s[C.lat]},${s[C.lng]}" target="_blank" rel="noopener">카카오맵으로 길안내</a>
+    <button class="act ghost" id="stopRoute" type="button">안내 끝</button></div>`;
+}
+function bindDetail(){ const b = $('#stopRoute'); if (b) b.onclick = () => stopRoute(); }
+$('#navRe').onclick = () => requestRoute('직접 다시 계산');
+$('#navMenu').onclick = () => $('#navDetail').classList.toggle('on');
+$('#recenter').onclick = () => setFollow(true);
+$('#zin').onclick = () => map.easeTo({zoom:map.getZoom() + 1, duration:300});
+$('#zout').onclick = () => map.easeTo({zoom:map.getZoom() - 1, duration:300});
+$('#overview').onclick = () => { if (!route || !route.path) return; setFollow(false);
+  let a = [180, 90, -180, -90]; route.path.concat(me ? [me] : []).forEach(([lat, lng]) => { a = [Math.min(a[0], lng), Math.min(a[1], lat), Math.max(a[2], lng), Math.max(a[3], lat)]; });
+  map.setPadding({top:0, bottom:0, left:0, right:0});
+  map.fitBounds([[a[0], a[1]], [a[2], a[3]]], {padding:{top:120, bottom:150, left:40, right:76}, pitch:0, bearing:0, duration:800}); };
 
 function renderDetail(el){
   const s = selected, o = s[C.occ], W = 360, H = 130, L0 = 26, B = 18, T = 8, bw = (W - L0) / 24;
