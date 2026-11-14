@@ -232,6 +232,8 @@ body.nav .navdetail.on{display:block}
 .maplibregl-ctrl-attrib{font-size:9px}
 .maplibregl-ctrl-bottom-left{bottom:var(--sheet-h,190px)}
 body.nav .maplibregl-ctrl-bottom-left{bottom:calc(116px + env(safe-area-inset-bottom))}
+.carwrap{width:64px;height:76px;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;border-radius:50%;-webkit-user-select:none;user-select:none}
+.carwrap.turning{cursor:grabbing;background:radial-gradient(circle, rgba(88,221,208,.0) 40%, rgba(88,221,208,.35) 41%, rgba(88,221,208,.35) 48%, rgba(88,221,208,0) 49%)}
 img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,58,82,.35))}
 #compass svg{transition:none}
 
@@ -482,6 +484,24 @@ const flyTo = (lat, lng, z) => map.easeTo({center:[lng, lat], zoom:Math.max(map.
 
 /* 내 위치와 방향 */
 const carEl = Object.assign(document.createElement('img'), {src:'car.png', className:'car', alt:'내 위치'});
+/* 자동차를 손가락·마우스로 잡고 돌리면 방향이 바뀜. 잡기 쉽게 그림보다 넓은 투명 영역으로 감쌈 */
+const carWrap = Object.assign(document.createElement('div'), {className:'carwrap', title:'잡고 돌리면 방향이 바뀜'});
+carWrap.appendChild(carEl);
+let turning = null, manualHold = false;
+const stopEv = e => e.stopPropagation();
+['mousedown', 'touchstart', 'dblclick', 'click'].forEach(t => carWrap.addEventListener(t, stopEv));      // 자동차를 잡을 때 지도가 같이 움직이지 않게
+carWrap.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault();
+  const r = carWrap.getBoundingClientRect(); turning = {cx:r.left + r.width / 2, cy:r.top + r.height / 2, b:map.getBearing()};     // 잡는 순간의 지도 방향을 기준으로 삼음
+  carWrap.classList.add('turning'); try { carWrap.setPointerCapture(e.pointerId); } catch (x) {} });
+carWrap.addEventListener('pointermove', e => {
+  if (!turning) return; const dx = e.clientX - turning.cx, dy = e.clientY - turning.cy;
+  if (Math.hypot(dx, dy) < 6) return;                                   // 중심에 너무 가까우면 각도가 튀므로 무시
+  const screenDeg = Math.atan2(dx, -dy) * 180 / Math.PI;                // 화면 위쪽을 0도로 시계 방향
+  setHeading((screenDeg + turning.b + 360) % 360, 'manual');            // 지도가 돌아가 있으면 그만큼 더함
+});
+const endTurn = () => { if (!turning) return; turning = null; carWrap.classList.remove('turning');
+  if (follow && heading != null) map.easeTo({bearing:heading, duration:400}); };      // 주행 화면에서는 손을 뗀 뒤에 지도를 그 방향으로 돌림
+carWrap.addEventListener('pointerup', endTurn); carWrap.addEventListener('pointercancel', endTurn);
 function sizeCar(){ carEl.style.width = zoomSize(map.getZoom(), 16, 42) + 'px'; carEl.style.height = 'auto'; }
 const circlePoly = (c, r) => { const pts = [], kx = Math.cos(c[0] * Math.PI / 180) * 111320, ky = 110540;
   for (let i = 0; i <= 48; i++){ const t = i / 48 * 2 * Math.PI; pts.push([c[1] + r * Math.cos(t) / kx, c[0] + r * Math.sin(t) / ky]); }
@@ -491,8 +511,10 @@ const bearing = (a, b) => { const r = Math.PI / 180, y = Math.sin((b[1] - a[1]) 
 let gpsHeadAt = 0, lastFix = null;
 function setHeading(h, src){            // 방향: 이동 중에는 GPS 진행 방향, 멈춰 있으면 나침반
   if (h == null || isNaN(h)) return;
-  if (src === 'compass'){ if (Date.now() - gpsHeadAt < 5000) return; if (heading != null && Math.abs(((h - heading + 540) % 360) - 180) < 3) return; }
-  else gpsHeadAt = Date.now();
+  if (src === 'manual') manualHold = true;             // 손으로 돌린 방향은 실제로 이동해 GPS 진행 방향이 들어올 때까지 유지
+  else if (src === 'gps') manualHold = false;
+  if (src === 'compass'){ if (manualHold || Date.now() - gpsHeadAt < 5000) return; if (heading != null && Math.abs(((h - heading + 540) % 360) - 180) < 3) return; }
+  else if (src === 'gps') gpsHeadAt = Date.now();
   heading = h; if (meMarker) meMarker.setRotation(h);
   if (follow && src === 'compass') map.easeTo({bearing:h, duration:300, easing:t => t});
 }
@@ -501,7 +523,7 @@ function setMe(p){
   if (c.heading != null && !isNaN(c.heading) && (c.speed || 0) > 0.8) setHeading(c.heading, 'gps');
   else if (lastFix && km(lastFix, me) * 1000 > 8) setHeading(bearing(lastFix, me), 'gps');
   if (!lastFix || km(lastFix, me) * 1000 > 8) lastFix = me;
-  if (!meMarker){ sizeCar(); meMarker = new maplibregl.Marker({element:carEl, rotationAlignment:'map', pitchAlignment:'map'}).setLngLat([me[1], me[0]]).addTo(map);
+  if (!meMarker){ sizeCar(); meMarker = new maplibregl.Marker({element:carWrap, rotationAlignment:'map', pitchAlignment:'map'}).setLngLat([me[1], me[0]]).addTo(map);
     if (heading != null) meMarker.setRotation(heading); }
   else meMarker.setLngLat([me[1], me[0]]);
   if (ready) map.getSource('acc').setData(circlePoly(me, Math.min(c.accuracy || 0, 500)));
