@@ -133,6 +133,7 @@ body.nav .listbtn{display:none}
 .placepop .pin{width:28px;height:28px}
 .placepop b{display:block;font-size:14px;color:var(--ink)}
 .placepop span{font-size:11px;color:var(--ink2)}
+.placepop .walkbtn{flex:none;border:0;background:var(--navy);color:#fff;border-radius:99px;padding:7px 11px;font-size:12px;font-weight:700;white-space:nowrap}
 .placepop .maplibregl-popup-tip{border-top-color:var(--surface);border-bottom-color:var(--surface)}
 @media (min-width:821px){ .listbtn{display:none !important} }
 .back{border:0;background:var(--mintbg);color:var(--navy);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;margin-bottom:8px}
@@ -370,18 +371,23 @@ function updateMap(){
   map.getSource('stay').setData({type:'FeatureCollection', features:shown.filter(s => s[C.stay]).map(f)});
   map.getSource('sel').setData(selected ? {type:'FeatureCollection', features:[f(selected)]} : EMPTY);
   if (!selected || route) clearPoi(); else if (poi.s === selected) drawPoi();
+  if (route && route.mode === 'walk'){ const d = route.dest;       // 도보 안내 중에는 목적지 핀 하나만 남김
+    map.getSource('poi').setData({type:'FeatureCollection', features:[{type:'Feature', geometry:{type:'Point', coordinates:[d.lng, d.lat]}, properties:{n:d.name, c:d.c, s:d.sub, d:d.d}}]}); }
+  map.setPaintProperty('route-line', 'line-dasharray', route && route.mode === 'walk' ? [0.1, 1.8] : [1, 0]);
 }
 const draw = updateMap;
 const byId = id => D.stations.find(x => x[C.id] === id);
 function hit(pt){ const fs = map.queryRenderedFeatures([[pt.x - 6, pt.y - 6], [pt.x + 6, pt.y + 6]], {layers:['stay','st']}); return fs.length ? byId(fs[0].properties.id) : null; }
-map.on('click', e => { if (!ready) return; const s = hit(e.point); if (s){ select(s, false); return; }
+map.on('click', e => { if (!ready || route) return; const s = hit(e.point); if (s){ select(s, false); return; }
   const f = map.queryRenderedFeatures([[e.point.x - 9, e.point.y - 9], [e.point.x + 9, e.point.y + 9]], {layers:['poi']})[0];
   if (f) showPlace(f.properties.n, f.properties.c, f.properties.s, f.properties.d, f.geometry.coordinates); else if (placePop) placePop.remove(); });
 let placePop = null;
 function showPlace(n, c, s, d, lngLat){
   if (placePop) placePop.remove();
-  placePop = new maplibregl.Popup({closeButton:false, offset:16, maxWidth:'260px', className:'placepop'}).setLngLat(lngLat)
-    .setHTML(`<span class="pin" style="background:${POI_COL[c]}">${picon(c, 16)}</span><div><b>${n}</b><span>${s} · 충전소에서 ${d}m</span></div>`).addTo(map);
+  if (route) return;
+  placePop = new maplibregl.Popup({closeButton:false, offset:16, maxWidth:'280px', className:'placepop'}).setLngLat(lngLat)
+    .setHTML(`<span class="pin" style="background:${POI_COL[c]}">${picon(c, 16)}</span><div><b>${n}</b><span>${s} · 충전소에서 ${d}m</span></div><button class="walkbtn" type="button">도보 경로</button>`).addTo(map);
+  placePop.getElement().querySelector('.walkbtn').onclick = () => startWalk({name:n, lat:lngLat[1], lng:lngLat[0], sub:s, c:+c, d:+d});
 }
 map.on('mousemove', e => { if (!ready) return; const s = hit(e.point); map.getCanvas().style.cursor = s ? 'pointer' : '';
   if (s) showTip(e.originalEvent, `${s[C.name]} · ${hour}시 ${occTxt(s[C.occ][hour])}`); else hideTip(); });
@@ -446,8 +452,9 @@ function locate(){
 }
 function setFollow(on){      // 주행 화면: 내 위치를 화면 아래쪽에 두고 진행 방향이 위로 오게 지도를 돌림
   if (on && !me){ toast('내 위치를 아직 모름'); return; }
-  follow = on; $('#recenter').classList.toggle('on', !on && !!route);
-  if (on) map.easeTo({center:[me[1], me[0]], zoom:Math.max(map.getZoom(), 16.5), pitch:50, bearing:heading == null ? map.getBearing() : heading,
+  follow = on; $('#recenter').classList.toggle('on', !on && !!route && route.track);
+  const walk = route && route.mode === 'walk';
+  if (on) map.easeTo({center:[me[1], me[0]], zoom:Math.max(map.getZoom(), walk ? 17.5 : 16.5), pitch:walk ? 30 : 50, bearing:heading == null ? map.getBearing() : heading,
     padding:{top:Math.round(innerHeight * .34), bottom:130, left:0, right:0}, duration:900});
 }
 
@@ -468,50 +475,92 @@ function progress(p, path, cum){    // 내 위치에서 경로선까지 가장 �
   const s = cum[bi] + bt * (cum[bi+1] - cum[bi]);      // 출발점부터 그 지점까지 경로를 따라 잰 거리
   return {d:best, s, rem:cum[cum.length - 1] - s};
 }
+/* 도보 길찾기: OSM 기반 공개 서버(FOSSGIS OSRM, 도보 전용). 열쇠 없이 씀 */
+const WALK_API = 'https://routing.openstreetmap.de/routed-foot/route/v1/foot/';
+const WALK_OFF_M = 30, NEAR_KM = 0.6;        // 도보: 30m 벗어나면 다시 계산 / 충전소 600m 안에 있으면 내 위치에서 출발
+const walkText = m => { const t = m.type, d = m.modifier || '';
+  if (t === 'arrive') return '목적지'; if (/uturn/.test(d)) return '유턴';
+  if (/sharp left|^left/.test(d)) return '좌회전'; if (/sharp right|^right/.test(d)) return '우회전';
+  if (/slight left/.test(d)) return '왼쪽 방향'; if (/slight right/.test(d)) return '오른쪽 방향'; return '직진'; };
+async function fetchRoute(from, dest, mode){     // 결과를 같은 모양으로 맞춤: {distance, duration, path:[[위도,경도]], guides:[{lat,lng,text}]}
+  if (mode === 'walk'){
+    const r = await fetch(`${WALK_API}${from[1]},${from[0]};${dest.lng},${dest.lat}?overview=full&geometries=geojson&steps=true`).then(x => x.json());
+    if (r.code !== 'Ok' || !r.routes || !r.routes[0]) return {error:'no_route'};
+    const rt = r.routes[0];
+    return {distance:rt.distance, duration:rt.duration, path:rt.geometry.coordinates.map(c => [c[1], c[0]]),
+      guides:rt.legs[0].steps.map(s => ({lat:s.maneuver.location[1], lng:s.maneuver.location[0], text:walkText(s.maneuver)}))};
+  }
+  return fetch(`${ROUTE_API}/route?origin=${from[1]},${from[0]}&destination=${dest.lng},${dest.lat}`).then(x => x.json());
+}
 async function requestRoute(why){
-  if (!route || !me) return;
+  if (!route) return; const from = route.track ? me : route.from; if (!from) return;
   lastReq = Date.now(); route.busy = true; renderBody();
-  const s = route.s, first = !route.path;
+  const cur = route, first = !route.path;
   try {
-    const r = await fetch(`${ROUTE_API}/route?origin=${me[1]},${me[0]}&destination=${s[C.lng]},${s[C.lat]}`).then(x => x.json());
-    if (!route || route.s !== s) return;
+    const r = await fetchRoute(from, route.dest, route.mode);
+    if (route !== cur) return;
     if (r.error){ route.err = r.error === 'no_route' ? '경로를 찾지 못함' + (r.message ? ' (' + r.message + ')' : '') : '경로 서버 오류 (' + r.error + ')'; }
     else {
-      Object.assign(route, {path:r.path, cum:prepPath(r.path), dist:r.distance, rem:r.distance, dur:r.duration, guides:r.guides || [], gi:1, at:new Date(), why, n:(route.n || 0) + 1, err:null, off:0});
+      Object.assign(route, {path:r.path, cum:prepPath(r.path), dist:r.distance, rem:r.distance, dur:r.duration, guides:r.guides || [], gi:1, pos:0, at:new Date(), why, n:(route.n || 0) + 1, err:null, off:0});
       route.guides.forEach(g => { g.s = progress([g.lat, g.lng], route.path, route.cum).s; });   // 각 안내 지점이 경로의 몇 m 지점인지
       map.getSource('route').setData({type:'Feature', geometry:{type:'LineString', coordinates:r.path.map(p => [p[1], p[0]])}, properties:{}});
-      if (first) setFollow(true);
+      if (first){ if (route.track) setFollow(true); else overview(); }
     }
-  } catch (e){ if (route) route.err = '경로 서버에 연결하지 못함'; }
-  if (route){ route.busy = false; renderBody(); }
+  } catch (e){ if (route === cur) route.err = '경로 서버에 연결하지 못함'; }
+  if (route === cur){ route.busy = false; renderBody(); }
 }
 function onMove(p){
-  setMe(p); if (!route || !route.path) return;
-  const s = route.s;
-  if (km(me, [s[C.lat], s[C.lng]]) * 1000 < OFF_M){ toast(s[C.name] + '에 도착함'); stopRoute(); return; }
+  setMe(p); if (!route || !route.path || !route.track) return;
+  const d = route.dest, off = route.mode === 'walk' ? WALK_OFF_M : OFF_M;
+  if (km(me, [d.lat, d.lng]) * 1000 < (route.mode === 'walk' ? 15 : OFF_M)){ toast(d.name + '에 도착함'); stopRoute(); return; }
   const pr = progress(me, route.path, route.cum); route.off = pr.d; route.rem = pr.rem;
   const g = route.guides;      // 지나간 안내 지점은 넘김
   route.pos = pr.s; while (route.gi < g.length - 1 && g[route.gi].s <= pr.s + 8) route.gi++;
   renderNav();
-  if (route.off > OFF_M && Date.now() - lastReq > 10000) requestRoute('경로에서 ' + Math.round(route.off) + 'm 벗어남');
+  if (route.off > off && Date.now() - lastReq > 10000) requestRoute('경로에서 ' + Math.round(route.off) + 'm 벗어남');
 }
-function startRoute(s){
+function beginRoute(r){
+  stopRoute(true); route = Object.assign({n:0}, r); document.body.classList.add('nav'); document.body.classList.toggle('walk', r.mode === 'walk');
+  carEl.src = r.mode === 'walk' ? WALKER : 'car.png';
+  hideTip(); if (placePop) placePop.remove(); renderBody(); updateMap();
+}
+function startRoute(s){        // 자동차: 내 위치 → 충전소
   if (!navigator.geolocation){ toast('이 브라우저는 위치 기능이 없어 경로를 계산하지 못함'); return; }
-  initCompass(); stopRoute(true); route = {s, n:0}; selected = s; document.body.classList.add('nav'); hideTip(); renderBody(); updateMap();
+  initCompass(); selected = s;
+  beginRoute({mode:'car', track:true, s, dest:{name:s[C.name], lat:s[C.lat], lng:s[C.lng], sub:s[C.addr]}});
   const go = () => { if (!route) return; startWatch(); requestRoute('처음 계산');
     routeTimer = setInterval(() => requestRoute('2분 경과'), REROUTE_MS); };
   if (me) go(); else navigator.geolocation.getCurrentPosition(p => { setMe(p); go(); },
     () => { toast('내 위치를 알 수 없어 경로를 계산하지 못함'); stopRoute(); }, GEO);
 }
+function startWalk(place){     // 도보: 충전소(또는 그 근처의 내 위치) → 주변 인프라
+  const s = selected; if (!s) return;
+  const near = !!me && km(me, [s[C.lat], s[C.lng]]) < NEAR_KM;      // 충전소 근처에 있으면 내 위치에서 출발하고 따라감
+  if (near) initCompass();
+  beginRoute({mode:'walk', track:near, from:[s[C.lat], s[C.lng]], s, dest:place});
+  if (near) startWatch();
+  requestRoute('처음 계산');
+}
 function stopRoute(quiet){
   clearInterval(routeTimer); routeTimer = null;
   if (ready) map.getSource('route').setData(EMPTY);
-  document.body.classList.remove('nav'); $('#navDetail').classList.remove('on'); $('#recenter').classList.remove('on');
+  const wasWalk = route && route.mode === 'walk';
+  document.body.classList.remove('nav', 'walk'); $('#navDetail').classList.remove('on'); $('#recenter').classList.remove('on');
+  carEl.src = 'car.png';
   const was = follow; follow = false; map.easeTo({pitch:0, bearing:0, padding:{top:0, bottom:0, left:0, right:0}, duration:was ? 600 : 0});
-  route = null; if (!quiet && D) renderBody();
+  route = null; if (quiet || !D) return;
+  renderBody(); updateMap();
+  if (wasWalk && selected){ loadPoi(selected); renderPoi(); }      // 도보 안내가 끝나면 그 충전소의 주변 인프라 화면으로 돌아감
 }
+function overview(){        // 경로 전체가 보이게
+  if (!route || !route.path) return; setFollow(false);
+  let a = [180, 90, -180, -90]; route.path.concat(route.track && me ? [me] : []).forEach(([lat, lng]) => { a = [Math.min(a[0], lng), Math.min(a[1], lat), Math.max(a[2], lng), Math.max(a[3], lat)]; });
+  map.setPadding({top:0, bottom:0, left:0, right:0});
+  map.fitBounds([[a[0], a[1]], [a[2], a[3]]], {padding:{top:130, bottom:160, left:50, right:80}, pitch:0, bearing:0, maxZoom:18, duration:800});
+}
+const WALKER = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96"><circle cx="24" cy="24" r="20" fill="#1b4965" stroke="#fff" stroke-width="4"/><path d="M24 10 L34 34 L24 28.5 L14 34 Z" fill="#58ddd0"/></svg>');
 
-$('#locate').onclick = () => { if (me && route) setFollow(true); else locate(); };
+$('#locate').onclick = () => { if (me && route && route.track) setFollow(true); else locate(); };
 $('#start').onclick = () => { $('#intro').classList.add('hide'); locate(); };
 $('#home').onclick = () => $('#intro').classList.remove('hide');
 if (location.hash === '#map'){ $('#intro').classList.add('hide'); locate(); }
@@ -675,8 +724,8 @@ const arrowFor = t => /유턴/.test(t) ? ARROW.uturn : /우회전|오른쪽/.tes
 const mTxt = d => d >= 1000 ? (d / 1000).toFixed(1) + 'km' : d >= 100 ? Math.round(d / 10) * 10 + 'm' : Math.max(0, Math.round(d)) + 'm';
 const hm = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 function renderNav(){
-  if (!route) return; const s = route.s;
-  $('#navName').textContent = s[C.name];
+  if (!route) return; const walk = route.mode === 'walk';
+  $('#navName').textContent = (walk ? '도보 · ' : '') + route.dest.name;
   if (!route.path){
     $('#navArrow').innerHTML = ARROW.straight; $('#navDist').textContent = ''; $('#navText').textContent = route.err || '경로 계산 중…';
     $('#navEta').textContent = '--:--'; $('#navRem').textContent = ''; $('#navDetail').innerHTML = detailHTML(); bindDetail(); return;
@@ -691,13 +740,16 @@ function renderNav(){
   $('#navDetail').innerHTML = detailHTML(); bindDetail();
 }
 function detailHTML(){
-  const s = route.s; let info = `<p>${route.err || '경로 계산 중…'}</p>`;
-  if (route.path){ const eta = new Date(route.at.getTime() + route.dur * 1000);
-    info = `<p>예상 시간 <b>${Math.max(1, Math.round(route.dur / 60))}분</b> (마지막 계산 시점 기준) · 도착 시각(${eta.getHours()}시)의 이용률 <b>${occTxt(s[C.occ][eta.getHours()])}</b></p>
-      <p>마지막 계산 ${hm(route.at)}:${String(route.at.getSeconds()).padStart(2,'0')} · ${route.why} · 계산 ${route.n}회${route.busy ? ' · 다시 계산 중…' : ''}${route.err ? ' · ' + route.err : ''}</p>
-      <p>2분마다, 또는 경로에서 50m 넘게 벗어나면 다시 계산함</p>`; }
-  return `<p>${s[C.addr]}</p>${info}<div class="acts" style="margin-bottom:0">
-    <a class="act" href="https://map.kakao.com/link/to/${encodeURIComponent(s[C.name])},${s[C.lat]},${s[C.lng]}" target="_blank" rel="noopener">카카오맵으로 길안내</a>
+  const d = route.dest, walk = route.mode === 'walk'; let info = `<p>${route.err || '경로 계산 중…'}</p>`;
+  if (route.path){ const eta = new Date(route.at.getTime() + route.dur * 1000), mins = Math.max(1, Math.round(route.dur / 60));
+    info = walk
+      ? `<p>도보 <b>${mins}분</b> · <b>${mTxt(route.dist)}</b> · ${route.track ? '내 위치에서 출발' : route.s[C.name] + '에서 출발'}</p>
+         <p>걷는 길 기준이며 실제 횡단보도·건물 출입구와 다를 수 있음${route.track ? ' · 경로에서 30m 넘게 벗어나면 다시 계산함' : ''}</p>`
+      : `<p>예상 시간 <b>${mins}분</b> (마지막 계산 시점 기준) · 도착 시각(${eta.getHours()}시)의 이용률 <b>${occTxt(route.s[C.occ][eta.getHours()])}</b></p>
+         <p>마지막 계산 ${hm(route.at)}:${String(route.at.getSeconds()).padStart(2,'0')} · ${route.why} · 계산 ${route.n}회${route.busy ? ' · 다시 계산 중…' : ''}${route.err ? ' · ' + route.err : ''}</p>
+         <p>2분마다, 또는 경로에서 50m 넘게 벗어나면 다시 계산함</p>`; }
+  return `<p>${d.sub || ''}</p>${info}<div class="acts" style="margin-bottom:0">
+    <a class="act" href="https://map.kakao.com/link/to/${encodeURIComponent(d.name)},${d.lat},${d.lng}" target="_blank" rel="noopener">카카오맵으로 길안내</a>
     <button class="act ghost" id="stopRoute" type="button">안내 끝</button></div>`;
 }
 function bindDetail(){ const b = $('#stopRoute'); if (b) b.onclick = () => stopRoute(); }
@@ -706,10 +758,7 @@ $('#navMenu').onclick = () => $('#navDetail').classList.toggle('on');
 $('#recenter').onclick = () => setFollow(true);
 $('#zin').onclick = () => map.easeTo({zoom:map.getZoom() + 1, duration:300});
 $('#zout').onclick = () => map.easeTo({zoom:map.getZoom() - 1, duration:300});
-$('#overview').onclick = () => { if (!route || !route.path) return; setFollow(false);
-  let a = [180, 90, -180, -90]; route.path.concat(me ? [me] : []).forEach(([lat, lng]) => { a = [Math.min(a[0], lng), Math.min(a[1], lat), Math.max(a[2], lng), Math.max(a[3], lat)]; });
-  map.setPadding({top:0, bottom:0, left:0, right:0});
-  map.fitBounds([[a[0], a[1]], [a[2], a[3]]], {padding:{top:120, bottom:150, left:40, right:76}, pitch:0, bearing:0, duration:800}); };
+$('#overview').onclick = overview;
 
 function renderDetail(el){
   const s = selected, o = s[C.occ], W = 360, H = 130, L0 = 26, B = 18, T = 8, bw = (W - L0) / 24;
