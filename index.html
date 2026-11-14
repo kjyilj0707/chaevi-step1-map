@@ -252,8 +252,8 @@ const bin = v => v < 0 ? 0 : v < 10 ? 1 : v < 25 ? 2 : v < 50 ? 3 : v < 75 ? 4 :
 const occTxt = v => v < 0 ? '기록 없음' : v + '%';
 const wide = () => innerWidth > 820;
 
-/* 표시 = 동그라미(이용률 색) + V 마크 */
-const VPATH = 'M2 5 H8.6 L12 12.4 L14.4 8 H12.9 L16.6 5 H22 L19.6 8.6 H21.1 L12.6 20 H11.2 Z';
+/* 표시 = 동그라미(이용률 색) + 번개 모양 */
+const VPATH = 'M13.6 2 L5 13.4 H10.9 L9.6 22 L19 9.6 H12.6 Z';
 const markSVG = (body, halo, dark) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96">
 <circle cx="24" cy="24" r="${halo ? 19 : 21}" fill="${body}" stroke="${halo ? '#ff7a59' : '#17303f'}" stroke-width="${halo ? 6 : 2.5}"/>
 <path transform="translate(9.6 9.2) scale(1.2)" d="${VPATH}" fill="${dark ? '#17303f' : '#fff'}"/></svg>`;
