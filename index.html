@@ -4,7 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#fffdf8">
-<title>충전소 지도 (STEP 1 예비)</title>
+<title>충전소 지도 (STEP 1-2 예비)</title>
+<script>
+/* 컴퓨터처럼 넓은 화면에서 직접 열면 휴대폰 비율 틀(frame.html) 안에서 보여 줌 */
+if (window.top === window.self && matchMedia('(min-width: 821px)').matches) location.replace('frame.html' + location.hash);
+</script>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -203,7 +207,7 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
 
 <div id="intro">
   <div class="intro-in">
-    <h1>마채테 STEP1</h1>
+    <h1>마채테 STEP 1-2</h1>
     <button id="start" type="button">내 위치에서 시작하기</button>
   </div>
 </div>
