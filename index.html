@@ -100,6 +100,17 @@ body.dragging #map{pointer-events:none}
 .act.ghost{background:var(--mintbg);color:var(--navy)}
 .next{background:var(--mintbg);border-radius:10px;padding:8px 10px;color:var(--ink) !important;font-size:14px !important}
 .next b{color:var(--navy);margin-right:6px}
+.pchips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+.pchips button{border:1px solid var(--axis);background:var(--surface);border-radius:99px;padding:5px 10px;font-size:12px;color:var(--ink);display:flex;align-items:center;gap:5px}
+.pchips button i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.pchips button b{font-variant-numeric:tabular-nums}
+.pchips button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+.prow{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--grid);cursor:pointer}
+.prow .dot{width:11px;height:11px;border-radius:50%;flex:none}
+.prow .nm{flex:1;min-width:0}
+.prow .nm b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .nm span{font-size:11px;color:var(--ink2)}
+.prow .oc b{font-size:13px;color:var(--navy);font-variant-numeric:tabular-nums}
 .back{border:0;background:var(--mintbg);color:var(--navy);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;margin-bottom:8px}
 h3{margin:0;font-size:17px;color:var(--navy)}
 .det p{margin:2px 0;font-size:12px;color:var(--ink2)}
@@ -245,7 +256,8 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
 
 <script>
 const $ = s => document.querySelector(s);
-const C = {id:0,name:1,addr:2,lat:3,lng:4,sido:5,kind:6,n:7,nfast:8,kw:9,apt:10,stay:11,occ:12,med:13,ses:14,bad:15};
+const C = {id:0,name:1,addr:2,lat:3,lng:4,sido:5,kind:6,n:7,nfast:8,kw:9,apt:10,stay:11,occ:12,med:13,ses:14,bad:15,poi:16};
+const POI_COL = ['#eb6834','#6250d6','#eda100','#e87ba4','#2a78d6','#008300','#1baf7a'];   // 식사·카페·테이크아웃·쇼핑·편의·관광여가·업무
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const RAMP = ['--nodata','--q1','--q2','--q3','--q4','--q5'].map(css);
 const bin = v => v < 0 ? 0 : v < 10 ? 1 : v < 25 ? 2 : v < 50 ? 3 : v < 75 ? 4 : 5;
@@ -291,10 +303,15 @@ const zoomSize = (z, lo, hi) => lo + (hi - lo) * Math.max(0, Math.min(1, (z - 7)
 const sizeExpr = (lo, hi) => ['interpolate', ['linear'], ['zoom'], 7, ['*', ['get', 'k'], lo / 48], 16, ['*', ['get', 'k'], hi / 48]];
 const mapLoaded = new Promise(res => map.on('load', () => {
   Object.entries(sprites).forEach(([k, im]) => map.addImage(k, im, {pixelRatio:2}));
-  ['route','acc','sel','st','stay'].forEach(id => map.addSource(id, {type:'geojson', data:EMPTY}));
+  ['route','acc','ring','poi','sel','st','stay'].forEach(id => map.addSource(id, {type:'geojson', data:EMPTY}));
   map.addLayer({id:'acc', type:'fill', source:'acc', paint:{'fill-color':'#58ddd0', 'fill-opacity':0.18, 'fill-outline-color':'#17a99a'}});
   map.addLayer({id:'route-case', type:'line', source:'route', layout:{'line-cap':'round', 'line-join':'round'}, paint:{'line-color':'#143a52', 'line-width':['interpolate',['linear'],['zoom'],8,6,16,13]}});
   map.addLayer({id:'route-line', type:'line', source:'route', layout:{'line-cap':'round', 'line-join':'round'}, paint:{'line-color':'#58ddd0', 'line-width':['interpolate',['linear'],['zoom'],8,3,16,8]}});
+  map.addLayer({id:'ring-fill', type:'fill', source:'ring', paint:{'fill-color':'#1b4965', 'fill-opacity':0.05}});
+  map.addLayer({id:'ring', type:'line', source:'ring', paint:{'line-color':'#1b4965', 'line-width':1.5, 'line-dasharray':[3, 3]}});
+  map.addLayer({id:'poi', type:'circle', source:'poi', paint:{'circle-radius':['interpolate',['linear'],['zoom'],13,2.5,16,5.5,18,8],
+    'circle-color':['match',['get','c'],0,POI_COL[0],1,POI_COL[1],2,POI_COL[2],3,POI_COL[3],4,POI_COL[4],5,POI_COL[5],POI_COL[6]],
+    'circle-stroke-color':'#fff', 'circle-stroke-width':1.2}});
   map.addLayer({id:'sel', type:'circle', source:'sel', paint:{'circle-radius':['interpolate',['linear'],['zoom'],7,['*',['get','k'],9],16,['*',['get','k'],26]],
     'circle-color':'rgba(88,221,208,.45)', 'circle-stroke-color':'#1b4965', 'circle-stroke-width':2, 'circle-pitch-alignment':'map'}});
   const sym = {'icon-image':['get','img'], 'icon-size':sizeExpr(9, 30), 'icon-allow-overlap':true, 'icon-ignore-placement':true};
@@ -309,11 +326,14 @@ function updateMap(){
   map.getSource('st').setData({type:'FeatureCollection', features:shown.filter(s => !s[C.stay]).map(f)});
   map.getSource('stay').setData({type:'FeatureCollection', features:shown.filter(s => s[C.stay]).map(f)});
   map.getSource('sel').setData(selected ? {type:'FeatureCollection', features:[f(selected)]} : EMPTY);
+  if (!selected || route) clearPoi(); else if (poi.s === selected) drawPoi();
 }
 const draw = updateMap;
 const byId = id => D.stations.find(x => x[C.id] === id);
 function hit(pt){ const fs = map.queryRenderedFeatures([[pt.x - 6, pt.y - 6], [pt.x + 6, pt.y + 6]], {layers:['stay','st']}); return fs.length ? byId(fs[0].properties.id) : null; }
-map.on('click', e => { if (!ready) return; const s = hit(e.point); if (s) select(s, false); });
+map.on('click', e => { if (!ready) return; const s = hit(e.point); if (s){ select(s, false); return; }
+  const f = map.queryRenderedFeatures([[e.point.x - 7, e.point.y - 7], [e.point.x + 7, e.point.y + 7]], {layers:['poi']})[0];
+  if (f) toast(`${f.properties.n} · ${f.properties.s} · ${f.properties.d}m`); });
 map.on('mousemove', e => { if (!ready) return; const s = hit(e.point); map.getCanvas().style.cursor = s ? 'pointer' : '';
   if (s) showTip(e.originalEvent, `${s[C.name]} · ${hour}시 ${occTxt(s[C.occ][hour])}`); else hideTip(); });
 map.on('mouseout', hideTip);
@@ -506,6 +526,43 @@ function setTab(t){ tab = t; selected = null; $('#tabNear').setAttribute('aria-s
 Promise.all([fetch('data/stations.json').then(r => r.json()), loadSprites().then(() => mapLoaded)]).then(([d]) => { D = d; ready = true; refresh();
   if (me) map.getSource('acc').setData(circlePoly(me, 30)); });
 
+/* STEP 2 예비: 충전소를 눌렀을 때만 그 충전소의 주변 상권(반경 300m) 파일을 읽어 옴 */
+let poi = {s:null, data:null, cat:-1, state:''};
+function clearPoi(){ if (!poi.s && !poi.data) return; poi = {s:null, data:null, cat:-1, state:''};
+  if (ready){ map.getSource('poi').setData(EMPTY); map.getSource('ring').setData(EMPTY); } }
+function drawPoi(){
+  if (!ready || !poi.s) return; const s = poi.s, R = D.meta.poi.radius;
+  map.getSource('ring').setData(circlePoly([s[C.lat], s[C.lng]], R));
+  const items = poi.data ? poi.data.p.filter(x => poi.cat < 0 || x[1] === poi.cat) : [];
+  map.getSource('poi').setData({type:'FeatureCollection', features:items.map(x => ({type:'Feature', geometry:{type:'Point', coordinates:[x[4], x[3]]}, properties:{n:x[0], c:x[1], s:x[2], d:x[5]}}))});
+}
+function loadPoi(s){
+  if (!D.meta.poi){ poi = {s, data:null, cat:-1, state:'none'}; return; }
+  if (poi.s === s) return;
+  poi = {s, data:null, cat:-1, state:s[C.poi] ? 'loading' : 'uncovered'};
+  drawPoi();
+  if (!s[C.poi]) return;
+  const R = D.meta.poi.radius, kx = Math.cos(s[C.lat] * Math.PI / 180) * 111320;      // 반경 원이 화면에 들어오도록 맞춤
+  fit([[s[C.lat] + R / 110540, s[C.lng] - R / kx], [s[C.lat] - R / 110540, s[C.lng] + R / kx]], 16.5);
+  fetch('data/poi/' + s[C.id] + '.json').then(r => r.json()).then(d => { if (poi.s !== s) return; poi.data = d; poi.state = 'ok'; drawPoi(); renderPoi(); })
+    .catch(() => { if (poi.s === s){ poi.state = 'error'; renderPoi(); } });
+}
+function renderPoi(){
+  const el = $('#poiBox'); if (!el || !selected || poi.s !== selected) return;
+  const m = D.meta.poi;
+  if (poi.state === 'none'){ el.innerHTML = ''; return; }
+  if (poi.state === 'uncovered'){ el.innerHTML = `<h4>주변 상권</h4><p>${selected[C.sido]}은(는) 상권 자료가 아직 없음 (현재 ${m.covered.length}개 시·도만 있음)</p>`; return; }
+  if (poi.state === 'loading'){ el.innerHTML = `<h4>주변 상권 (반경 ${m.radius}m)</h4><p>불러오는 중…</p>`; return; }
+  if (poi.state === 'error'){ el.innerHTML = `<h4>주변 상권</h4><p>상권 자료를 불러오지 못함</p>`; return; }
+  const d = poi.data, list = d.p.filter(x => poi.cat < 0 || x[1] === poi.cat).slice(0, 40), sum = d.n.reduce((a, b) => a + b, 0);
+  el.innerHTML = `<h4>주변 상권 (반경 ${m.radius}m · ${sum.toLocaleString('ko-KR')}곳)</h4>
+    <div class="pchips">${m.cats.map((c, i) => `<button type="button" data-c="${i}" aria-pressed="${poi.cat === i}"><i style="background:${POI_COL[i]}"></i>${c} <b>${d.n[i]}</b></button>`).join('')}</div>
+    <p class="hint">${poi.cat < 0 ? '종류를 누르면 그 종류만 지도와 목록에 남음' : m.cats[poi.cat] + '만 보는 중 · 다시 누르면 전체'} · 가까운 순 ${list.length}곳${sum > d.p.length ? ` · 지도에는 가까운 ${d.p.length}곳만 표시` : ''}</p>` +
+    (list.map(x => `<div class="prow" data-lat="${x[3]}" data-lng="${x[4]}"><span class="dot" style="background:${POI_COL[x[1]]}"></span><div class="nm"><b>${x[0]}</b><span>${x[2]}</span></div><div class="oc"><b>${x[5]}m</b></div></div>`).join('') || '<p class="hint">해당하는 가게 없음</p>');
+  el.querySelectorAll('.pchips button').forEach(b => b.onclick = () => { const c = +b.dataset.c; poi.cat = poi.cat === c ? -1 : c; drawPoi(); renderPoi(); });
+  el.querySelectorAll('.prow').forEach(r => r.onclick = () => map.easeTo({center:[+r.dataset.lng, +r.dataset.lat], zoom:Math.max(map.getZoom(), 17), duration:500}));
+}
+
 function passes(s){
   const q = $('#q').value.trim(), o = s[C.occ][hour];
   if (F.fast && s[C.nfast] === 0) return false;
@@ -522,7 +579,7 @@ const km = (a, b) => { const R = 6371, r = Math.PI / 180, dLa = (b[0] - a[0]) * 
   const x = Math.sin(dLa / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
 const kmTxt = d => d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(d < 10 ? 1 : 0) + 'km';
 
-function select(s, pan){ selected = s; if (pan) flyTo(s[C.lat], s[C.lng], 15); if (!route) setSheet(true); renderBody(); updateMap(); }
+function select(s, pan){ selected = s; if (pan && !s[C.poi]) flyTo(s[C.lat], s[C.lng], 15); if (!route) setSheet(true); renderBody(); updateMap(); if (!route) loadPoi(s); renderPoi(); }
 
 function renderBody(){
   const el = $('#body');
@@ -611,9 +668,11 @@ function renderDetail(el){
     <div class="facts"><div><b>${occTxt(o[hour])}</b>${hour}시 이용률</div><div><b>${s[C.n]}대</b>충전기 (급속 ${s[C.nfast]})</div>
     <div><b>${s[C.med] < 0 ? '-' : s[C.med] + '분'}</b>급속 1회 중앙값</div></div>
     <div class="acts"><button class="act" id="goRoute" type="button">여기까지 경로 안내</button></div>
+    <div id="poiBox"></div>
     <h4>시간대별 이용률 (%) · 남색 막대 = ${hour}시</h4>
     <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="시간대별 이용률 막대 그래프">${grid}${bars}${xl}</svg>
     <p>최대 출력 ${s[C.kw]}kW${s[C.bad] > 0 ? ' · 통신이상 ' + s[C.bad] + '%' : ''}</p></div>`;
+  renderPoi();
   $('#back').onclick = () => { selected = null; renderBody(); draw(); };
   $('#goRoute').onclick = () => startRoute(s);
   el.querySelectorAll('rect[data-t]').forEach(r => { r.onmousemove = e => showTip(e, r.dataset.t); r.onmouseleave = hideTip; });
