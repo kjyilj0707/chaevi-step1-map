@@ -743,8 +743,11 @@ function wxTop(force){          // 위쪽 작은 표시: 지도 가운데. 5km �
 }
 map.on('moveend', () => { clearTimeout(wxDeb); wxDeb = setTimeout(() => wxTop(), 800); });
 setInterval(() => { if (!document.hidden){ wxTop(); fxMe(); } }, 60e3);
-$('#wx').onclick = () => { if (!wxW) return; const n = (wxW.next || []).slice(1, 4).map(f => `${parseInt(f.time, 10)}시 ${f.pty > 0 ? f.ptyText : f.skyText || ''} ${f.temp == null ? '' : Math.round(f.temp) + '℃'}`.trim());
-  toast(`지도 가운데 ${wxLine(wxW)} · 습도 ${wxW.reh}%${n.length ? ' · 이후 ' + n.join(', ') : ''} (기상청)`); };
+$('#wx').onclick = () => { if (!wxW) return; const w = wxW;      // 412px 화면에서 2~3줄: 지금 + 이후 2시간(바람은 충전소 카드 한 줄에 있음)
+  const st = f => f.pty > 0 ? f.ptyText : f.skyText || '', nx = (w.next || []).slice(1, 3).filter(f => f.time && st(f));
+  const now = w.rain ? w.ptyText : w.skyText || '', hr = f => parseInt(f.time, 10) + '시';
+  const after = !nx.length ? '' : nx.every(f => st(f) === now) ? ` · ${hr(nx[nx.length - 1])}까지 ${now}` : ' · ' + nx.map(f => `${hr(f)} ${st(f)}`).join(', ');
+  toast(`${w.skyText ? w.skyText + ' ' : ''}${Math.round(w.temp)}℃ · ${wxRain(w)} · 습도 ${w.reh}%${after} (${w.time}\u00a0기상청)`); };      // 출처 괄호가 줄 끝에서 쪼개지지 않게
 
 /* 내 위치 둘레 날씨 그림: 차 아이콘을 중심으로 화면 지름 180px 원 안에만 그림(지도 확대와 상관없이 같은 크기).
    내 위치 날씨는 위 wxGet 캐시를 다시 씀(같은 자리 10분). 위치나 날씨가 없으면 아예 안 보임. 손가락 조작은 지도로 그대로 감(pointer-events:none).
