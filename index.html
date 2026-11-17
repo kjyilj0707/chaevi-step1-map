@@ -767,25 +767,35 @@ function fxKind(w){            // 강수형태(pty) 먼저, 없으면 하늘상�
 const rnd = (a, b) => a + Math.random() * (b - a);
 const fxDrop = () => ({t:'r', x:rnd(-20, FX_D + 20), y:rnd(-20, FX_D), v:rnd(240, 330), l:rnd(12, 19)});
 const fxFlake = () => ({t:'s', b:rnd(0, FX_D), x:0, y:rnd(-10, FX_D), v:rnd(14, 26), r:rnd(2.2, 3.6), a:rnd(0, 6.3), f:rnd(.7, 1.4)});
-const fxCloud = (o, i, n) => ({t:'c', x:-50 + (FX_D + 100) * (i + rnd(0, .6)) / n, y:rnd(35, FX_D - 35), v:rnd(5, 9), s:rnd(1, 1.35), o});
+const fxCloud = (o, i, n, light) => ({t:'c', x:-50 + (FX_D + 100) * (i + rnd(0, .6)) / n, y:rnd(35, FX_D - 35), v:rnd(5, 9), s:light ? rnd(.8, 1.05) : rnd(1, 1.35), o, light});
+const fxStar = () => { const r = rnd(28, FX_D * .4), q = rnd(0, 6.3); return {t:'*', x:FX_D / 2 + r * Math.cos(q), y:FX_D / 2 + r * Math.sin(q), a:rnd(0, 6.3), f:rnd(1.2, 2.4), r:rnd(3.5, 5.5)}; };
 function fxSeed(){             // 입자는 수십 개 이내. 비는 1시간 강수량(rn1)이 클수록 조금 촘촘하게
   const k = fx.kind, P = [], rn = Math.min((fx.w && fx.w.rn1) || 0, 10), n = (c, f) => { for (let i = 0; i < c; i++) P.push(f(i, c)); };
   if (k === 'rain') n(Math.round(44 + rn * 5), fxDrop);
   else if (k === 'snow') n(30, fxFlake);
   else if (k === 'sleet'){ n(20, fxDrop); n(16, fxFlake); }
   else if (k === 'cloudy') n(5, (i, c) => fxCloud(.5, i, c));
-  else if (k === 'partly') n(3, (i, c) => fxCloud(.38, i, c));
+  else if (k === 'partly') n(4, (i, c) => fxCloud(.7, i, c, true));
+  else if (k === 'clear' && fx.night) n(9, fxStar);
   fx.parts = P;
 }
 function fxDraw(t, dt){
   const g = fx.ctx, R = FX_D / 2; g.clearRect(0, 0, FX_D, FX_D);
-  const tint = {rain:'rgba(50,90,135,.20)', sleet:'rgba(70,105,145,.20)', snow:'rgba(150,185,225,.26)', cloudy:'rgba(100,112,126,.16)'}[fx.kind];
+  const day = !fx.night, tint = {rain:'rgba(50,90,135,.20)', sleet:'rgba(70,105,145,.20)', snow:'rgba(150,185,225,.26)', cloudy:'rgba(95,106,120,.20)',
+    partly:day ? 'rgba(255,236,190,.16)' : 'rgba(80,100,150,.14)', clear:day ? 'rgba(255,214,110,.18)' : 'rgba(55,80,150,.20)'}[fx.kind];     // 원 안 옅은 색 막: 원 자체가 보이게
   if (tint){ g.fillStyle = tint; g.fillRect(0, 0, FX_D, FX_D); }
-  if (fx.kind === 'clear' || fx.kind === 'partly'){        // 햇빛(밤에는 푸른 빛)이 4초 주기로 숨 쉬듯
-    const a = (fx.kind === 'clear' ? 1 : .5) * (fx.night ? 1.2 : 1) * (.42 + .14 * Math.sin(t * Math.PI / 2)), c = fx.night ? '110,145,215' : '255,190,60';
-    const gr = g.createRadialGradient(R, R, 0, R, R, R);
-    gr.addColorStop(0, `rgba(${c},${a})`); gr.addColorStop(.55, `rgba(${c},${a * .45})`); gr.addColorStop(1, `rgba(${c},0)`);
+  if (fx.kind === 'clear' || fx.kind === 'partly'){        // 햇빛(밤에는 푸른 빛) 번짐이 5초 주기로 숨 쉬듯 커졌다 작아짐
+    const b = Math.sin(t * Math.PI * .4), k = fx.kind === 'clear' ? 1 : .55, a = k * (.4 + .06 * b), rr = R * (.86 + .1 * b);
+    const c = day ? '255,192,50' : '120,155,235', gr = g.createRadialGradient(R, R, 0, R, R, rr);
+    gr.addColorStop(0, `rgba(${c},${a})`); gr.addColorStop(.5, `rgba(${c},${a * .55})`); gr.addColorStop(1, `rgba(${c},0)`);
     g.fillStyle = gr; g.fillRect(0, 0, FX_D, FX_D);
+    if (fx.kind === 'clear' && day){                       // 가는 햇살 줄 8개가 천천히 돎
+      g.lineCap = 'round'; g.lineWidth = 3;
+      for (let i = 0; i < 8; i++){ const q = t * .15 + i * Math.PI / 4, cs = Math.cos(q), sn = Math.sin(q), r0 = 30, r1 = R * (i % 2 ? .62 : .8) * (.95 + .05 * b);
+        const lg = g.createLinearGradient(R + cs * r0, R + sn * r0, R + cs * r1, R + sn * r1);
+        lg.addColorStop(0, 'rgba(245,165,20,.55)'); lg.addColorStop(1, 'rgba(245,165,20,0)');
+        g.strokeStyle = lg; g.beginPath(); g.moveTo(R + cs * r0, R + sn * r0); g.lineTo(R + cs * r1, R + sn * r1); g.stroke(); }
+    }
   }
   g.lineCap = 'round';
   for (const p of fx.parts){
@@ -799,11 +809,18 @@ function fxDraw(t, dt){
       p.x = p.b + Math.sin(t * p.f + p.a) * 7;
       g.fillStyle = 'rgba(255,255,255,.95)'; g.strokeStyle = 'rgba(80,135,195,.9)'; g.lineWidth = 1.1;
       g.beginPath(); g.arc(p.x, p.y, p.r, 0, 7); g.fill(); g.stroke();
-    } else {                      // 구름: 반투명 덩어리가 천천히 흘러감
+    } else if (p.t === '*'){      // 밤 맑음: 별이 반짝임
+      const a = Math.max(0, Math.sin(t * p.f + p.a)), r = p.r * (.6 + .4 * a);
+      g.strokeStyle = `rgba(255,250,215,${.35 + .65 * a})`; g.lineWidth = 2; g.beginPath();
+      g.moveTo(p.x - r, p.y); g.lineTo(p.x + r, p.y); g.moveTo(p.x, p.y - r); g.lineTo(p.x, p.y + r); g.stroke();
+      g.fillStyle = `rgba(255,255,240,${.5 + .5 * a})`; g.beginPath(); g.arc(p.x, p.y, 1.8, 0, 7); g.fill();
+    } else {                      // 구름: 덩어리가 천천히 흘러감. 흐림은 짙은 회색, 구름많음은 밝은 흰회색(테두리로 지도와 구분)
       p.x += p.v * dt; if (p.x - 50 * p.s > FX_D) p.x = -50 * p.s;
-      const s = p.s; g.fillStyle = `rgba(105,118,132,${p.o})`; g.beginPath();
+      const s = p.s; g.beginPath();
       [[-20, 4, 15], [0, -6, 21], [20, 3, 16], [5, 8, 15]].forEach(([dx, dy, r]) => { g.moveTo(p.x + dx * s + r * s, p.y + dy * s); g.arc(p.x + dx * s, p.y + dy * s, r * s, 0, 7); });
-      g.fill();
+      if (p.light){ g.shadowColor = 'rgba(80,95,115,.55)'; g.shadowBlur = 6; g.fillStyle = `rgba(246,248,251,${p.o})`; }     // 그림자 테두리: 겹친 원의 안쪽 선이 안 생김
+      else g.fillStyle = `rgba(95,106,120,${p.o})`;
+      g.fill(); g.shadowBlur = 0;
     }
   }
 }
