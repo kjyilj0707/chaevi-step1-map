@@ -246,10 +246,11 @@ body.nav .maplibregl-ctrl-bottom-left{bottom:calc(116px + env(safe-area-inset-bo
 .carwrap.turning{cursor:grabbing;background:radial-gradient(circle, rgba(88,221,208,.0) 40%, rgba(88,221,208,.35) 41%, rgba(88,221,208,.35) 48%, rgba(88,221,208,0) 49%)}
 img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,58,82,.35))}
 #compass svg{transition:none}
-/* 내 위치 둘레 날씨 그림: 가장자리는 흐리게 사라짐, 지도 조작을 막지 않음, 주행 화면에서는 더 옅게 */
-.wxfx{width:180px;height:180px;border-radius:50%;overflow:hidden;pointer-events:none;
-  -webkit-mask-image:radial-gradient(circle closest-side, #000 70%, transparent 100%);mask-image:radial-gradient(circle closest-side, #000 70%, transparent 100%)}
-.wxfx canvas{display:block;width:180px;height:180px;transition:opacity .4s}
+/* 내 위치 날씨 그림(크레용 손그림): 차 아이콘 위에 구름·해·달, 그 아래로 비·눈. 테두리·색 막 없음, 아래쪽 끝만 흐리게 사라짐,
+   지도 조작을 막지 않음, 주행 화면에서는 더 옅게 */
+.wxfx{width:150px;height:170px;pointer-events:none;
+  -webkit-mask-image:linear-gradient(#000 78%, transparent);mask-image:linear-gradient(#000 78%, transparent)}
+.wxfx canvas{display:block;width:150px;height:170px;transition:opacity .4s}
 body.nav .wxfx canvas{opacity:.55}
 
 
@@ -749,13 +750,17 @@ $('#wx').onclick = () => { if (!wxW) return; const w = wxW;      // 412px 화면
   const after = !nx.length ? '' : nx.every(f => st(f) === now) ? ` · ${hr(nx[nx.length - 1])}까지 ${now}` : ' · ' + nx.map(f => `${hr(f)} ${st(f)}`).join(', ');
   toast(`${w.skyText ? w.skyText + ' ' : ''}${Math.round(w.temp)}℃ · ${wxRain(w)} · 습도 ${w.reh}%${after} (${w.time}\u00a0기상청)`); };      // 출처 괄호가 줄 끝에서 쪼개지지 않게
 
-/* 내 위치 둘레 날씨 그림: 차 아이콘을 중심으로 화면 지름 180px 원 안에만 그림(지도 확대와 상관없이 같은 크기).
+/* 내 위치 날씨 그림(크레용 손그림): 차 아이콘 위쪽에 작은 구름·해·달을 두고, 그 아래로 비·눈이 떨어져 차 아이콘 뒤로 지나감.
+   캔버스는 화면 150×170px(지도 확대와 상관없이 같은 크기). 차 아이콘 중심이 캔버스 (75, 112)에 오도록 마커를 위로 올림.
+   크레용 질감(거친 테두리·알갱이·흰 반점)은 처음 한 번만 오프스크린 캔버스(스프라이트)에 그려 두고, 매 프레임은 drawImage로 옮기기만 함.
    내 위치 날씨는 위 wxGet 캐시를 다시 씀(같은 자리 10분). 위치나 날씨가 없으면 아예 안 보임. 손가락 조작은 지도로 그대로 감(pointer-events:none).
-   시험용: 주소 끝에 #wx=rain|snow|sleet|cloudy|partly|clear 를 붙이면 실제 날씨와 상관없이 그 상태로 보임 */
-const FX_D = 180, FX_KINDS = ['rain', 'snow', 'sleet', 'cloudy', 'partly', 'clear'];
-const fx = {kind:null, w:null, at:null, t:0, el:null, mk:null, ctx:null, raf:0, last:0, parts:[], night:false};
+   시험용: 주소 끝에 #wx=rain|snow|sleet|cloudy|partly|clear 를 붙이면 실제 날씨와 상관없이 그 상태로 보임. 낮/밤 강제는 &tm=day|night */
+const FX_W = 150, FX_H = 170, FX_CY = 112, FX_KINDS = ['rain', 'snow', 'sleet', 'cloudy', 'partly', 'clear'];
+const FX_S = Math.min(devicePixelRatio || 1, 2);              // 기기 픽셀 비율만큼 크게 그려 흐리지 않게(2배까지)
+const fx = {kind:null, w:null, at:null, t:0, el:null, mk:null, ctx:null, raf:0, last:0, parts:[], night:false, spr:{}};
 const fxStill = matchMedia('(prefers-reduced-motion: reduce)');
 const fxForced = () => { const m = /(?:^#|&)wx=(\w+)/.exec(location.hash); return m && FX_KINDS.includes(m[1]) ? m[1] : null; };
+const fxTm = () => { const m = /(?:^#|&)tm=(day|night)/.exec(location.hash); return m ? m[1] : null; };
 function fxKind(w){            // 강수형태(pty) 먼저, 없으면 하늘상태(sky)
   if (!w) return null;
   if ([1, 4, 5].includes(w.pty)) return 'rain';
@@ -765,64 +770,162 @@ function fxKind(w){            // 강수형태(pty) 먼저, 없으면 하늘상�
   return null;
 }
 const rnd = (a, b) => a + Math.random() * (b - a);
-const fxDrop = () => ({t:'r', x:rnd(-20, FX_D + 20), y:rnd(-20, FX_D), v:rnd(240, 330), l:rnd(12, 19)});
-const fxFlake = () => ({t:'s', b:rnd(0, FX_D), x:0, y:rnd(-10, FX_D), v:rnd(14, 26), r:rnd(2.2, 3.6), a:rnd(0, 6.3), f:rnd(.7, 1.4)});
-const fxCloud = (o, i, n, light) => ({t:'c', x:-50 + (FX_D + 100) * (i + rnd(0, .6)) / n, y:rnd(35, FX_D - 35), v:rnd(5, 9), s:light ? rnd(.8, 1.05) : rnd(1, 1.35), o, light});
-const fxStar = () => { const r = rnd(28, FX_D * .4), q = rnd(0, 6.3); return {t:'*', x:FX_D / 2 + r * Math.cos(q), y:FX_D / 2 + r * Math.sin(q), a:rnd(0, 6.3), f:rnd(1.2, 2.4), r:rnd(3.5, 5.5)}; };
-function fxSeed(){             // 입자는 수십 개 이내. 비는 1시간 강수량(rn1)이 클수록 조금 촘촘하게
-  const k = fx.kind, P = [], rn = Math.min((fx.w && fx.w.rn1) || 0, 10), n = (c, f) => { for (let i = 0; i < c; i++) P.push(f(i, c)); };
-  if (k === 'rain') n(Math.round(44 + rn * 5), fxDrop);
-  else if (k === 'snow') n(30, fxFlake);
-  else if (k === 'sleet'){ n(20, fxDrop); n(16, fxFlake); }
-  else if (k === 'cloudy') n(5, (i, c) => fxCloud(.5, i, c));
-  else if (k === 'partly') n(4, (i, c) => fxCloud(.7, i, c, true));
-  else if (k === 'clear' && fx.night) n(9, fxStar);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+
+/* ---- 크레용 도구(스프라이트를 만들 때 한 번만 씀) ---- */
+function fxCanvas(w, h){ const c = document.createElement('canvas'); c.width = Math.ceil(w * FX_S); c.height = Math.ceil(h * FX_S);
+  const g = c.getContext('2d'); g.scale(FX_S, FX_S); c.w = w; c.h = h; return [c, g]; }
+const fxPath = (g, P, close = true) => { g.beginPath(); P.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); if (close) g.closePath(); };
+const fxJit = (P, j) => P.map(([x, y]) => [x + rnd(-j, j), y + rnd(-j, j)]);
+function fxDots(g, P, wd, col, dens = 1, close = false){   // 크레용 획: 선을 따라 아주 작은 점을 흩뿌려 고르지 않은 가장자리를 만듦
+  g.fillStyle = col; const Q = close ? P.concat([P[0]]) : P;
+  for (let i = 1; i < Q.length; i++){
+    const [x0, y0] = Q[i - 1], [x1, y1] = Q[i], n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * wd * 1.3 * dens);
+    for (let k = 0; k < n; k++){
+      const u = Math.random(), a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * wd * .5 * rnd(.8, 1.15), s = rnd(.5, 1.3);
+      g.globalAlpha = rnd(.35, 1); g.fillRect(x0 + (x1 - x0) * u + Math.cos(a) * r - s / 2, y0 + (y1 - y0) * u + Math.sin(a) * r - s / 2, s, s);
+    }
+  }
+  g.globalAlpha = 1;
+}
+function fxLine(g, P, wd, col, close = true){              // 굵은 크레용 선: 살짝 흔든 선 두 번 + 점 흩뿌림
+  g.save(); g.lineCap = g.lineJoin = 'round'; g.strokeStyle = col;
+  for (let i = 0; i < 2; i++){ g.globalAlpha = .75; g.lineWidth = wd * rnd(.5, .65); fxPath(g, fxJit(P, wd * .12), close); g.stroke(); }
+  g.restore(); fxDots(g, P, wd, col, 1, close);
+}
+function fxFill(g, P, base, shades, w, h, dens = 1){        // 안쪽 채움: 바탕색 + 비스듬한 짧은 크레용 결 + 얼룩
+  g.save(); fxPath(g, P); g.clip(); g.fillStyle = base; g.fillRect(0, 0, w, h); g.lineCap = 'round';
+  for (let i = 0, n = w * h * .045 * dens; i < n; i++){
+    const x = rnd(-6, w), y = rnd(0, h + 6), l = rnd(5, 16);
+    g.strokeStyle = pick(shades); g.globalAlpha = rnd(.12, .4); g.lineWidth = rnd(1, 3.2);
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + l * .8, y - l * .55); g.stroke();
+  }
+  for (let i = 0; i < 4; i++){ g.fillStyle = pick(shades); g.globalAlpha = rnd(.1, .22); g.beginPath(); g.arc(rnd(0, w), rnd(0, h), rnd(6, 14), 0, 7); g.fill(); }
+  g.restore();
+}
+function fxErode(g, w, h, dens, smax){                     // 종이 알갱이: 작은 점을 지워 흰(또는 투명) 반점을 냄
+  g.save(); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000';
+  for (let i = 0, n = w * h * dens; i < n; i++){ const s = rnd(.4, smax); g.globalAlpha = rnd(.25, 1); g.fillRect(rnd(0, w), rnd(0, h), s, s); }
+  g.restore();
+}
+function fxSticker(layer, P, pad){                          // 색 층 밑에 흰 바탕을 깔아, 갉아낸 반점이 지도 위에서도 흰 종이처럼 보이게
+  const [c, g] = fxCanvas(layer.w, layer.h);
+  g.fillStyle = 'rgba(255,255,255,.92)'; g.strokeStyle = g.fillStyle; g.lineWidth = pad; g.lineJoin = 'round'; fxPath(g, P); g.fill(); g.stroke();
+  g.drawImage(layer, 0, 0, layer.w, layer.h); return c;
+}
+const fxRing = (cx, cy, r, n = 64, j = 0) => Array.from({length:n}, (_, i) => { const q = i / n * 6.283, rr = r + rnd(-j, j); return [cx + rr * Math.cos(q), cy + rr * Math.sin(q)]; });
+function fxCloudPts(k, o){      // 원 여러 개를 합친 몽실한 구름 윤곽: 가운데에서 사방으로 뻗은 선이 마지막으로 닿는 원 둘레(100×60 기준)
+  const C = [[22, 38, 15], [42, 24, 20], [64, 22, 17], [80, 36, 14], [50, 42, 16], [30, 45, 12], [70, 45, 12]], ox = 50, oy = 38, P = [];
+  for (let i = 0; i < 120; i++){
+    const q = i / 120 * 6.283, dx = Math.cos(q), dy = Math.sin(q); let t = 0;
+    for (const [cx, cy, r] of C){ const ex = cx - ox, ey = cy - oy, b = dx * ex + dy * ey, d = b * b - (ex * ex + ey * ey - r * r); if (d >= 0) t = Math.max(t, b + Math.sqrt(d)); }
+    P.push([o + (ox + dx * t) * k, o + (oy + dy * t) * k]);
+  }
+  return P;
+}
+const FX_CLOUD = {          // 구름 색: 바탕, 결, 외곽선
+  rain:  {base:'#2c62a8', shades:['#1d4b8c', '#4b82c4', '#22427c', '#6596d0'], line:'#1b2a5e'},
+  sleet: {base:'#4c7fbe', shades:['#2f5f9f', '#6f9fd6', '#3a6aa8', '#8ab3e0'], line:'#1f3368'},
+  snow:  {base:'#8db8e8', shades:['#6c9fd8', '#b8d6f4', '#5b8dcc', '#d7e8fa'], line:'#2a4a8a'},
+  dark:  {base:'#5f6f8a', shades:['#4b5a74', '#7a89a3', '#3f4c64', '#93a0b6'], line:'#232d48'},
+  grey:  {base:'#98a6bc', shades:['#7f8ea7', '#b4c0d1', '#6c7b94', '#c9d2df'], line:'#2e3a58'},
+  light: {base:'#c6d9f1', shades:['#a9c4e6', '#e2edfa', '#93b4df', '#f0f6fd'], line:'#2a4a8a'},
+};
+function fxCloudSpr(k, st){
+  const o = 6, W = 100 * k + 2 * o, H = 60 * k + 2 * o, [c, g] = fxCanvas(W, H), P = fxCloudPts(k, o);
+  fxFill(g, P, st.base, st.shades, W, H);
+  const cx = o + 50 * k, cy = o + 38 * k, inner = (a, b, f) => P.slice(Math.round(a * 120), Math.round(b * 120)).map(([x, y]) => [cx + (x - cx) * f, cy + (y - cy) * f]);
+  fxDots(g, inner(.53, .66, .8), 2.4, '#fff', .9); fxDots(g, inner(.78, .86, .8), 2.2, '#fff', .8);     // 윤곽 안쪽 흰 하이라이트 획
+  fxDots(g, [[o + 12 * k, o + 40 * k], [o + 14 * k, o + 48 * k]], 2, '#fff', .8);
+  for (let i = 0; i < 3; i++){ const x = o + rnd(30, 82) * k, y = o + rnd(26, 48) * k; fxDots(g, [[x, y], [x + 5 * k, y - 3.5 * k]], 1.4, 'rgba(255,255,255,.85)', .7); }
+  fxLine(g, P, 5 * Math.max(k, .9), st.line);
+  fxErode(g, W, H, .09, 1.1);
+  const s = fxSticker(c, P, 3); s.w = W; s.h = H; s.o = o; return s;
+}
+function fxSunSpr(){            // 노란 해: 거친 동그라미(햇살은 따로 그려 돌림)
+  const W = 48, H = 48, [c, g] = fxCanvas(W, H), P = fxRing(24, 24, 16.5, 64, .7);
+  fxFill(g, P, '#ffcd3c', ['#ffb400', '#ffe285', '#f59f16', '#fff0b3'], W, H, 1.3);
+  fxDots(g, P.slice(36, 50).map(([x, y]) => [24 + (x - 24) * .7, 24 + (y - 24) * .7]), 2.2, '#fff', .9);
+  fxLine(g, P, 4.2, '#e07b12'); fxErode(g, W, H, .14, 1);
+  const s = fxSticker(c, P, 2.5); s.w = W; s.h = H; return s;
+}
+function fxRaysSpr(){           // 짧은 크레용 햇살 10개
+  const W = 84, H = 84, [c, g] = fxCanvas(W, H);
+  for (let i = 0; i < 10; i++){ const q = i / 10 * 6.283 + rnd(-.05, .05), r0 = 25, r1 = i % 2 ? 32 : 36, cs = Math.cos(q), sn = Math.sin(q);
+    fxLine(g, [[42 + cs * r0, 42 + sn * r0], [42 + cs * r1, 42 + sn * r1]], 4.2, '#f39c12', false); }
+  fxErode(g, W, H, .12, 1); c.w = W; c.h = H; return c;
+}
+function fxMoonSpr(){           // 초승달: 큰 원에서 오른쪽 위로 비킨 원을 빼냄
+  const W = 46, H = 46, R = 17, cx = 23, cy = 23, kx = cx + 9, ky = cy - 6, kr = 14.5, [c, g] = fxCanvas(W, H), O = fxRing(cx, cy, R, 72, .5);
+  fxFill(g, O, '#ffe07a', ['#ffd03a', '#fff1b8', '#f2b82a'], W, H, 1.3);
+  g.save(); g.globalCompositeOperation = 'destination-out'; g.beginPath(); g.arc(kx, ky, kr, 0, 7); g.fill(); g.restore();
+  const runs = (P, keep) => { const out = []; let cur = []; P.concat([P[0]]).forEach(p => { if (keep(p)) cur.push(p); else if (cur.length){ out.push(cur); cur = []; } }); if (cur.length) out.push(cur); return out; };
+  runs(O, ([x, y]) => Math.hypot(x - kx, y - ky) > kr - .5).forEach(r => fxLine(g, r, 3.8, '#c98b16', false));
+  runs(fxRing(kx, ky, kr, 72), ([x, y]) => Math.hypot(x - cx, y - cy) < R).forEach(r => fxLine(g, r, 3.8, '#c98b16', false));
+  fxErode(g, W, H, .12, 1);
+  const [s, h] = fxCanvas(W, H);     // 흰 바탕도 초승달 모양으로
+  h.fillStyle = 'rgba(255,255,255,.92)'; h.beginPath(); h.arc(cx, cy, R + 1.6, 0, 7); h.fill();
+  h.globalCompositeOperation = 'destination-out'; h.beginPath(); h.arc(kx, ky, kr - 1.6, 0, 7); h.fill();
+  h.globalCompositeOperation = 'source-over'; h.drawImage(c, 0, 0, W, H); s.w = W; s.h = H; return s;
+}
+function fxStarSpr(){           // 작은 별: 네 갈래 크레용 획
+  const W = 16, H = 16, [c, g] = fxCanvas(W, H), r = rnd(5, 6.5);
+  fxLine(g, [[8 - r, 8], [8 + r, 8]], 2.6, '#e8a900', false); fxLine(g, [[8, 8 - r], [8, 8 + r]], 2.6, '#e8a900', false);
+  c.w = W; c.h = H; return c;
+}
+function fxDropSpr(len, wd, col){   // 빗방울: 짧고 굵은 둥근 끝 막대, 위가 오른쪽으로 기움
+  const W = wd + len * .3 + 6, H = len + 6, [c, g] = fxCanvas(W, H), b = [3 + wd / 2, 3 + len - wd / 2], t = [b[0] + len * .27, 3 + wd / 2];
+  g.lineCap = 'round'; g.strokeStyle = col; g.globalAlpha = .9; g.lineWidth = wd * .7; g.beginPath(); g.moveTo(...t); g.lineTo(...b); g.stroke(); g.globalAlpha = 1;
+  fxDots(g, [t, b], wd, col, 2); fxErode(g, W, H, .22, .9); c.w = W; c.h = H; return c;
+}
+function fxFlakeSpr(round){     // 눈송이: 동그란 점(흰 속 + 파란 테) 또는 여섯 갈래 별 모양 획
+  const W = 16, H = 16, [c, g] = fxCanvas(W, H);
+  if (round){ g.fillStyle = '#fff'; g.beginPath(); g.arc(8, 8, 3.8, 0, 7); g.fill(); fxDots(g, fxRing(8, 8, 3.9, 20), 1.8, '#3e6db3', 1.2, true); }
+  else { g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.arc(8, 8, 4, 0, 7); g.fill();
+    for (let i = 0; i < 3; i++){ const q = i * Math.PI / 3 + .3, r = 5.6; fxLine(g, [[8 - r * Math.cos(q), 8 - r * Math.sin(q)], [8 + r * Math.cos(q), 8 + r * Math.sin(q)]], 2, '#3a68b0', false); } }
+  fxErode(g, W, H, .08, .8); c.w = W; c.h = H; return c;
+}
+function fxSprites(kind){       // 상태별로 필요한 스프라이트만, 처음 쓸 때 한 번 만들고 기억함
+  const S = fx.spr, need = {rain:['cRain', 'drops'], sleet:['cSleet', 'drops', 'flakes'], snow:['cSnow', 'flakes'], cloudy:['cDark', 'cGrey'],
+    partly:['cLight', 'sun', 'rays', 'moon'], clear:['sun', 'rays', 'moon', 'stars']}[kind] || [];
+  const make = {cRain:() => fxCloudSpr(1.05, FX_CLOUD.rain), cSleet:() => fxCloudSpr(1.05, FX_CLOUD.sleet), cSnow:() => fxCloudSpr(1.05, FX_CLOUD.snow),
+    cDark:() => fxCloudSpr(.8, FX_CLOUD.dark), cGrey:() => fxCloudSpr(.86, FX_CLOUD.grey), cLight:() => fxCloudSpr(.86, FX_CLOUD.light),
+    sun:fxSunSpr, rays:fxRaysSpr, moon:fxMoonSpr, stars:() => [0, 1, 2].map(fxStarSpr),
+    drops:() => Array.from({length:6}, () => fxDropSpr(rnd(11, 17), rnd(4.4, 5.6), pick(['#1f3170', '#24397c', '#1a2a62']))),
+    flakes:() => [0, 1, 2, 3].map(i => fxFlakeSpr(i % 2 === 0))};
+  for (const n of need) if (!S[n]) S[n] = make[n]();
+  return S;
+}
+
+/* ---- 움직이는 것 ---- */
+const fxDrop = (s, y) => ({t:'r', im:pick(s.drops), x:rnd(26, 142), y:y ?? rnd(40, FX_H), v:rnd(95, 135), k:rnd(.92, 1.08)});
+const fxFlake = (s, y) => ({t:'s', im:pick(s.flakes), b:rnd(18, 132), x:0, y:y ?? rnd(40, FX_H), v:rnd(16, 26), a:rnd(0, 6.3), f:rnd(.8, 1.5), k:rnd(.8, 1.15)});
+function fxSeed(){             // 떨어지는 것은 서른 개 안팎(비 22~37개, 눈 16개). 비는 1시간 강수량(rn1)이 클수록 조금 촘촘하고 굵게
+  const k = fx.kind, s = fxSprites(k), P = [], rn = Math.min((fx.w && fx.w.rn1) || 0, 10), n = (c, f) => { for (let i = 0; i < c; i++) P.push(f(s)); };
+  if (k === 'rain'){ n(Math.round(22 + rn * 1.5), fxDrop); P.forEach(p => p.k *= 1 + rn * .025); }
+  else if (k === 'snow') n(16, fxFlake);
+  else if (k === 'sleet'){ n(12, fxDrop); n(10, fxFlake); }
+  else if (k === 'clear' && fx.night)        // 달 둘레 별 몇 개
+    [[30, 22], [122, 16], [116, 62], [24, 66], [96, 8]].forEach(([x, y], i) => P.push({t:'*', im:s.stars[i % 3], x, y, a:rnd(0, 6.3), f:rnd(1.2, 2.2)}));
   fx.parts = P;
 }
 function fxDraw(t, dt){
-  const g = fx.ctx, R = FX_D / 2; g.clearRect(0, 0, FX_D, FX_D);
-  const day = !fx.night, tint = {rain:'rgba(50,90,135,.20)', sleet:'rgba(70,105,145,.20)', snow:'rgba(150,185,225,.26)', cloudy:'rgba(95,106,120,.20)',
-    partly:day ? 'rgba(255,236,190,.16)' : 'rgba(80,100,150,.14)', clear:day ? 'rgba(255,214,110,.18)' : 'rgba(55,80,150,.20)'}[fx.kind];     // 원 안 옅은 색 막: 원 자체가 보이게
-  if (tint){ g.fillStyle = tint; g.fillRect(0, 0, FX_D, FX_D); }
-  if (fx.kind === 'clear' || fx.kind === 'partly'){        // 햇빛(밤에는 푸른 빛) 번짐이 5초 주기로 숨 쉬듯 커졌다 작아짐
-    const b = Math.sin(t * Math.PI * .4), k = fx.kind === 'clear' ? 1 : .55, a = k * (.4 + .06 * b), rr = R * (.86 + .1 * b);
-    const c = day ? '255,192,50' : '120,155,235', gr = g.createRadialGradient(R, R, 0, R, R, rr);
-    gr.addColorStop(0, `rgba(${c},${a})`); gr.addColorStop(.5, `rgba(${c},${a * .55})`); gr.addColorStop(1, `rgba(${c},0)`);
-    g.fillStyle = gr; g.fillRect(0, 0, FX_D, FX_D);
-    if (fx.kind === 'clear' && day){                       // 가는 햇살 줄 8개가 천천히 돎
-      g.lineCap = 'round'; g.lineWidth = 3;
-      for (let i = 0; i < 8; i++){ const q = t * .15 + i * Math.PI / 4, cs = Math.cos(q), sn = Math.sin(q), r0 = 30, r1 = R * (i % 2 ? .62 : .8) * (.95 + .05 * b);
-        const lg = g.createLinearGradient(R + cs * r0, R + sn * r0, R + cs * r1, R + sn * r1);
-        lg.addColorStop(0, 'rgba(245,165,20,.55)'); lg.addColorStop(1, 'rgba(245,165,20,0)');
-        g.strokeStyle = lg; g.beginPath(); g.moveTo(R + cs * r0, R + sn * r0); g.lineTo(R + cs * r1, R + sn * r1); g.stroke(); }
-    }
+  const g = fx.ctx, S = fx.spr, k = fx.kind, bob = Math.sin(t * 1.2) * 1.5; g.clearRect(0, 0, FX_W, FX_H);
+  const img = (im, x, y, f = 1) => g.drawImage(im, x, y, im.w * f, im.h * f);
+  const spin = (im, cx, cy, q) => { g.save(); g.translate(cx, cy); g.rotate(q); g.drawImage(im, -im.w / 2, -im.h / 2, im.w, im.h); g.restore(); };
+  const sky = (cx, cy, q) => { if (fx.night) spin(S.moon, cx, cy, Math.sin(t * .6) * .1 - .3); else { spin(S.rays, cx, cy, q); img(S.sun, cx - S.sun.w / 2, cy - S.sun.h / 2); } };
+  for (const p of fx.parts){     // 1) 떨어지는 것: 구름 밑에서 나와 차 아이콘 뒤로 지나감(캔버스가 차 아이콘 아래에 깔림)
+    if (p.t === 'r'){ p.y += p.v * dt; p.x -= p.v * .27 * dt; if (p.y > FX_H + 2){ Object.assign(p, fxDrop(S, rnd(38, 50))); } img(p.im, p.x, p.y, p.k); }
+    else if (p.t === 's'){ p.y += p.v * dt; if (p.y > FX_H + 2) Object.assign(p, fxFlake(S, rnd(38, 50))); p.x = p.b + Math.sin(t * p.f + p.a) * 6; img(p.im, p.x - 8 * p.k, p.y - 8 * p.k, p.k); }
+    else if (p.t === '*'){ g.globalAlpha = .3 + .7 * Math.max(0, Math.sin(t * p.f + p.a)); img(p.im, p.x - 8, p.y - 8); g.globalAlpha = 1; }
   }
-  g.lineCap = 'round';
-  for (const p of fx.parts){
-    if (p.t === 'r'){             // 빗줄기: 오른쪽 아래로 비스듬히
-      p.y += p.v * dt; p.x += p.v * .3 * dt;
-      if (p.y - p.l > FX_D){ p.y = rnd(-30, -5); p.x = rnd(-40, FX_D); }
-      g.strokeStyle = 'rgba(30,100,195,.8)'; g.lineWidth = 1.8;
-      g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.l * .3, p.y - p.l); g.stroke();
-    } else if (p.t === 's'){      // 눈송이: 천천히 내리며 좌우로 흔들림
-      p.y += p.v * dt; if (p.y - p.r > FX_D){ p.y = -p.r - rnd(0, 20); p.b = rnd(0, FX_D); }
-      p.x = p.b + Math.sin(t * p.f + p.a) * 7;
-      g.fillStyle = 'rgba(255,255,255,.95)'; g.strokeStyle = 'rgba(80,135,195,.9)'; g.lineWidth = 1.1;
-      g.beginPath(); g.arc(p.x, p.y, p.r, 0, 7); g.fill(); g.stroke();
-    } else if (p.t === '*'){      // 밤 맑음: 별이 반짝임
-      const a = Math.max(0, Math.sin(t * p.f + p.a)), r = p.r * (.6 + .4 * a);
-      g.strokeStyle = `rgba(255,250,215,${.35 + .65 * a})`; g.lineWidth = 2; g.beginPath();
-      g.moveTo(p.x - r, p.y); g.lineTo(p.x + r, p.y); g.moveTo(p.x, p.y - r); g.lineTo(p.x, p.y + r); g.stroke();
-      g.fillStyle = `rgba(255,255,240,${.5 + .5 * a})`; g.beginPath(); g.arc(p.x, p.y, 1.8, 0, 7); g.fill();
-    } else {                      // 구름: 덩어리가 천천히 흘러감. 흐림은 짙은 회색, 구름많음은 밝은 흰회색(테두리로 지도와 구분)
-      p.x += p.v * dt; if (p.x - 50 * p.s > FX_D) p.x = -50 * p.s;
-      const s = p.s; g.beginPath();
-      [[-20, 4, 15], [0, -6, 21], [20, 3, 16], [5, 8, 15]].forEach(([dx, dy, r]) => { g.moveTo(p.x + dx * s + r * s, p.y + dy * s); g.arc(p.x + dx * s, p.y + dy * s, r * s, 0, 7); });
-      if (p.light){ g.shadowColor = 'rgba(80,95,115,.55)'; g.shadowBlur = 6; g.fillStyle = `rgba(246,248,251,${p.o})`; }     // 그림자 테두리: 겹친 원의 안쪽 선이 안 생김
-      else g.fillStyle = `rgba(95,106,120,${p.o})`;
-      g.fill(); g.shadowBlur = 0;
-    }
-  }
+  if (k === 'rain' || k === 'snow' || k === 'sleet'){       // 2) 하늘 그림
+    const c = k === 'rain' ? S.cRain : k === 'snow' ? S.cSnow : S.cSleet; img(c, (FX_W - c.w) / 2, -4 + bob);
+  } else if (k === 'cloudy'){    // 흐림: 회남색 구름 둘이 겹쳐 천천히 좌우로 흔들림
+    img(S.cDark, 4 + Math.sin(t * .8) * 6, -2); img(S.cGrey, 46 + Math.sin(t * .8 + 2.2) * 6, 14);
+  } else if (k === 'partly'){    // 구름많음: 해(밤에는 달)가 구름 뒤에서 일부만 보임
+    sky(104, 30, t * .3); img(S.cLight, 4 + Math.sin(t * .7) * 4, 18 + bob * .6);
+  } else if (k === 'clear') sky(75, 42, t * .3);            // 맑음: 해가 천천히 돎. 밤에는 초승달이 살짝 흔들림
 }
 function fxLoop(now){
   fx.raf = 0; if (!fx.kind || document.hidden) return;
@@ -832,7 +935,7 @@ function fxLoop(now){
 function fxStart(){
   cancelAnimationFrame(fx.raf); fx.raf = 0;
   if (!fx.kind || document.hidden) return;
-  if (fxStill.matches){ fxDraw(1, .9); return; }              // 움직임 줄이기 설정: 한 장만 그림
+  if (fxStill.matches){ fxDraw(1, 0); return; }               // 움직임 줄이기 설정: 한 장만 그림
   fx.last = performance.now(); fx.raf = requestAnimationFrame(fxLoop);
 }
 function fxApply(){
@@ -840,18 +943,17 @@ function fxApply(){
   if (!kind){ fx.kind = null; cancelAnimationFrame(fx.raf); fx.raf = 0; if (fx.mk){ fx.mk.remove(); fx.mk = null; } return; }
   if (!fx.el){
     fx.el = Object.assign(document.createElement('div'), {className:'wxfx'});
-    const cv = document.createElement('canvas'), dpr = Math.min(devicePixelRatio || 1, 2);
-    cv.width = cv.height = Math.round(FX_D * dpr); fx.el.appendChild(cv);
-    fx.ctx = cv.getContext('2d'); fx.ctx.scale(dpr, dpr);
+    const cv = document.createElement('canvas'); cv.width = Math.round(FX_W * FX_S); cv.height = Math.round(FX_H * FX_S); fx.el.appendChild(cv);
+    fx.ctx = cv.getContext('2d'); fx.ctx.scale(FX_S, FX_S);
   }
-  if (!fx.mk){ fx.mk = new maplibregl.Marker({element:fx.el, rotationAlignment:'viewport', pitchAlignment:'viewport'}).setLngLat([me[1], me[0]]).addTo(map);
+  if (!fx.mk){ fx.mk = new maplibregl.Marker({element:fx.el, offset:[0, FX_H / 2 - FX_CY], rotationAlignment:'viewport', pitchAlignment:'viewport'}).setLngLat([me[1], me[0]]).addTo(map);
     if (carWrap.parentNode === fx.el.parentNode) fx.el.parentNode.insertBefore(fx.el, carWrap); }     // 차 아이콘 아래에 깔림
   else fx.mk.setLngLat([me[1], me[0]]);
-  const h = fx.w && fx.w.time ? parseInt(fx.w.time, 10) : new Date().getHours(), night = h < 6 || h >= 18;
+  const h = fx.w && fx.w.time ? parseInt(fx.w.time, 10) : new Date().getHours(), tm = fxTm(), night = tm ? tm === 'night' : h < 6 || h >= 18;
   if (kind !== fx.kind || night !== fx.night){ fx.kind = kind; fx.night = night; fx.el.dataset.kind = kind; fxSeed(); fxStart(); }
   else if (!fx.raf) fxStart();
 }
-function fxMe(){                 // 내 위치가 바뀔 때: 원은 바로 따라가고, 날씨는 2km 넘게 옮겼거나 10분이 지났을 때만 다시 확인
+function fxMe(){                 // 내 위치가 바뀔 때: 그림은 바로 따라가고, 날씨는 2km 넘게 옮겼거나 10분이 지났을 때만 다시 확인
   if (!me) return;
   if (!fx.at || km(fx.at, me) > 2 || Date.now() - fx.t > WX_TTL){
     const at = fx.at = me; fx.t = Date.now();
