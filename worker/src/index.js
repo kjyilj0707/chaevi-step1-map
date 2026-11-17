@@ -45,6 +45,7 @@ export default {
 /* ---------- 날씨 (기상청 단기예보 조회서비스 2.0, 공공데이터포털 15084084) ---------- */
 const KMA = 'https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0';
 const CACHE_SEC = 1200;            // 같은 격자·같은 발표 시각 결과를 20분 보관
+const MEM = new Map();             // 인스턴스 메모리 캐시 (열쇠 → {v, exp})
 const PTY = { 0: '없음', 1: '비', 2: '비/눈', 3: '눈', 4: '소나기', 5: '빗방울', 6: '빗방울눈날림', 7: '눈날림' };
 const SKY = { 1: '맑음', 3: '구름많음', 4: '흐림' };
 
@@ -116,10 +117,13 @@ async function weather(u, env, ctx, json) {
   const key = plainKey(env.DATA_GO_KR_SERVICE_KEY), g = toGrid(lat, lng), bt = baseTimes();
 
   // 캐시 열쇠: 격자 + 이번 발표 시각 (발표 시각이 바뀌면 열쇠도 바뀜)
+  // 두 겹: ① 이 Worker 인스턴스의 메모리(workers.dev 주소에서도 동작) ② Cloudflare Cache API(자기 도메인에 붙였을 때 동작, workers.dev에서는 저장되지 않음)
   const cache = caches.default;
   const ck = new Request(`https://weather-cache.chaevi/v1/${g.nx}/${g.ny}/${bt.ncst.date}${bt.ncst.time}/${bt.fcst.date}${bt.fcst.time}`);
+  const mem = MEM.get(ck.url);
+  if (mem && mem.exp > Date.now()) return json({ ...mem.v, cached: 'mem' }, 200, 'public, max-age=300');
   const hit = await cache.match(ck);
-  if (hit) { const o = await hit.json(); o.cached = true; return json(o, 200, 'public, max-age=300'); }
+  if (hit) { const o = await hit.json(); MEM.set(ck.url, { v: o, exp: Date.now() + 300e3 }); o.cached = 'edge'; return json(o, 200, 'public, max-age=300'); }
 
   let nc, fc;
   try {
@@ -149,6 +153,8 @@ async function weather(u, env, ctx, json) {
     fcstBase: fc.b ? hhmm(fc.b.time) : null, next
   };
   // 캐시 보관: 보통 20분, 초단기예보가 빠진 결과는 5분
+  if (MEM.size > 500) MEM.clear();                // 메모리가 한없이 늘지 않게
+  MEM.set(ck.url, { v: out, exp: Date.now() + (fc.b ? CACHE_SEC : 300) * 1000 });
   ctx.waitUntil(cache.put(ck, new Response(JSON.stringify(out), { headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${fc.b ? CACHE_SEC : 300}` } })));
   return json(out, 200, 'public, max-age=300');
 }
