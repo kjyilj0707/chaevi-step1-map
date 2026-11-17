@@ -84,10 +84,12 @@ async function kma(op, key, b, g, rows) {
   const res = await fetch(`${KMA}/${op}?${q}`);
   const text = await res.text();
   let j;
-  try { j = JSON.parse(text); } catch (e) {        // 키 오류 등은 dataType과 관계없이 XML로 옴
-    const m = text.match(/<returnAuthMsg>([^<]*)<|<resultMsg>([^<]*)</);
+  try { j = JSON.parse(text); } catch (e) {        // 게이트웨이 오류는 XML이나 일반 글로 오기도 함
+    const m = text.match(/<errMsg>([^<]*)<|<resultMsg>([^<]*)</);
     throw new Error(m ? (m[1] || m[2]) : 'http_' + res.status);
   }
+  // 키 오류(등록 안 된 키 등): {"OpenAPI_ServiceResponse":{"cmmMsgHeader":{"errMsg":"SERVICE_KEY_IS_NOT_REGISTERED_ERROR",...}}}
+  if (j.OpenAPI_ServiceResponse) throw new Error(((j.OpenAPI_ServiceResponse.cmmMsgHeader || {}).errMsg) || 'service_error');
   const h = (j.response || {}).header || {};
   if (h.resultCode === '03') return null;        // NO_DATA: 아직 발표 전
   if (h.resultCode !== '00') throw new Error(h.resultMsg || 'result_' + h.resultCode);
@@ -146,6 +148,7 @@ async function weather(u, env, ctx, json) {
     sky, skyText: SKY[sky] || null,               // 하늘상태는 실황에 없어 초단기예보의 가장 이른 시각 값
     fcstBase: fc.b ? hhmm(fc.b.time) : null, next
   };
-  ctx.waitUntil(cache.put(ck, new Response(JSON.stringify(out), { headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${CACHE_SEC}` } })));
+  // 캐시 보관: 보통 20분, 초단기예보가 빠진 결과는 5분
+  ctx.waitUntil(cache.put(ck, new Response(JSON.stringify(out), { headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${fc.b ? CACHE_SEC : 300}` } })));
   return json(out, 200, 'public, max-age=300');
 }
