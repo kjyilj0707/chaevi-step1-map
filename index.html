@@ -489,9 +489,10 @@ function showPlace(n, c, s, d, lngLat){        // 가게를 고르면: 지도에
 $('#pcGoMe').onclick = () => { if (place) startWalk(place, 'me'); };
 $('#pcGoSt').onclick = () => { if (place) startWalk(place, 'station'); };
 $('#pcX').onclick = hidePlace;
-map.on('mousemove', e => { if (!ready) return; const s = hit(e.point); map.getCanvas().style.cursor = s ? 'pointer' : '';
+const noHover = matchMedia('(hover: none)');      // 터치 화면: 손가락으로 누를 때 생기는 가짜 마우스 이동으로 이름표가 남지 않게
+map.on('mousemove', e => { const oe = e.originalEvent; if (!ready || noHover.matches || (oe && oe.sourceCapabilities && oe.sourceCapabilities.firesTouchEvents)) return; const s = hit(e.point); map.getCanvas().style.cursor = s ? 'pointer' : '';
   if (s) showTip(e.originalEvent, `${s[C.name]} · ${hour}시 ${occTxt(s[C.occ][hour])}`); else hideTip(); });
-map.on('mouseout', hideTip);
+map.on('mouseout', hideTip); map.on('movestart', hideTip);
 map.on('moveend', () => { if (D && tab === 'near' && !selected && !route) renderBody(); });
 map.on('rotate', () => { $('#compass svg').style.transform = `rotate(${-map.getBearing()}deg)`; });
 map.on('zoom', () => sizeCar());
@@ -972,7 +973,7 @@ const km = (a, b) => { const R = 6371, r = Math.PI / 180, dLa = (b[0] - a[0]) * 
   const x = Math.sin(dLa / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
 const kmTxt = d => d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(d < 10 ? 1 : 0) + 'km';
 
-function select(s, pan){ selected = s; if (pan && !s[C.poi]) flyTo(s[C.lat], s[C.lng], 15); if (!route) setSheet(!s[C.poi]); renderBody(); updateMap(); if (!route) loadPoi(s); renderPoi(); }
+function select(s, pan){ hideTip(); selected = s; if (pan && !s[C.poi]) flyTo(s[C.lat], s[C.lng], 15); if (!route) setSheet(!s[C.poi]); renderBody(); updateMap(); if (!route) loadPoi(s); renderPoi(); }
 
 function renderBody(){
   const el = $('#body');
