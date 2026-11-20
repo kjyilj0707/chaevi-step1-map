@@ -43,7 +43,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .search input::placeholder{color:var(--muted)}
 .search button{flex:none;border:0;background:var(--mintbg);color:var(--navy);font-size:12px;font-weight:600;border-radius:99px;padding:8px 12px}
 /* 날씨: 검색창 안 작은 표시(지도 가운데) + 충전소 카드 한 줄 */
+.search .wx{display:flex;align-items:center;gap:3px;background:transparent;padding:6px 4px;font-size:14px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums;white-space:nowrap}
+.search .wx[hidden]{display:none}
+.wxic{display:inline-flex;flex:none}
+.wxic svg{width:20px;height:20px}
 .det p.wxline{display:flex;align-items:center;gap:5px;margin:4px 0 2px;font-size:12px;color:var(--ink)}
+.wxline .wxic svg{width:18px;height:18px}
 .wxline .wxmuted{color:var(--muted)}
 .chips{display:flex;gap:8px;margin-top:10px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px}
 .chips::-webkit-scrollbar{display:none}
@@ -269,6 +274,7 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
   <div class="search">
     <span class="logo" id="barIcon"></span>
     <input id="q" type="search" placeholder="충전소 이름·주소 검색" autocomplete="off">
+    <button class="wx" id="wx" type="button" hidden aria-label="지도 가운데 날씨"></button>
     <button id="home" type="button">처음</button>
   </div>
   <div class="infrabar" id="infraBar">
@@ -723,10 +729,22 @@ function wxGet(lat, lng){        // 같은 자리(소수 둘째 자리, 약 1km)
   wxMemo.set(k, e); return e.p;
 }
 const wxPeek = (lat, lng) => { const m = wxMemo.get(lat.toFixed(2) + ',' + lng.toFixed(2)); return m && m.v && Date.now() - m.at < WX_TTL ? m.v : null; };
+const WXI = {
+  sun:'<svg viewBox="0 0 24 24" fill="none" stroke="#eda100" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2" fill="#eda100"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
+  moon:'<svg viewBox="0 0 24 24"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z" fill="#6b7f99"/></svg>',
+  part:'<svg viewBox="0 0 24 24"><circle cx="8.5" cy="8.5" r="3.6" fill="#eda100"/><path d="M8.5 2.6v1.4M2.6 8.5H4M4.3 4.3l1 1M12.7 4.3l-1 1" stroke="#eda100" stroke-width="1.8" stroke-linecap="round"/><path d="M8 20h9.5a3.8 3.8 0 0 0 .4-7.6 5.6 5.6 0 0 0-10.7 1.2A3.2 3.2 0 0 0 8 20z" fill="#9fb3c2"/></svg>',
+  cloud:'<svg viewBox="0 0 24 24"><path d="M6.8 19h10.4a4.3 4.3 0 0 0 .5-8.6 6.2 6.2 0 0 0-11.8 1.3A3.7 3.7 0 0 0 6.8 19z" fill="#8a9bab"/></svg>',
+  rain:'<svg viewBox="0 0 24 24"><path d="M6.8 15h10.4a4.1 4.1 0 0 0 .5-8.2 5.9 5.9 0 0 0-11.3 1.2A3.5 3.5 0 0 0 6.8 15z" fill="#7d8fa0"/><path d="M8 17.5l-1 3M12 17.5l-1 3M16 17.5l-1 3" stroke="#2a78d6" stroke-width="2" stroke-linecap="round"/></svg>',
+  snow:'<svg viewBox="0 0 24 24"><path d="M6.8 15h10.4a4.1 4.1 0 0 0 .5-8.2 5.9 5.9 0 0 0-11.3 1.2A3.5 3.5 0 0 0 6.8 15z" fill="#8a9bab"/><circle cx="8" cy="19" r="1.3" fill="#6fa8dc"/><circle cx="12" cy="20.5" r="1.3" fill="#6fa8dc"/><circle cx="16" cy="19" r="1.3" fill="#6fa8dc"/></svg>'};
+function wxIcon(w){
+  if (w.pty > 0) return [3, 7].includes(w.pty) ? WXI.snow : WXI.rain;
+  const h = parseInt(w.time, 10), night = h < 6 || h >= 18;
+  return w.sky === 1 ? (night ? WXI.moon : WXI.sun) : w.sky === 3 ? (night ? WXI.cloud : WXI.part) : WXI.cloud;
+}
 const wxRain = w => w.rain ? `${w.ptyText}${w.rn1 > 0 ? ' ' + w.rn1 + 'mm' : ''}` : '비 없음';
 const wxSoon = w => { if (w.rain) return ''; const n = (w.next || []).find(f => f.pty > 0); return n ? ` · ${parseInt(n.time, 10)}시 ${n.ptyText} 예보` : ''; };
 const wxLine = w => `${w.skyText ? w.skyText + ' ' : ''}${Math.round(w.temp)}℃ · ${wxRain(w)} · 바람 ${Math.round(w.wsd)}m/s${wxSoon(w)} · ${w.time} 기준`;
-const wxHTML = w => `<span>${wxLine(w)}</span>`;
+const wxHTML = w => `<span class="wxic">${wxIcon(w)}</span><span>${wxLine(w)}</span>`;
 function wxStation(s){         // 충전소 카드의 날씨 한 줄
   const el = $('#wxSt'); if (!el) return;
   const v = wxPeek(s[C.lat], s[C.lng]); if (v){ el.innerHTML = wxHTML(v); return; }
@@ -734,6 +752,23 @@ function wxStation(s){         // 충전소 카드의 날씨 한 줄
   wxGet(s[C.lat], s[C.lng]).then(w => { const e = $('#wxSt'); if (e && selected === s) e.innerHTML = wxHTML(w); })
     .catch(() => { const e = $('#wxSt'); if (e && selected === s) e.innerHTML = '<span class="wxmuted">날씨 정보 없음</span>'; });
 }
+let wxAt = null, wxW = null, wxDeb = null;
+function wxTop(force){          // 위쪽 작은 표시: 지도 가운데. 5km 넘게 옮겼거나 10분이 지났을 때만 다시 부름
+  const el = $('#wx'), c = map.getCenter(), p = [c.lat, c.lng];
+  if (map.getZoom() < 8 || !(c.lng > 124 && c.lng < 132 && c.lat > 33 && c.lat < 39)){ el.hidden = true; wxAt = null; return; }   // 전국 보기·바다 밖에서는 숨김
+  if (!force && wxAt && km(wxAt.p, p) < WX_MOVE_KM && Date.now() - wxAt.t < WX_TTL) return;
+  const at = wxAt = {p, t:Date.now()};
+  wxGet(p[0], p[1]).then(w => { if (wxAt !== at) return; wxW = w; el.innerHTML = `<span class="wxic">${wxIcon(w)}</span>${Math.round(w.temp)}℃`; el.hidden = false; })
+    .catch(() => { if (wxAt === at){ el.hidden = true; wxAt = {p, t:Date.now() - WX_TTL + WX_FAIL_MS}; } });
+}
+map.on('moveend', () => { clearTimeout(wxDeb); wxDeb = setTimeout(() => wxTop(), 800); });
+setInterval(() => { if (!document.hidden) wxTop(); }, 60e3);
+$('#wx').onclick = () => { if (!wxW) return; const w = wxW;      // 412px 화면에서 2~3줄: 지금 + 이후 2시간(바람은 충전소 카드 한 줄에 있음)
+  const st = f => f.pty > 0 ? f.ptyText : f.skyText || '', nx = (w.next || []).slice(1, 3).filter(f => f.time && st(f));
+  const now = w.rain ? w.ptyText : w.skyText || '', hr = f => parseInt(f.time, 10) + '시';
+  const after = !nx.length ? '' : nx.every(f => st(f) === now) ? ` · ${hr(nx[nx.length - 1])}까지 ${now}` : ' · ' + nx.map(f => `${hr(f)} ${st(f)}`).join(', ');
+  toast(`${w.skyText ? w.skyText + ' ' : ''}${Math.round(w.temp)}℃ · ${wxRain(w)} · 습도 ${w.reh}%${after} (${w.time}\u00a0기상청)`); };      // 출처 괄호가 줄 끝에서 쪼개지지 않게
+
 
 $('#locate').onclick = () => { if (me && route && route.track) setFollow(true); else locate(); };
 /* 소개 화면 없이 바로 지도: 열자마자 위치를 묻고(지도는 서울 도보 충전소 범위 그대로), 나침반 권한은 첫 터치·클릭 때 물음 */
@@ -818,7 +853,7 @@ const walkLabel = () => WKM && WKM.label ? WKM.label : `시연 ${Object.keys(WK)
   demoFail();
 })();
 Promise.all([fetch('data/stations.json').then(r => r.json()), loadSprites().then(() => mapLoaded)]).then(([d]) => { D = d; ready = true; refresh(); demoStart();
-  if (me) map.getSource('acc').setData(circlePoly(me, 30)); });
+  if (me) map.getSource('acc').setData(circlePoly(me, 30)); wxTop(); });
 
 /* STEP 2 예비: 충전소를 눌렀을 때만 그 충전소의 주변 상권 파일을 읽어 옴.
    파일은 반경 300m(가까운 순 최대 400곳, 각 가게에 충전소까지 거리 m)를 담고 있고, 화면에서는 고른 반경(50m·100m, 기본 100m) 안만 걸러 보여 줌
@@ -1079,7 +1114,7 @@ function renderAll(el){
       <div class="nm"><b>${s[C.name]}</b><span>${s[C.sido]} · 충전기 ${s[C.n]}대</span></div><div class="oc"><b>${s[C.occ][hour]}%</b><span>이용률</span></div></div>`).join('') +
     `<h4>읽을 때 주의</h4><ul class="limits">${[
       `범위는 전국이고 아파트 충전소는 뺌. 수집 기간이 ${m.first.slice(0,10)} ~ ${m.last.slice(0,10)}(${m.n_polls}회)로 짧고 중간에 끊긴 구간이 있음. 시각마다 겹친 날 수가 1~3일이라 요일 차이는 볼 수 없음`,
-      'DArt-B 8기 학술제 마채테 팀의 예비 대시보드이며 채비(CHAEVI)의 공식 서비스가 아님. 위치는 저장하지 않으며, 경로 안내를 누를 때만 출발·도착 좌표가 길찾기 서버(카카오)로 전송됨. 날씨는 고른 충전소의 좌표를 중계 서버로 보내고, 중계 서버는 5km 격자 번호만 기상청에 보냄',
+      'DArt-B 8기 학술제 마채테 팀의 예비 대시보드이며 채비(CHAEVI)의 공식 서비스가 아님. 위치는 저장하지 않으며, 경로 안내를 누를 때만 출발·도착 좌표가 길찾기 서버(카카오)로 전송됨. 날씨는 지도 가운데와 고른 충전소의 좌표를 중계 서버로 보내고, 중계 서버는 5km 격자 번호만 기상청에 보냄',
       '날씨는 기상청 초단기실황(매시 정각 관측, 약 40분 뒤 발표)과 초단기예보이며 5km 격자 값이라 충전소 바로 그 자리의 값과 다를 수 있음',
       '지금 이 순간의 상태가 아니라 수집 기간의 같은 시각 평균임',
       '초록 걷는 사람 배지 = 시연 충전소 9곳. 누르면 직선 반경 대신 도보 5분(390m)·10분(780m) 안 가게를 보여 줌. 도보 거리는 OSM 보행 경로(카카오 도보 경로 표본으로 보정), 보행 1.3 m/s 가정이며 영업 여부는 확인하지 않음',
