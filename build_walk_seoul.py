@@ -7,9 +7,9 @@
 화면(index.html)은 data/walk_seoul/index.json 이 있으면 이것을 먼저 쓰고, 없으면 data/walk9 를 씀.
 실행: ~/.venvs/work/bin/python -I build_walk_seoul.py [--src CSV] [--out 폴더]
 
-정확도 낮음(low) 판정은 임시안(분석 담당 칸 정의 확인 전):
-- osm_flag 칸이 비어 있지 않고 0/ok/none 이 아닌 값이 있는 충전소, 또는
-- 10분 안 가게 중 correction 에 "대체"·"추정"이 들어간 줄이 LOW_SHARE 넘는 충전소
+정확도 낮음(low): 입력 CSV 옆의 summary_seoul_all_v*.csv 가 있으면 분석 담당의 충전소 단위 confidence(low)를 그대로 씀
+  (analysis/walk_seoul_all/README.md: 직선 추정 충전소(graph_src=none), osm_flag 충전소). 이유 문구는 graph_src·osm_flag 로 만듦
+  summary 가 없으면 임시안: osm_flag 값이 있거나, 10분 안 가게 중 대체·추정 줄이 LOW_SHARE 넘는 충전소
 """
 import argparse, glob, json, os, shutil, sys
 import pandas as pd
@@ -19,7 +19,9 @@ sys.path.insert(0, HERE)            # -I 로 실행해도 같은 폴더의 build
 import build_walk9 as B             # noqa: E402
 
 AN = os.path.join(HERE, "..", "analysis")
-SRC_CANDIDATES = [os.path.join(AN, "walk_seoul_all", "walk_routes_seoul_v2.csv"),
+SRC_CANDIDATES = [os.path.join(AN, "walk_seoul_all", "walk_routes_seoul_all_v2_within10_app.csv"),
+                  os.path.join(AN, "walk_seoul_all", "walk_routes_seoul_all_v1_within10_app.csv"),
+                  os.path.join(AN, "walk_seoul_all", "walk_routes_seoul_v2.csv"),
                   os.path.join(AN, "walk_seoul_all", "walk_routes_seoul.csv"),
                   os.path.join(AN, "walk_seoul_fast", "walk_routes_seoul_v2.csv")]
 SRC_GLOBS = [os.path.join(AN, "walk_seoul_all", "walk_routes*.csv"), os.path.join(AN, "walk_seoul_fast", "walk_routes*.csv")]
@@ -58,14 +60,35 @@ def station_extra(d, dk):
     return ex
 
 
+def summary_low(path):
+    """분석 담당 summary → {충전소: 이유 문구}(confidence=low 인 곳만)"""
+    s = pd.read_csv(path, dtype=str)
+    out = {}
+    for _, r in s[s["confidence"].eq("low")].iterrows():
+        flag = str(r.get("osm_flag") or "").replace("nan", "").strip()
+        if r.get("graph_src") == "none":
+            why = "주변 길 정보 없이 직선거리 × 1.45로 추정"
+        elif "snap50" in flag:
+            why = "주변 길 정보가 덜 들어 있어 거리 오차가 클 수 있음"
+        elif "detour" in flag:
+            why = "길 따라 거리가 직선보다 유난히 길어 대체식(직선 × 1.4)과 섞어 씀"
+        else:
+            why = "길 정보 확인 필요"
+        out[r["station_id"]] = why
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--src"); ap.add_argument("--out", default=OUT)
+    ap.add_argument("--src"); ap.add_argument("--out", default=OUT); ap.add_argument("--summary")
     a = ap.parse_args()
     src = a.src or pick_src()
     if not src or not os.path.exists(src):
         sys.exit("입력 CSV 없음. 분석 담당의 서울 전체 도보 경로 파일 경로를 --src 로 주거나 SRC_CANDIDATES 를 고칠 것")
     print("입력", os.path.relpath(src, HERE))
+    sm = a.summary or next(iter(sorted(glob.glob(os.path.join(os.path.dirname(src), "summary_seoul_all_v*.csv")))[-1:]), None)
+    lows = summary_low(sm) if sm and os.path.exists(sm) else None
+    print("정확도 판정", os.path.relpath(sm, HERE) if lows is not None else "임시안(행 단위)")
     w, CATS = B.load_routes(src)
     print("충전소", w["station_id"].nunique(), "· 상가정보에서 못 찾은 가게", int(w["sub"].isna().sum()))
 
@@ -74,7 +97,11 @@ def main():
     idx, size, total = [], 0, 0
     for sid, d in w.groupby("station_id", sort=True):
         summ, sz, _ = B.write_station(d, sid, out, len(CATS))
-        summ.update(station_extra(d, d[d["ok"] & (d["walk_m"] <= B.M10)]))
+        ex = station_extra(d, d[d["ok"] & (d["walk_m"] <= B.M10)])
+        if lows is not None:
+            ex.pop("low", None); ex.pop("lowWhy", None)
+            if sid in lows: ex["low"] = 1; ex["lowWhy"] = lows[sid]
+        summ.update(ex)
         idx.append(summ); size += sz; total += summ["n10"]
 
     # 시연 9곳 중 서울 전체판에 없는 곳은 data/walk9 파일을 그대로 가져와 시연 표시를 유지
@@ -90,7 +117,7 @@ def main():
     demo = [s for s in demo if s in {x["id"] for x in idx}]
 
     n_low = sum(1 for x in idx if x.get("low"))
-    meta = {"src": os.path.basename(src), "speed": B.SPEED, "m5": B.M5, "m10": B.M10, "cats": CATS, "note": B.NOTE,
+    meta = {"src": os.path.basename(src), "summary": os.path.basename(sm) if lows is not None else None, "speed": B.SPEED, "m5": B.M5, "m10": B.M10, "cats": CATS, "note": B.NOTE,
             "label": f"서울 도보 {len(idx)}곳", "demo": demo, "stations": idx}
     json.dump(meta, open(os.path.join(out, "index.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     print(f"충전소 파일 {len(idx)} · 합계 가게 {total} · 파일 합계 MB {size/1e6:.1f} · 정확도 낮음 {n_low} · 시연 {len(demo)}")

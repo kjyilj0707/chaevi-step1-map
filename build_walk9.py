@@ -49,10 +49,15 @@ def load_routes(src, stations=None):
     cat = w["sub"].map(SUB)
     m = cat.isna(); cat[m] = w.loc[m, "mid"].str.strip().map(MID)
     w["cat"] = cat
-    w["ok"] = w["route_status"].eq("ok")
     w["walk_m"] = pd.to_numeric(w["walk_m"], errors="coerce")
+    # 앱용 줄인 파일(서울 전체 _app.csv)은 route_status·correction 칸이 없음: 거리가 있으면 성공, 카카오 값은 route_mode 로 봄
+    w["ok"] = w["route_status"].eq("ok") if "route_status" in w.columns else w["walk_m"].notna()
     w["walk_sec"] = w["walk_m"] / SPEED
-    w["kakao"] = w["correction"].fillna("").eq("kakao_measured")
+    if "correction" in w.columns:
+        w["kakao"] = w["correction"].fillna("").eq("kakao_measured")
+    else:
+        w["kakao"] = w.get("route_mode", pd.Series("", index=w.index)).fillna("").eq("kakao_SHORTEST")
+        w["correction"] = w.get("route_mode", pd.Series("", index=w.index))
     return w, CATS
 
 
