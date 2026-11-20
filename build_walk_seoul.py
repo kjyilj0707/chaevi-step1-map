@@ -60,6 +60,25 @@ def station_extra(d, dk):
     return ex
 
 
+NOTE_STRAIGHT = "도보 시간 = 직선거리 × 1.45 추정(카카오 서울 표본 기준), 보행 1.3 m/s 가정. 영업 여부 미확인"
+
+
+def fail_counts(parquet):
+    """전체 행 파일(parquet)에서 직선 780m 안인데 경로를 못 찾은(route_status != ok 이고 거리 없음) 가게를 충전소별로, 7개 카테고리 안만 셈"""
+    import pyarrow.parquet as pq
+    t = pq.read_table(parquet, columns=["station_id", "place_id", "straight_m", "route_status", "walk_m"]).to_pandas()
+    f = t[t["route_status"].ne("ok") & t["walk_m"].isna() & (pd.to_numeric(t["straight_m"], errors="coerce") <= B.M10)]
+    print("경로 미확인(직선 780m 안) 전체", len(f), dict(f["station_id"].value_counts()))
+    f = B.attach_cats(f)
+    return f[f["cat"].notna()].groupby("station_id").size().to_dict()
+
+
+def straight_only(path):
+    """summary 에서 graph_src=none(길 정보 없이 직선 추정)인 충전소"""
+    s = pd.read_csv(path, dtype=str)
+    return set(s.loc[s["graph_src"].eq("none"), "station_id"])
+
+
 def summary_low(path):
     """분석 담당 summary → {충전소: 이유 문구}(confidence=low 인 곳만)"""
     s = pd.read_csv(path, dtype=str)
@@ -89,6 +108,11 @@ def main():
     sm = a.summary or next(iter(sorted(glob.glob(os.path.join(os.path.dirname(src), "summary_seoul_all_v*.csv")))[-1:]), None)
     lows = summary_low(sm) if sm and os.path.exists(sm) else None
     print("정확도 판정", os.path.relpath(sm, HERE) if lows is not None else "임시안(행 단위)")
+    pq_path = src.replace("_within10_app.csv", ".parquet")
+    pq_path = pq_path if pq_path != src and os.path.exists(pq_path) else next(iter(sorted(glob.glob(os.path.join(os.path.dirname(src), "walk_routes_seoul_all_v*.parquet")))[-1:]), None)
+    fails = fail_counts(pq_path) if pq_path else None
+    print("경로 미확인 수", os.path.relpath(pq_path, HERE) if fails is not None else "입력 CSV 안에서(10분 안 행만 있으면 0)")
+    straight = straight_only(sm) if lows is not None else set()
     w, CATS = B.load_routes(src)
     print("충전소", w["station_id"].nunique(), "· 상가정보에서 못 찾은 가게", int(w["sub"].isna().sum()))
 
@@ -96,7 +120,8 @@ def main():
     shutil.rmtree(out, ignore_errors=True); os.makedirs(out)
     idx, size, total = [], 0, 0
     for sid, d in w.groupby("station_id", sort=True):
-        summ, sz, _ = B.write_station(d, sid, out, len(CATS))
+        summ, sz, _ = B.write_station(d, sid, out, len(CATS), fail=None if fails is None else fails.get(sid, 0))
+        if sid in straight: summ["note"] = NOTE_STRAIGHT
         ex = station_extra(d, d[d["ok"] & (d["walk_m"] <= B.M10)])
         if lows is not None:
             ex.pop("low", None); ex.pop("lowWhy", None)

@@ -35,6 +35,19 @@ def poi_tables():
     return got["CATS"], got["MID"], got["SUB"]
 
 
+def attach_cats(w):
+    """place_id(shop:상가업소번호) → 상가정보의 중분류·소분류(mid, sub)와 7개 카테고리 번호(cat, 대응 없으면 빈칸)"""
+    CATS, MID, SUB = poi_tables()
+    w = w.copy(); w["sid"] = w["place_id"].str.replace("shop:", "", regex=False)
+    s = pd.read_csv(SBIZ, dtype=str, usecols=["상가업소번호", "상권업종중분류명", "상권업종소분류명"])
+    s = s.rename(columns={"상가업소번호": "sid", "상권업종중분류명": "mid", "상권업종소분류명": "sub"})
+    w = w.drop(columns=[c for c in ["상권업종소분류명", "상권업종중분류명"] if c in w.columns]).merge(s, on="sid", how="left")
+    cat = w["sub"].map(SUB)
+    m = cat.isna(); cat[m] = w.loc[m, "mid"].str.strip().map(MID)
+    w["cat"] = cat
+    return w
+
+
 def load_routes(src, stations=None):
     """도보 경로 CSV(세원 칸 방식) → 7개 카테고리(cat), 도보 m·초, 성공 여부(ok), 카카오 도보 경로값 여부(kakao) 칸을 붙인 표.
     stations 를 주면 그 충전소만. 서울 전체판(build_walk_seoul.py)도 이 함수를 그대로 씀"""
@@ -42,13 +55,7 @@ def load_routes(src, stations=None):
     w = pd.read_csv(src, dtype={"station_id": str, "place_id": str, "route_status": str, "correction": str, "kakao_checked": str, "osm_flag": str})
     if stations is not None:
         w = w[w["station_id"].isin(stations)].copy()
-    w["sid"] = w["place_id"].str.replace("shop:", "", regex=False)
-    s = pd.read_csv(SBIZ, dtype=str, usecols=["상가업소번호", "상권업종중분류명", "상권업종소분류명"])
-    s = s.rename(columns={"상가업소번호": "sid", "상권업종중분류명": "mid", "상권업종소분류명": "sub"})
-    w = w.drop(columns=[c for c in ["상권업종소분류명", "상권업종중분류명"] if c in w.columns]).merge(s, on="sid", how="left")
-    cat = w["sub"].map(SUB)
-    m = cat.isna(); cat[m] = w.loc[m, "mid"].str.strip().map(MID)
-    w["cat"] = cat
+    w = attach_cats(w)
     w["walk_m"] = pd.to_numeric(w["walk_m"], errors="coerce")
     # 앱용 줄인 파일(서울 전체 _app.csv)은 route_status·correction 칸이 없음: 거리가 있으면 성공, 카카오 값은 route_mode 로 봄
     w["ok"] = w["route_status"].eq("ok") if "route_status" in w.columns else w["walk_m"].notna()
@@ -61,8 +68,9 @@ def load_routes(src, stations=None):
     return w, CATS
 
 
-def write_station(d, sid, out, n_cats):
-    """충전소 하나의 표 d → out/<sid>.json. 요약(dict)과 파일 크기를 돌려줌"""
+def write_station(d, sid, out, n_cats, fail=None):
+    """충전소 하나의 표 d → out/<sid>.json. 요약(dict)과 파일 크기를 돌려줌.
+    fail: 경로 미확인 수를 밖에서 셌을 때(10분 안 행만 있는 앱용 파일은 실패 행이 없어 여기서 셀 수 없음)"""
     dk = d[d["ok"] & (d["walk_m"] <= M10)]
     in_cat = dk[dk["cat"].notna()].sort_values(["walk_m", "name"])
     n5, n10 = [0] * n_cats, [0] * n_cats
@@ -72,8 +80,11 @@ def write_station(d, sid, out, n_cats):
         n10[c] += 1; n5[c] += in5
         items.append([PHONE.sub("[전화번호]", str(r["name"]).strip()), c, r["sub"], round(float(r["lat"]), 5), round(float(r["lng"]), 5),
                       max(1, math.ceil(r["walk_sec"] / 60 - 1e-9)), int(round(r["walk_m"])), in5, int(r["kakao"])])
-    fail = d[~d["ok"] & (pd.to_numeric(d["straight_m"], errors="coerce") <= M10)]
-    fail_cat = int(fail["cat"].notna().sum())
+    if fail is None:
+        fr = d[~d["ok"] & (pd.to_numeric(d["straight_m"], errors="coerce") <= M10)]
+        fail_cat = int(fr["cat"].notna().sum())
+    else:
+        fail_cat = int(fail)
     fp = os.path.join(out, sid + ".json")
     json.dump({"id": sid, "n5": n5, "n10": n10, "fail": fail_cat, "p": items}, open(fp, "w", encoding="utf-8"),
               ensure_ascii=False, separators=(",", ":"))

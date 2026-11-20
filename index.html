@@ -1182,7 +1182,7 @@ function renderPoi(){
   const d = poiView(), full = d.p.filter(x => poi.cat < 0 || x[1] === poi.cat).slice(0, walk ? 100 : 60), list = full.slice(0, poi.show);
   const rest = full.length - list.length;
   const low = walk && WK[selected[C.id]] && WK[selected[C.id]].low;
-  const note = walk ? `<p class="w9note">${low ? '<b>도보 시간 추정 정확도 낮음</b>' + (WK[selected[C.id]].lowWhy ? ` (${WK[selected[C.id]].lowWhy})` : '') + ' · ' : ''}${WKM.note}${poi.data.fail ? ` · 경로 미확인 ${poi.data.fail}곳은 뺌` : ''}${walkMin === 5 ? ' · 10분으로 넓혀 볼 수 있음' : ''}</p>` : '';
+  const note = walk ? `<p class="w9note">${low ? '<b>도보 시간 추정 정확도 낮음</b>' + (WK[selected[C.id]].lowWhy ? ` (${WK[selected[C.id]].lowWhy})` : '') + ' · ' : ''}${(WK[selected[C.id]] && WK[selected[C.id]].note) || WKM.note}${poi.data.fail ? ` · 경로 미확인 ${poi.data.fail}곳은 뺌` : ''}${walkMin === 5 ? ' · 10분으로 넓혀 볼 수 있음' : ''}</p>` : '';
   if (!d.sum){ el.innerHTML = `<h4>${head}</h4>${note}<p class="hint">${rng} 안 상가 없음${!walk && poiR < 100 ? ' · 위쪽에서 100m로 넓혀 볼 수 있음' : ''}</p>`; return; }
   el.innerHTML = (walk ? `<h4>주변 인프라 도보 ${walkMin}분 · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳${d.sum > full.length && poi.cat < 0 ? ' / ' + d.sum.toLocaleString('ko-KR') + '곳' : ''})</h4>${note}`
       : `<h4>주변 인프라 ${poiR}m · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳)</h4>
