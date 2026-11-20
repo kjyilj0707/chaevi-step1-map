@@ -77,7 +77,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .legendbox b{display:block;color:var(--navy);margin-bottom:4px;font-size:12px}
 .legendbox div{display:flex;align-items:center;gap:6px;line-height:1.7}
 .legendbox i{width:12px;height:12px;border-radius:50%;border:1px solid rgba(23,48,63,.55);display:inline-block}
-.legendbox i.stay{background:#fff;border:3px solid var(--accent)}
+.legendbox .lgk{width:16px;height:16px;display:inline-flex}
+.legendbox .lgk svg{width:16px;height:16px}
 .legendbox i.walk9{background:#fff;border:3px solid var(--mint2)}
 .legendbox i.me{background:var(--me);border:2px solid #fff;box-shadow:0 0 0 1px var(--me)}
 
@@ -332,7 +333,10 @@ body.nav .wxfx canvas{opacity:.55}
   <div><i style="background:var(--q4)"></i>50~75%</div>
   <div><i style="background:var(--q5)"></i>75% 이상</div>
   <div><i style="background:var(--nodata)"></i>기록 없음</div>
-  <div><i class="stay"></i>채비스테이</div>
+  <b style="margin-top:6px">테두리 = 충전소 종류</b>
+  <div><span class="lgk" data-k="0"></span>급속 (남색 동그라미)</div>
+  <div><span class="lgk" data-k="2"></span>완속만 (회갈색 네모)</div>
+  <div><span class="lgk" data-k="1"></span>채비스테이 (주황 굵은 테두리)</div>
   <div><i class="walk9"></i>시연 충전소 (도보 범위)</div>
   <div><img src="car.png" alt="" style="width:12px;height:19px;margin:0 0"> 내 위치</div>
 </div>
@@ -411,13 +415,19 @@ const PICON = [
   '<rect x="4.6" y="4.8" width="14.8" height="10.6" rx="1.7"/><path d="M2 17h20v.9a1.9 1.9 0 0 1-1.9 1.9H3.9A1.9 1.9 0 0 1 2 17.9z"/>'];
 const picon = (i, size) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="currentColor">${PICON[i]}</svg>`;
 const pinSVG = i => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96"><circle cx="24" cy="24" r="21" fill="${POI_COL[i]}" stroke="#fff" stroke-width="3"/><g transform="translate(11 11) scale(1.083)" fill="#fff" color="#fff">${PICON[i].replace(/currentColor/g, '#fff')}</g></svg>`;
-/* 표시 = 동그라미(이용률 색) + 번개 모양 */
+/* 표시 = 바탕(이용률 색) + 번개 모양. 종류는 테두리와 모양으로만 나눔(바탕색은 이용률 몫)
+   0 급속: 남색 테두리 동그라미 / 1 채비스테이: 주황 굵은 테두리 동그라미 / 2 완속: 회갈색 테두리 둥근 네모(조금 작게) */
 const VPATH = 'M13.6 2 L5 13.4 H10.9 L9.6 22 L19 9.6 H12.6 Z';
-const markSVG = (body, halo, dark) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96">
-<circle cx="24" cy="24" r="${halo ? 19 : 21}" fill="${body}" stroke="${halo ? '#ff7a59' : '#17303f'}" stroke-width="${halo ? 6 : 2.5}"/>
+const MARK_EDGE = ['#17303f', '#ff7a59', '#8d7f70'];
+const markShape = (t, fill) => t === 2 ? `<rect x="4.5" y="4.5" width="39" height="39" rx="11" fill="${fill}" stroke="${MARK_EDGE[2]}" stroke-width="3"/>`
+  : `<circle cx="24" cy="24" r="${t === 1 ? 19 : 21}" fill="${fill}" stroke="${MARK_EDGE[t]}" stroke-width="${t === 1 ? 6 : 2.5}"/>`;
+const markSVG = (body, t, dark) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96">
+${markShape(t, body)}
 <path transform="translate(9.6 9.2) scale(1.2)" d="${VPATH}" fill="${dark ? '#17303f' : '#fff'}"/></svg>`;
+const markKind = s => s[C.stay] ? 1 : s[C.nfast] > 0 ? 0 : 2;
 const logoSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="${VPATH}" fill="#2ccdbf"/></svg>`;
 $('#barIcon').innerHTML = logoSVG;
+document.querySelectorAll('.legendbox .lgk').forEach(e => e.innerHTML = markSVG('#fff', +e.dataset.k, true));
 const sprites = {};
 const loadPins = () => Promise.all(PICON.map((_, i) => new Promise(res => { const im = new Image(96, 96); im.onload = res; im.onerror = res;
   im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pinSVG(i)); sprites['p' + i] = im; })));
@@ -426,9 +436,9 @@ const loadChev = () => new Promise(res => { const im = new Image(48, 48); im.onl
 const WALKP = 'M12.2 7.2l-3.6 1.6-1.4 4 1.9.7 1-3 1.3-.5-1.2 5.6-3.4 5.2 1.8 1.2 3.7-5.6.6-2.3 2 2.4.6 5.3h2.2l-.7-6.2-2.3-3 .6-2.7 1 1.5 3 1 .6-2-2.3-.8-1.7-2.8a2.3 2.3 0 0 0-3.7-.6z';
 const loadW9 = () => new Promise(res => { const im = new Image(96, 96); im.onload = res; im.onerror = res;      // 시연 충전소 표시: 걷는 사람 배지
   im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96"><circle cx="24" cy="24" r="20" fill="#17a99a" stroke="#fff" stroke-width="4"/><g transform="translate(10.5 10) scale(1.15)" fill="#fff"><circle cx="13.5" cy="4" r="2.2"/><path d="${WALKP}"/></g></svg>`); sprites.w9 = im; });
-const loadSprites = () => Promise.all([loadPins(), loadChev(), loadW9()].concat([0,1].flatMap(st => RAMP.map((col, i) => new Promise(res => {
+const loadSprites = () => Promise.all([loadPins(), loadChev(), loadW9()].concat([0,1,2].flatMap(st => RAMP.map((col, i) => new Promise(res => {
   const im = new Image(96, 96); im.onload = res; im.onerror = res;
-  im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(markSVG(col, !!st, i < 4));
+  im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(markSVG(col, st, i < 4));
   sprites['m' + st + '_' + i] = im; })))));
 
 const tip = $('#tip');
@@ -485,7 +495,7 @@ const mapLoaded = new Promise(res => map.on('load', () => {
 function updateMap(){
   if (!ready) return;
   const f = s => ({type:'Feature', geometry:{type:'Point', coordinates:[s[C.lng], s[C.lat]]},
-    properties:{id:s[C.id], img:'m' + s[C.stay] + '_' + bin(s[C.occ][hour]), k:s[C.stay] ? 1.7 : 1}});
+    properties:{id:s[C.id], img:'m' + markKind(s) + '_' + bin(s[C.occ][hour]), k:s[C.stay] ? 1.7 : markKind(s) === 2 ? 0.85 : 1}});
   map.getSource('st').setData({type:'FeatureCollection', features:shown.filter(s => !s[C.stay]).map(f)});
   map.getSource('stay').setData({type:'FeatureCollection', features:shown.filter(s => s[C.stay]).map(f)});
   map.getSource('demo').setData({type:'FeatureCollection', features:shown.filter(isW9).map(f)});
