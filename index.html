@@ -78,6 +78,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .legendbox div{display:flex;align-items:center;gap:6px;line-height:1.7}
 .legendbox i{width:12px;height:12px;border-radius:50%;border:1px solid rgba(23,48,63,.55);display:inline-block}
 .legendbox i.stay{background:#fff;border:3px solid var(--accent)}
+.legendbox i.walk9{background:#fff;border:3px solid var(--mint2)}
 .legendbox i.me{background:var(--me);border:2px solid #fff;box-shadow:0 0 0 1px var(--me)}
 
 /* 아래 서랍 */
@@ -107,6 +108,7 @@ body.dragging #map{pointer-events:none}
 .row .oc b{display:block;font-size:14px;color:var(--navy)}
 .row .oc span{font-size:11px;color:var(--ink2)}
 .badge{font-size:10px;color:#fff;background:var(--accent);border-radius:99px;padding:1px 7px;font-weight:600;vertical-align:1px}
+.badge.walk9{background:var(--mint2)}
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .act{border:0;background:var(--navy);color:#fff;border-radius:99px;padding:10px 16px;font-size:13px;font-weight:700;text-decoration:none;display:inline-block}
 .act.ghost{background:var(--mintbg);color:var(--navy)}
@@ -153,6 +155,9 @@ body.infra.placeon .listbtn{display:none}
 .prow .nm b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prow .nm span{font-size:11px;color:var(--ink2)}
 .prow .oc b{font-size:13px;color:var(--navy);font-variant-numeric:tabular-nums}
+.prow .oc{text-align:right;flex:none}
+.prow .oc span{display:block;font-size:10px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.w9note{font-size:11px;color:var(--ink2);background:var(--mintbg);border-radius:10px;padding:7px 9px;margin:0 0 8px;line-height:1.5}
 .placepop .maplibregl-popup-content{display:flex;align-items:center;gap:9px;border-radius:12px;padding:6px 11px;box-shadow:var(--shadow);background:var(--surface);font:inherit}
 .placepop .pin{width:28px;height:28px}
 .placepop b{display:block;font-size:14px;color:var(--ink)}
@@ -291,13 +296,14 @@ body.nav .wxfx canvas{opacity:.55}
   <div class="infrabar" id="infraBar">
     <button id="infraBack" type="button" aria-label="목록으로"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
     <div><b id="infraTitle"></b><span id="infraSub"></span></div>
-    <div class="rseg" id="infraR" role="group" aria-label="주변 반경"><button type="button" data-r="50">50m</button><button type="button" data-r="100">100m</button></div>
+    <div class="rseg" id="infraR" role="group" aria-label="주변 범위"><button type="button" data-r="50">50m</button><button type="button" data-r="100">100m</button></div>
     <button id="infraClear" type="button" aria-label="전체 종류 보기"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div class="chips" id="infraChips"></div>
   <div class="chips" id="chips">
     <button class="chip" data-f="fast" aria-pressed="false">급속</button>
     <button class="chip" data-f="slow" aria-pressed="false">완속만</button>
+    <button class="chip" data-f="demo" aria-pressed="false"><i style="background:var(--mint2)"></i>시연 9곳</button>
     <button class="chip" data-f="stay" aria-pressed="false"><i style="background:var(--accent)"></i>채비스테이</button>
     <button class="chip" data-f="free" aria-pressed="false"><i style="background:var(--q2)"></i>한가한 곳</button>
     <button class="chip" data-f="busy" aria-pressed="false"><i style="background:var(--q5)"></i>붐비는 곳</button>
@@ -324,6 +330,7 @@ body.nav .wxfx canvas{opacity:.55}
   <div><i style="background:var(--q5)"></i>75% 이상</div>
   <div><i style="background:var(--nodata)"></i>기록 없음</div>
   <div><i class="stay"></i>채비스테이</div>
+  <div><i class="walk9"></i>시연 충전소 (도보 범위)</div>
   <div><img src="car.png" alt="" style="width:12px;height:19px;margin:0 0"> 내 위치</div>
 </div>
 <button class="fab" id="locate" type="button" aria-label="내 위치로" style="color:var(--mint2)">
@@ -411,7 +418,10 @@ const loadPins = () => Promise.all(PICON.map((_, i) => new Promise(res => { cons
   im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pinSVG(i)); sprites['p' + i] = im; })));
 const loadChev = () => new Promise(res => { const im = new Image(48, 48); im.onload = res; im.onerror = res;      // 경로선 위 진행 방향 표시
   im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48"><path d="M7 4 L20 12 L7 20 L10.5 12 Z" fill="#143a52"/></svg>'); sprites.chev = im; });
-const loadSprites = () => Promise.all([loadPins(), loadChev()].concat([0,1].flatMap(st => RAMP.map((col, i) => new Promise(res => {
+const WALKP = 'M12.2 7.2l-3.6 1.6-1.4 4 1.9.7 1-3 1.3-.5-1.2 5.6-3.4 5.2 1.8 1.2 3.7-5.6.6-2.3 2 2.4.6 5.3h2.2l-.7-6.2-2.3-3 .6-2.7 1 1.5 3 1 .6-2-2.3-.8-1.7-2.8a2.3 2.3 0 0 0-3.7-.6z';
+const loadW9 = () => new Promise(res => { const im = new Image(96, 96); im.onload = res; im.onerror = res;      // 시연 충전소 표시: 걷는 사람 배지
+  im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96"><circle cx="24" cy="24" r="20" fill="#17a99a" stroke="#fff" stroke-width="4"/><g transform="translate(10.5 10) scale(1.15)" fill="#fff"><circle cx="13.5" cy="4" r="2.2"/><path d="${WALKP}"/></g></svg>`); sprites.w9 = im; });
+const loadSprites = () => Promise.all([loadPins(), loadChev(), loadW9()].concat([0,1].flatMap(st => RAMP.map((col, i) => new Promise(res => {
   const im = new Image(96, 96); im.onload = res; im.onerror = res;
   im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(markSVG(col, !!st, i < 4));
   sprites['m' + st + '_' + i] = im; })))));
@@ -425,7 +435,10 @@ let toastT; function toast(t){ const el = $('#toast'); el.textContent = t; el.st
 let sortBy = 'near';
 let D, shown = [], selected = null, hour = new Date().getHours(), tab = 'near';
 let me = null, meMarker = null, heading = null, follow = false, ready = false;
-const F = {fast:false, slow:false, stay:false, free:false, busy:false};
+const F = {fast:false, slow:false, stay:false, free:false, busy:false, demo:false};
+/* 시연 충전소 9곳: 도보 5분·10분 안 가게(data/walk9, build_walk9.py). 목록 파일을 못 읽으면 9곳도 다른 충전소처럼 직선 반경으로 보여 줌 */
+let W9 = {}, W9M = null;
+const isW9 = s => !!(s && W9[s[C.id]]);
 const SEOUL = [37.5665, 126.978];
 const EMPTY = {type:'FeatureCollection', features:[]};
 
@@ -442,7 +455,7 @@ const zoomSize = (z, lo, hi) => lo + (hi - lo) * Math.max(0, Math.min(1, (z - 7)
 const sizeExpr = (lo, hi) => ['interpolate', ['linear'], ['zoom'], 7, ['*', ['get', 'k'], lo / 48], 16, ['*', ['get', 'k'], hi / 48]];
 const mapLoaded = new Promise(res => map.on('load', () => {
   Object.entries(sprites).forEach(([k, im]) => map.addImage(k, im, {pixelRatio:2}));
-  ['route','conn','acc','ring','poi','sel','st','stay'].forEach(id => map.addSource(id, {type:'geojson', data:EMPTY}));
+  ['route','conn','acc','ring','poi','sel','demo','st','stay'].forEach(id => map.addSource(id, {type:'geojson', data:EMPTY}));
   map.addLayer({id:'acc', type:'fill', source:'acc', paint:{'fill-color':'#58ddd0', 'fill-opacity':0.18, 'fill-outline-color':'#17a99a'}});
   map.addLayer({id:'route-case', type:'line', source:'route', layout:{'line-cap':'round', 'line-join':'round'}, paint:{'line-color':'#143a52', 'line-width':['interpolate',['linear'],['zoom'],8,6,16,14,18,17]}});
   map.addLayer({id:'route-line', type:'line', source:'route', layout:{'line-cap':'round', 'line-join':'round'}, paint:{'line-color':'#58ddd0', 'line-width':['interpolate',['linear'],['zoom'],8,3,16,9,18,12]}});
@@ -456,8 +469,12 @@ const mapLoaded = new Promise(res => map.on('load', () => {
   map.addLayer({id:'sel', type:'circle', source:'sel', paint:{'circle-radius':['interpolate',['linear'],['zoom'],7,['*',['get','k'],9],16,['*',['get','k'],26]],
     'circle-color':'rgba(88,221,208,.45)', 'circle-stroke-color':'#1b4965', 'circle-stroke-width':2, 'circle-pitch-alignment':'map'}});
   const sym = {'icon-image':['get','img'], 'icon-size':sizeExpr(9, 30), 'icon-allow-overlap':true, 'icon-ignore-placement':true};
+  map.addLayer({id:'demo-halo', type:'circle', source:'demo', paint:{'circle-radius':['interpolate',['linear'],['zoom'],7,7,16,21], 'circle-color':'rgba(23,169,154,.16)',
+    'circle-stroke-color':'#17a99a', 'circle-stroke-width':['interpolate',['linear'],['zoom'],7,2,16,4], 'circle-pitch-alignment':'map'}});
   map.addLayer({id:'st', type:'symbol', source:'st', layout:sym});
   map.addLayer({id:'stay', type:'symbol', source:'stay', layout:sym});
+  map.addLayer({id:'demo-badge', type:'symbol', source:'demo', layout:{'icon-image':'w9', 'icon-size':['interpolate',['linear'],['zoom'],7,0.22,16,0.42],
+    'icon-offset':[30, -30], 'icon-allow-overlap':true, 'icon-ignore-placement':true}});
   res();
 }));
 function updateMap(){
@@ -466,6 +483,7 @@ function updateMap(){
     properties:{id:s[C.id], img:'m' + s[C.stay] + '_' + bin(s[C.occ][hour]), k:s[C.stay] ? 1.7 : 1}});
   map.getSource('st').setData({type:'FeatureCollection', features:shown.filter(s => !s[C.stay]).map(f)});
   map.getSource('stay').setData({type:'FeatureCollection', features:shown.filter(s => s[C.stay]).map(f)});
+  map.getSource('demo').setData({type:'FeatureCollection', features:shown.filter(isW9).map(f)});
   map.getSource('sel').setData(selected ? {type:'FeatureCollection', features:[f(selected)]} : EMPTY);
   if (!selected || route) clearPoi(); else if (poi.s === selected) drawPoi();
   if (route && route.mode === 'walk'){ const d = route.dest;       // 도보 안내 중에는 목적지 핀 하나만 남김
@@ -474,21 +492,21 @@ function updateMap(){
 }
 const draw = updateMap;
 const byId = id => D.stations.find(x => x[C.id] === id);
-function hit(pt){ const fs = map.queryRenderedFeatures([[pt.x - 6, pt.y - 6], [pt.x + 6, pt.y + 6]], {layers:['stay','st']}); return fs.length ? byId(fs[0].properties.id) : null; }
+function hit(pt){ const fs = map.queryRenderedFeatures([[pt.x - 6, pt.y - 6], [pt.x + 6, pt.y + 6]], {layers:['demo-badge','stay','st']}); return fs.length ? byId(fs[0].properties.id) : null; }
 map.on('click', e => { if (!ready || route) return; const s = hit(e.point); if (s){ select(s, false); return; }
   const f = map.queryRenderedFeatures([[e.point.x - 9, e.point.y - 9], [e.point.x + 9, e.point.y + 9]], {layers:['poi']})[0];
-  if (f) showPlace(f.properties.n, f.properties.c, f.properties.s, f.properties.d, f.geometry.coordinates); else hidePlace(); });
+  if (f) showPlace(f.properties.n, f.properties.c, f.properties.s, f.properties.d, f.geometry.coordinates, f.properties.w); else hidePlace(); });
 let placePop = null;
 let place = null;
 function hidePlace(){ place = null; if (placePop) placePop.remove(); document.body.classList.remove('placeon'); }
-function showPlace(n, c, s, d, lngLat){        // 가게를 고르면: 지도에 이름 말풍선 + 아래에 '도보 안내' 단추가 있는 카드
+function showPlace(n, c, s, d, lngLat, w){     // 가게를 고르면: 지도에 이름 말풍선 + 아래에 '도보 안내' 단추가 있는 카드 (w = 시연 충전소의 도보 분)
   if (placePop) placePop.remove();
   if (route) return;
   place = {name:n, lat:lngLat[1], lng:lngLat[0], sub:s, c:+c, d:+d};
   placePop = new maplibregl.Popup({closeButton:false, closeOnClick:false, offset:16, maxWidth:'240px', className:'placepop'}).setLngLat(lngLat)
     .setHTML(`<div><b>${n}</b></div>`).addTo(map);
   $('#pcPin').style.background = POI_COL[place.c]; $('#pcPin').innerHTML = picon(place.c, 20);
-  $('#pcName').textContent = n; $('#pcSub').textContent = `${s} · 충전소에서 ${d}m`;
+  $('#pcName').textContent = n; $('#pcSub').textContent = w ? `${s} · 충전소에서 도보 ${w}분 (${d}m)` : `${s} · 충전소에서 ${d}m`;
   document.body.classList.add('placeon');
 }
 $('#pcGoMe').onclick = () => { if (place) startWalk(place, 'me'); };
@@ -1037,7 +1055,7 @@ $('#chips').querySelectorAll('.chip').forEach(b => b.onclick = () => {
   if (k === 'free' && F.free) F.busy = false; if (k === 'busy' && F.busy) F.free = false;
   $('#chips').querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', F[c.dataset.f]));
   selected = null; refresh();
-  if (F.stay && shown.length) fit(shown.map(s => [s[C.lat], s[C.lng]]), 14);
+  if ((F.stay || F.demo) && shown.length) fit(shown.map(s => [s[C.lat], s[C.lng]]), 14);
 });
 $('#q').addEventListener('input', () => { selected = null; refresh();
   if ($('#q').value.trim() && shown.length && shown.length <= 200) fit(shown.map(s => [s[C.lat], s[C.lng]]), 15); });
@@ -1045,74 +1063,98 @@ $('#tabNear').onclick = () => setTab('near'); $('#tabAll').onclick = () => setTa
 function setTab(t){ tab = t; selected = null; $('#tabNear').setAttribute('aria-selected', t === 'near'); $('#tabAll').setAttribute('aria-selected', t === 'all');
   if (t === 'all') setSheet(true); renderBody(); updateMap(); }
 
+fetch('data/walk9/index.json').then(r => r.ok ? r.json() : null).then(m => { if (!m) return; W9M = m; m.stations.forEach(x => W9[x.id] = x); if (D) refresh(); }).catch(() => {});
 Promise.all([fetch('data/stations.json').then(r => r.json()), loadSprites().then(() => mapLoaded)]).then(([d]) => { D = d; ready = true; refresh();
   if (me) map.getSource('acc').setData(circlePoly(me, 30)); wxTop(); });
 
 /* STEP 2 예비: 충전소를 눌렀을 때만 그 충전소의 주변 상권 파일을 읽어 옴.
-   파일은 반경 300m(가까운 순 최대 400곳, 각 가게에 충전소까지 거리 m)를 담고 있고, 화면에서는 고른 반경(50m·100m, 기본 100m) 안만 걸러 보여 줌 */
-const POI_RS = [50, 100];
-let poiR = 100;
+   파일은 반경 300m(가까운 순 최대 400곳, 각 가게에 충전소까지 거리 m)를 담고 있고, 화면에서는 고른 반경(50m·100m, 기본 100m) 안만 걸러 보여 줌
+   시연 충전소 9곳은 대신 data/walk9/<id>.json(도보 10분 = 780m 안 가게, 도보 거리 순)을 읽고 도보 5분·10분으로 걸러 보여 줌.
+   걸러 쓰기 쉽게 가게 한 줄을 [이름, 종류, 소분류, 위도, 경도, 도보 m, 도보 분, 5분 안, 카카오 도보 경로값]으로 바꿔 둠(직선 파일과 같은 자리 5 = m) */
+const POI_RS = [50, 100], WALK_MS = [5, 10];
+let poiR = 100, walkMin = 5;
 try { const v = +localStorage.getItem('poiR'); if (POI_RS.includes(v)) poiR = v; } catch (e) {}
+try { const v = +localStorage.getItem('walkMin'); if (WALK_MS.includes(v)) walkMin = v; } catch (e) {}
 let poi = {s:null, data:null, cat:-1, state:''};
-function poiView(){            // 고른 반경 안의 가게와 종류별 개수. 파일이 상한(400곳)에 걸렸고 그 400곳이 다 반경 안이면 실제는 더 많음(more)
+const walkLim = () => walkMin === 5 ? (W9M ? W9M.m5 : 390) : (W9M ? W9M.m10 : 780);
+function poiView(){            // 고른 범위 안의 가게와 종류별 개수. 직선 파일이 상한(400곳)에 걸렸고 그 400곳이 다 반경 안이면 실제는 더 많음(more)
   const d = poi.data; if (!d) return null;
-  if (d.v && d.v.r === poiR) return d.v;
-  const p = d.p.filter(x => x[5] <= poiR), n = d.n.map(() => 0); p.forEach(x => n[x[1]]++);
-  return d.v = {r:poiR, p, n, sum:p.length, more:d.total > d.p.length && p.length === d.p.length};
+  const key = d.walk ? 'w' + walkMin : poiR;
+  if (d.v && d.v.r === key) return d.v;
+  const lim = d.walk ? walkLim() : poiR;
+  const p = d.p.filter(x => x[5] <= lim), n = d.n.map(() => 0); p.forEach(x => n[x[1]]++);
+  return d.v = {r:key, p, n, sum:p.length, more:!d.walk && d.total > d.p.length && p.length === d.p.length};
 }
-function poiFit(s){              // 반경 원이 화면에 들어오도록 맞춤(100m면 약 17.5, 50m면 약 18.5)
-  const R = poiR, kx = Math.cos(s[C.lat] * Math.PI / 180) * 111320;
+function poiFit(s){              // 반경 원이 화면에 들어오도록 맞춤(100m면 약 17.5, 50m면 약 18.5). 도보 범위는 범위 안 가게가 다 들어오게
+  if (poi.data && poi.data.walk){ const v = poiView();
+    if (v && v.sum){ fit(v.p.map(x => [x[3], x[4]]).concat([[s[C.lat], s[C.lng]]]), 18); return; } }
+  const R = poi.data && poi.data.walk ? walkLim() : poiR, kx = Math.cos(s[C.lat] * Math.PI / 180) * 111320;
   fit([[s[C.lat] + R / 110540, s[C.lng] - R / kx], [s[C.lat] - R / 110540, s[C.lng] + R / kx]], 18.5);
 }
 function setPoiR(r){
-  if (r === poiR) return; poiR = r; try { localStorage.setItem('poiR', r); } catch (e) {}
+  const walk = poi.data && poi.data.walk;
+  if (walk){ if (r === walkMin) return; walkMin = r; try { localStorage.setItem('walkMin', r); } catch (e) {} }
+  else { if (r === poiR) return; poiR = r; try { localStorage.setItem('poiR', r); } catch (e) {} }
   poi.cat = -1; hidePlace(); if (poi.s && poi.s[C.poi]) poiFit(poi.s); drawPoi(); renderPoi();
 }
-$('#infraR').querySelectorAll('button').forEach(b => b.onclick = () => setPoiR(+b.dataset.r));
+$('#infraR').onclick = e => { const b = e.target.closest('button'); if (b) setPoiR(+b.dataset.r); };
 function clearPoi(){ if (!poi.s && !poi.data) return; poi = {s:null, data:null, cat:-1, state:''};
   document.body.classList.remove('infra'); hidePlace();
   if (ready){ map.getSource('poi').setData(EMPTY); map.getSource('ring').setData(EMPTY); } }
 function drawPoi(){
-  if (!ready || !poi.s) return; const s = poi.s, v = poiView();
-  map.getSource('ring').setData(circlePoly([s[C.lat], s[C.lng]], poiR));
+  if (!ready || !poi.s) return; const s = poi.s, v = poiView(), walk = poi.data && poi.data.walk;
+  map.getSource('ring').setData(walk || poi.walk ? EMPTY : circlePoly([s[C.lat], s[C.lng]], poiR));     // 도보 범위는 원으로 그리지 않음(길 따라 잰 거리라 모양이 원이 아님)
   const items = v ? v.p.filter(x => poi.cat < 0 || x[1] === poi.cat) : [];
-  map.getSource('poi').setData({type:'FeatureCollection', features:items.map(x => ({type:'Feature', geometry:{type:'Point', coordinates:[x[4], x[3]]}, properties:{n:x[0], c:x[1], s:x[2], d:x[5]}}))});
+  map.getSource('poi').setData({type:'FeatureCollection', features:items.map(x => ({type:'Feature', geometry:{type:'Point', coordinates:[x[4], x[3]]},
+    properties:walk ? {n:x[0], c:x[1], s:x[2], d:x[5], w:x[6]} : {n:x[0], c:x[1], s:x[2], d:x[5]}}))});
 }
 function loadPoi(s){
   if (!D.meta.poi){ poi = {s, data:null, cat:-1, state:'none'}; return; }
   if (poi.s === s) return;
-  poi = {s, data:null, cat:-1, state:s[C.poi] ? 'loading' : 'uncovered'};
+  const walk = isW9(s);
+  poi = {s, data:null, cat:-1, walk, state:s[C.poi] || walk ? 'loading' : 'uncovered'};
   drawPoi();
-  if (!s[C.poi]) return;
-  poiFit(s);
-  fetch('data/poi/' + s[C.id] + '.json').then(r => r.json()).then(d => { if (poi.s !== s) return; poi.data = d; poi.state = 'ok'; drawPoi(); renderPoi(); })
+  if (!s[C.poi] && !walk) return;
+  if (!walk) poiFit(s);
+  const url = walk ? 'data/walk9/' + s[C.id] + '.json' : 'data/poi/' + s[C.id] + '.json';
+  fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => { if (poi.s !== s) return;
+    if (walk) d = {walk:true, n:d.n10.map(() => 0), fail:d.fail, p:d.p.map(x => [x[0], x[1], x[2], x[3], x[4], x[6], x[5], x[7], x[8]])};
+    poi.data = d; poi.state = 'ok'; if (walk) poiFit(s); drawPoi(); renderPoi(); })
     .catch(() => { if (poi.s === s){ poi.state = 'error'; renderPoi(); } });
 }
 function renderPoi(){
-  const m = D.meta.poi, on = !!selected && poi.s === selected && poi.state === 'ok';
+  const m = D.meta.poi, on = !!selected && poi.s === selected && poi.state === 'ok', walk = !!(poi.data && poi.data.walk);
+  const cats = m ? m.cats : W9M.cats, rng = walk ? `도보 ${walkMin}분` : `주변 ${poiR}m`;
   document.body.classList.toggle('infra', on && !route);
   if (on){      // 위쪽 띠와 종류 단추
     const d = poiView(), plus = d.more ? '+' : '';
     $('#infraTitle').textContent = selected[C.name];
-    $('#infraSub').textContent = !d.sum ? `주변 ${poiR}m 안 상가 없음` : `주변 ${poiR}m · ${poi.cat < 0 ? '전체 ' + d.sum.toLocaleString('ko-KR') + plus + '곳' : m.cats[poi.cat] + ' ' + d.n[poi.cat] + '곳'}`;
-    $('#infraR').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.r === poiR));
+    $('#infraSub').textContent = !d.sum ? `${rng} 안 상가 없음` : `${rng} · ${poi.cat < 0 ? '전체 ' + d.sum.toLocaleString('ko-KR') + plus + '곳' : cats[poi.cat] + ' ' + d.n[poi.cat] + '곳'}`;
+    const R = $('#infraR'), want = walk ? 'w' : 'r';
+    if (R.dataset.mode !== want){ R.dataset.mode = want; R.setAttribute('aria-label', walk ? '도보 시간' : '주변 반경');
+      R.innerHTML = (walk ? WALK_MS.map(v => `<button type="button" data-r="${v}">${v}분</button>`) : POI_RS.map(v => `<button type="button" data-r="${v}">${v}m</button>`)).join(''); }
+    R.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.r === (walk ? walkMin : poiR)));
     $('#infraClear').style.visibility = poi.cat < 0 ? 'hidden' : 'visible';
-    $('#infraChips').innerHTML = m.cats.map((c, i) => `<button class="chip" type="button" data-c="${i}" aria-pressed="${poi.cat === i}"><span class="ic" style="color:${POI_COL[i]}">${picon(i, 18)}</span>${c} <b>${d.n[i]}</b></button>`).join('');
+    $('#infraChips').innerHTML = cats.map((c, i) => `<button class="chip" type="button" data-c="${i}" aria-pressed="${poi.cat === i}"><span class="ic" style="color:${POI_COL[i]}">${picon(i, 18)}</span>${c} <b>${d.n[i]}</b></button>`).join('');
     $('#infraChips').querySelectorAll('.chip').forEach(b => b.onclick = () => { const c = +b.dataset.c; poi.cat = poi.cat === c ? -1 : c; hidePlace(); drawPoi(); renderPoi(); });
     $('#listBtnTxt').textContent = sheetH > baseH() ? '지도 보기' : '목록 보기';
   }
   const el = $('#poiBox'); if (!el || !selected || poi.s !== selected) return;
+  const head = poi.walk ? `주변 인프라 (도보 ${walkMin}분)` : `주변 인프라 (반경 ${poiR}m)`;
   if (poi.state === 'none'){ el.innerHTML = ''; return; }
   if (poi.state === 'uncovered'){ el.innerHTML = `<h4>주변 인프라</h4><p>${selected[C.sido]}은(는) 상권 자료가 아직 없음 (현재 ${m.covered.length}개 시·도만 있음)</p>`; return; }
-  if (poi.state === 'loading'){ el.innerHTML = `<h4>주변 인프라 (반경 ${poiR}m)</h4><p>불러오는 중…</p>`; return; }
+  if (poi.state === 'loading'){ el.innerHTML = `<h4>${head}</h4><p>불러오는 중…</p>`; return; }
   if (poi.state === 'error'){ el.innerHTML = `<h4>주변 인프라</h4><p>상권 자료를 불러오지 못함</p>`; return; }
-  const d = poiView(), list = d.p.filter(x => poi.cat < 0 || x[1] === poi.cat).slice(0, 60);
-  if (!d.sum){ el.innerHTML = `<h4>주변 인프라 (반경 ${poiR}m)</h4><p class="hint">주변 ${poiR}m 안 상가 없음${poiR < 100 ? ' · 위쪽에서 100m로 넓혀 볼 수 있음' : ''}</p>`; return; }
-  el.innerHTML = `<h4>주변 인프라 ${poiR}m · ${poi.cat < 0 ? '전체' : m.cats[poi.cat]} (가까운 순 ${list.length}곳)</h4>
-    ${d.more ? `<p class="hint">가게가 많아 가까운 ${d.sum}곳까지만 셈 (실제는 더 많음)</p>` : ''}` +
-    (list.map((x, k) => `<div class="prow" data-k="${k}"><span class="pin" style="background:${POI_COL[x[1]]}">${picon(x[1], 17)}</span><div class="nm"><b>${x[0]}</b><span>${x[2]}</span></div><div class="oc"><b>${x[5]}m</b></div></div>`).join('') || '<p class="hint">해당하는 곳 없음</p>');
+  const d = poiView(), list = d.p.filter(x => poi.cat < 0 || x[1] === poi.cat).slice(0, walk ? 100 : 60);
+  const note = walk ? `<p class="w9note">${W9M.note}${poi.data.fail ? ` · 경로 미확인 ${poi.data.fail}곳은 뺌` : ''}${walkMin === 5 ? ' · 10분으로 넓혀 볼 수 있음' : ''}</p>` : '';
+  if (!d.sum){ el.innerHTML = `<h4>${head}</h4>${note}<p class="hint">${rng} 안 상가 없음${!walk && poiR < 100 ? ' · 위쪽에서 100m로 넓혀 볼 수 있음' : ''}</p>`; return; }
+  el.innerHTML = (walk ? `<h4>주변 인프라 도보 ${walkMin}분 · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${list.length}곳${d.sum > list.length && poi.cat < 0 ? ' / ' + d.sum.toLocaleString('ko-KR') + '곳' : ''})</h4>${note}`
+      : `<h4>주변 인프라 ${poiR}m · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${list.length}곳)</h4>
+    ${d.more ? `<p class="hint">가게가 많아 가까운 ${d.sum}곳까지만 셈 (실제는 더 많음)</p>` : ''}`) +
+    (list.map((x, k) => `<div class="prow" data-k="${k}"><span class="pin" style="background:${POI_COL[x[1]]}">${picon(x[1], 17)}</span><div class="nm"><b>${x[0]}</b><span>${x[2]}${walk && x[8] ? ' · 카카오 도보 경로값' : ''}</span></div>` +
+      (walk ? `<div class="oc"><b>도보 ${x[6]}분</b><span>${x[5]}m</span></div></div>` : `<div class="oc"><b>${x[5]}m</b></div></div>`)).join('') || '<p class="hint">해당하는 곳 없음</p>');
   el.querySelectorAll('.prow').forEach(r => r.onclick = () => { const x = list[+r.dataset.k]; setSheet(false); renderPoi();
-    map.easeTo({center:[x[4], x[3]], zoom:Math.max(map.getZoom(), 17), duration:500}); showPlace(x[0], x[1], x[2], x[5], [x[4], x[3]]); });
+    map.easeTo({center:[x[4], x[3]], zoom:Math.max(map.getZoom(), 17), duration:500}); showPlace(x[0], x[1], x[2], x[5], [x[4], x[3]], walk ? x[6] : 0); });
 }
 $('#infraBack').onclick = () => { selected = null; renderBody(); updateMap(); };
 $('#infraClear').onclick = () => { poi.cat = -1; hidePlace(); drawPoi(); renderPoi(); };
@@ -1123,6 +1165,7 @@ function passes(s){
   if (F.fast && s[C.nfast] === 0) return false;
   if (F.slow && s[C.nfast] > 0) return false;
   if (F.stay && !s[C.stay]) return false;
+  if (F.demo && !isW9(s)) return false;
   if (F.free && !(o >= 0 && o < 25)) return false;
   if (F.busy && !(o >= 50)) return false;
   if (q && !(s[C.name].includes(q) || s[C.addr].includes(q))) return false;
@@ -1151,7 +1194,7 @@ function renderBody(){
       <button type="button" data-s="occ" aria-pressed="${sortBy === 'occ'}">이용률 낮은 순</button></div>
     <p class="hint">${sortBy === 'near' ? '지도 가운데에서 가까운 30곳' : '지도 가운데에서 가까운 30곳 안에서 이용률 낮은 순'} · ${hour}시 이용률 (${D.meta.days_by_hour[hour]}일치 평균) · 조건에 맞는 ${shown.length.toLocaleString('ko-KR')}곳</p>` +
     (list.map(([d, s]) => `<div class="row" data-id="${s[C.id]}"><span class="dot" style="background:${RAMP[bin(s[C.occ][hour])]}"></span>
-      <div class="nm"><b>${s[C.name]}${s[C.stay] ? ' <span class="badge">스테이</span>' : ''}</b><span>${kmTxt(d)} · 충전기 ${s[C.n]}대(급속 ${s[C.nfast]}) · 최대 ${s[C.kw]}kW</span></div>
+      <div class="nm"><b>${s[C.name]}${s[C.stay] ? ' <span class="badge">스테이</span>' : ''}${isW9(s) ? ' <span class="badge walk9">도보 시연</span>' : ''}</b><span>${kmTxt(d)} · 충전기 ${s[C.n]}대(급속 ${s[C.nfast]}) · 최대 ${s[C.kw]}kW</span></div>
       <div class="oc"><b>${occTxt(s[C.occ][hour])}</b><span>이용률</span></div></div>`).join('') || '<p class="hint">조건에 맞는 충전소 없음</p>');
   el.querySelectorAll('.sort button').forEach(b => b.onclick = () => { sortBy = b.dataset.s; renderBody(); });
   el.querySelectorAll('.row').forEach(r => r.onclick = () => select(D.stations.find(x => x[C.id] === r.dataset.id), true));
@@ -1231,7 +1274,7 @@ function renderDetail(el){
   const xl = [0,6,12,18,23].map(h => `<text x="${L0 + h * bw + bw / 2}" y="${H - 4}" text-anchor="middle">${h}시</text>`).join('');
   const dist = me ? ` · 내 위치에서 ${kmTxt(km(me, [s[C.lat], s[C.lng]]))}` : '';
   el.innerHTML = `<div class="det"><button class="back" id="back" type="button">← 목록</button>
-    <h3>${s[C.name]}${s[C.stay] ? ' <span class="badge">채비스테이</span>' : ''}</h3>
+    <h3>${s[C.name]}${s[C.stay] ? ' <span class="badge">채비스테이</span>' : ''}${isW9(s) ? ' <span class="badge walk9">도보 시연</span>' : ''}</h3>
     <p class="wxline" id="wxSt"></p>
     <p>${s[C.addr]}</p><p>${s[C.kind]}${dist}</p>
     <div class="facts"><div><b>${occTxt(o[hour])}</b>${hour}시 이용률</div><div><b>${s[C.n]}대</b>충전기 (급속 ${s[C.nfast]})</div>
@@ -1277,6 +1320,7 @@ function renderAll(el){
       'DArt-B 8기 학술제 마채테 팀의 예비 대시보드이며 채비(CHAEVI)의 공식 서비스가 아님. 위치는 저장하지 않으며, 경로 안내를 누를 때만 출발·도착 좌표가 길찾기 서버(카카오)로 전송됨. 날씨는 지도 가운데와 고른 충전소의 좌표를 중계 서버로 보내고, 중계 서버는 5km 격자 번호만 기상청에 보냄',
       '날씨는 기상청 초단기실황(매시 정각 관측, 약 40분 뒤 발표)과 초단기예보이며 5km 격자 값이라 충전소 바로 그 자리의 값과 다를 수 있음',
       '지금 이 순간의 상태가 아니라 수집 기간의 같은 시각 평균임',
+      '초록 걷는 사람 배지 = 시연 충전소 9곳. 누르면 직선 반경 대신 도보 5분(390m)·10분(780m) 안 가게를 보여 줌. 도보 거리는 OSM 보행 경로(카카오 도보 경로 표본으로 보정), 보행 1.3 m/s 가정이며 영업 여부는 확인하지 않음',
       '이용률 = 충전중 대수 ÷ (충전대기 + 충전중) 대수. 통신이상·상태미확인 충전기는 계산에서 뺌',
       '바뀐 것만 담긴 기록(delta)은 직전 상태를 그대로 이어 붙여 계산함. 끊긴 구간 직후 값은 실제와 다를 수 있음',
       `충전 1회 시간 중앙값: 급속 ${m.med_fast_min}분, 완속 ${m.med_slow_min}분 (충전 ${f(m.n_sessions)}회 기준, 1분 미만·24시간 초과 제외)`
