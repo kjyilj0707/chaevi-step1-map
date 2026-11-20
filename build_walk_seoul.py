@@ -64,13 +64,22 @@ NOTE_STRAIGHT = "도보 시간 = 직선거리 × 1.45 추정(카카오 서울 �
 
 
 def fail_counts(parquet):
-    """전체 행 파일(parquet)에서 직선 780m 안인데 경로를 못 찾은(route_status != ok 이고 거리 없음) 가게를 충전소별로, 7개 카테고리 안만 셈"""
+    """전체 행 파일(parquet)에서 직선 780m 안인데 경로를 못 찾은(route_status != ok 이고 거리 없음) 가게를 충전소별로, 7개 카테고리 안만 셈.
+    route_status=excluded(v1.1: 충전소째 제외)는 실패로 세지 않음"""
     import pyarrow.parquet as pq
     t = pq.read_table(parquet, columns=["station_id", "place_id", "straight_m", "route_status", "walk_m"]).to_pandas()
-    f = t[t["route_status"].ne("ok") & t["walk_m"].isna() & (pd.to_numeric(t["straight_m"], errors="coerce") <= B.M10)]
+    f = t[~t["route_status"].isin(["ok", "excluded"]) & t["walk_m"].isna() & (pd.to_numeric(t["straight_m"], errors="coerce") <= B.M10)]
     print("경로 미확인(직선 780m 안) 전체", len(f), dict(f["station_id"].value_counts()))
     f = B.attach_cats(f)
     return f[f["cat"].notna()].groupby("station_id").size().to_dict()
+
+
+def excluded_ids(path):
+    """summary 의 excluded 가 참(1/True)인 충전소: 도보 자료 없이 기존 직선 반경으로 둠"""
+    s = pd.read_csv(path, dtype=str)
+    if "excluded" not in s.columns:
+        return set()
+    return set(s.loc[s["excluded"].fillna("").str.lower().isin(["1", "true"]), "station_id"])
 
 
 def straight_only(path):
@@ -113,7 +122,11 @@ def main():
     fails = fail_counts(pq_path) if pq_path else None
     print("경로 미확인 수", os.path.relpath(pq_path, HERE) if fails is not None else "입력 CSV 안에서(10분 안 행만 있으면 0)")
     straight = straight_only(sm) if lows is not None else set()
+    excl = excluded_ids(sm) if lows is not None else set()
     w, CATS = B.load_routes(src)
+    if excl:
+        print("제외 충전소", sorted(excl), "· 입력에 남아 있던 행", int(w["station_id"].isin(excl).sum()))
+        w = w[~w["station_id"].isin(excl)]
     print("충전소", w["station_id"].nunique(), "· 상가정보에서 못 찾은 가게", int(w["sub"].isna().sum()))
 
     out = a.out
