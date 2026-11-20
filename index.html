@@ -216,6 +216,8 @@ body.walk .walkcard{display:block}
 .wfill{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--navy);width:0;transition:width .4s}
 .wdot{position:absolute;top:50%;left:0;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:#fff;border:3px solid var(--navy);color:var(--navy);display:flex;align-items:center;justify-content:center;transition:left .4s}
 #walkMenu{flex:none;width:48px;height:48px;border:0;background:transparent;color:var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.navcard > button.navend,.wrow .navend{flex:none;width:auto;height:40px;border:0;border-radius:99px;padding:0 12px 0 9px;background:var(--navy);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;gap:4px}
+.navcard > button.navend:active,.wrow .navend:active{background:var(--navy2)}
 body.walk .recenter{bottom:calc(124px + env(safe-area-inset-bottom))}
 body.walk .navdetail{bottom:calc(112px + env(safe-area-inset-bottom))}
 body.walk .maplibregl-ctrl-bottom-left{display:none}
@@ -358,12 +360,14 @@ body.nav .wxfx canvas{opacity:.55}
       <div class="wline"><b id="wMin"></b><i></i><b id="wDist"></b><i></i><span id="wEta"></span></div>
       <div class="wbar"><div class="wfill" id="wFill"></div><span class="wdot" id="wDot"><svg viewBox="0 0 24 24" width="12" height="12"><path d="M8 5l11 7-11 7z" fill="currentColor"/></svg></span></div>
     </div>
+    <button class="navend" id="walkEnd" type="button" aria-label="안내 종료"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>종료</button>
     <button id="walkMenu" type="button" aria-label="자세히"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
   </div>
 </div>
 <div class="navcard" id="navCard">
   <button id="navRe" type="button" aria-label="다시 계산"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-14 5.3"/><path d="M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4"/><path d="M6 21v-4h4"/></svg></button>
   <div class="navmid"><span id="navName"></span><div><b id="navEta"></b><b id="navRem"></b></div></div>
+  <button class="navend" id="navEnd" type="button" aria-label="안내 종료"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>종료</button>
   <button id="navMenu" type="button" aria-label="자세히"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 </div>
 <div class="placecard" id="placeCard">
@@ -702,13 +706,12 @@ function stopRoute(quiet){
   clearInterval(routeTimer); routeTimer = null;
   if (ready){ map.getSource('route').setData(EMPTY); map.getSource('conn').setData(EMPTY); }
   clearTimeout(noteT); $('#navNote').classList.remove('on');
-  const wasWalk = route && route.mode === 'walk';
   document.body.classList.remove('nav', 'walk'); $('#navDetail').classList.remove('on'); $('#recenter').classList.remove('on');
   carEl.src = 'car.png';
   const was = follow; follow = false; map.easeTo({pitch:0, bearing:0, padding:{top:0, bottom:0, left:0, right:0}, duration:was ? 600 : 0});
   route = null; if (quiet || !D) return;
   renderBody(); updateMap();
-  if (wasWalk && selected){ loadPoi(selected); renderPoi(); }      // 도보 안내가 끝나면 그 충전소의 주변 인프라 화면으로 돌아감
+  if (selected){ loadPoi(selected); renderPoi(); }      // 안내(도보·자동차)가 끝나면 그 충전소의 주변 인프라 화면으로 돌아감(안내 시작 전 화면)
 }
 function overview(){        // 경로 전체가 보이게
   if (!route || !route.path) return; setFollow(false);
@@ -1266,6 +1269,8 @@ $('#navRe').onclick = () => requestRoute('직접 다시 계산');
 $('#navMenu').onclick = () => $('#navDetail').classList.toggle('on');
 $('#walkMenu').onclick = () => $('#navDetail').classList.toggle('on');
 $('#walkRe').onclick = () => requestRoute('직접 다시 계산');
+$('#navEnd').onclick = () => stopRoute();      // 메뉴를 열지 않고 안내 화면에서 바로 끝냄 (메뉴 안 '안내 끝'도 그대로 둠)
+$('#walkEnd').onclick = () => stopRoute();
 $('#walkOverview').onclick = () => overview();
 $('#recenter').onclick = () => setFollow(true);
 $('#zin').onclick = () => map.easeTo({zoom:map.getZoom() + 1, duration:300});
