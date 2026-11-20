@@ -35,55 +35,64 @@ def poi_tables():
     return got["CATS"], got["MID"], got["SUB"]
 
 
-def main():
-    src = SRC_FINAL if os.path.exists(SRC_FINAL) else SRC_PROPOSED
-    print("입력", os.path.relpath(src, HERE))
+def load_routes(src, stations=None):
+    """도보 경로 CSV(세원 칸 방식) → 7개 카테고리(cat), 도보 m·초, 성공 여부(ok), 카카오 도보 경로값 여부(kakao) 칸을 붙인 표.
+    stations 를 주면 그 충전소만. 서울 전체판(build_walk_seoul.py)도 이 함수를 그대로 씀"""
     CATS, MID, SUB = poi_tables()
-
-    w = pd.read_csv(src, dtype={"station_id": str, "place_id": str, "route_status": str, "correction": str, "kakao_checked": str})
-    w = w[w["station_id"].isin(STATIONS)].copy()
+    w = pd.read_csv(src, dtype={"station_id": str, "place_id": str, "route_status": str, "correction": str, "kakao_checked": str, "osm_flag": str})
+    if stations is not None:
+        w = w[w["station_id"].isin(stations)].copy()
     w["sid"] = w["place_id"].str.replace("shop:", "", regex=False)
-
     s = pd.read_csv(SBIZ, dtype=str, usecols=["상가업소번호", "상권업종중분류명", "상권업종소분류명"])
     s = s.rename(columns={"상가업소번호": "sid", "상권업종중분류명": "mid", "상권업종소분류명": "sub"})
     w = w.drop(columns=[c for c in ["상권업종소분류명", "상권업종중분류명"] if c in w.columns]).merge(s, on="sid", how="left")
-    no_match = int(w["sub"].isna().sum())
-
     cat = w["sub"].map(SUB)
     m = cat.isna(); cat[m] = w.loc[m, "mid"].str.strip().map(MID)
     w["cat"] = cat
-
-    ok = w["route_status"].eq("ok")
+    w["ok"] = w["route_status"].eq("ok")
     w["walk_m"] = pd.to_numeric(w["walk_m"], errors="coerce")
     w["walk_sec"] = w["walk_m"] / SPEED
-    kakao = w["correction"].fillna("").eq("kakao_measured")
+    w["kakao"] = w["correction"].fillna("").eq("kakao_measured")
+    return w, CATS
 
+
+def write_station(d, sid, out, n_cats):
+    """충전소 하나의 표 d → out/<sid>.json. 요약(dict)과 파일 크기를 돌려줌"""
+    dk = d[d["ok"] & (d["walk_m"] <= M10)]
+    in_cat = dk[dk["cat"].notna()].sort_values(["walk_m", "name"])
+    n5, n10 = [0] * n_cats, [0] * n_cats
+    items = []
+    for _, r in in_cat.iterrows():
+        c = int(r["cat"]); in5 = int(r["walk_m"] <= M5)
+        n10[c] += 1; n5[c] += in5
+        items.append([PHONE.sub("[전화번호]", str(r["name"]).strip()), c, r["sub"], round(float(r["lat"]), 5), round(float(r["lng"]), 5),
+                      max(1, math.ceil(r["walk_sec"] / 60 - 1e-9)), int(round(r["walk_m"])), in5, int(r["kakao"])])
+    fail = d[~d["ok"] & (pd.to_numeric(d["straight_m"], errors="coerce") <= M10)]
+    fail_cat = int(fail["cat"].notna().sum())
+    fp = os.path.join(out, sid + ".json")
+    json.dump({"id": sid, "n5": n5, "n10": n10, "fail": fail_cat, "p": items}, open(fp, "w", encoding="utf-8"),
+              ensure_ascii=False, separators=(",", ":"))
+    summ = {"id": sid, "n5": sum(n5), "n10": sum(n10), "fail": fail_cat, "other10": int(dk["cat"].isna().sum()),
+            "kakao10": int(in_cat["kakao"].sum())}
+    return summ, os.path.getsize(fp), len(dk)
+
+
+NOTE = "도보 시간 = OSM 보행 경로(카카오 도보 경로값 보정), 보행 1.3 m/s 가정. 영업 여부 미확인"
+
+
+def main():
+    src = SRC_FINAL if os.path.exists(SRC_FINAL) else SRC_PROPOSED
+    print("입력", os.path.relpath(src, HERE))
+    w, CATS = load_routes(src, STATIONS)
+    no_match = int(w["sub"].isna().sum())
     shutil.rmtree(OUT, ignore_errors=True); os.makedirs(OUT)
     idx, total, size = [], 0, 0
     for sid in STATIONS:
-        d = w[w["station_id"] == sid]
-        dk = d[ok.loc[d.index] & (d["walk_m"] <= M10)]
-        in_cat = dk[dk["cat"].notna()].sort_values(["walk_m", "name"])
-        n5, n10 = [0] * len(CATS), [0] * len(CATS)
-        items = []
-        for i, r in in_cat.iterrows():
-            c = int(r["cat"]); in5 = int(r["walk_m"] <= M5)
-            n10[c] += 1; n5[c] += in5
-            items.append([PHONE.sub("[전화번호]", str(r["name"]).strip()), c, r["sub"], round(float(r["lat"]), 5), round(float(r["lng"]), 5),
-                          max(1, math.ceil(r["walk_sec"] / 60 - 1e-9)), int(round(r["walk_m"])), in5, int(kakao.loc[i])])
-        fail = d[~ok.loc[d.index] & (pd.to_numeric(d["straight_m"], errors="coerce") <= M10)]
-        fail_cat = int(fail["cat"].notna().sum())
-        fp = os.path.join(OUT, sid + ".json")
-        json.dump({"id": sid, "n5": n5, "n10": n10, "fail": fail_cat, "p": items}, open(fp, "w", encoding="utf-8"),
-                  ensure_ascii=False, separators=(",", ":"))
-        size += os.path.getsize(fp); total += len(items)
-        idx.append({"id": sid, "n5": sum(n5), "n10": sum(n10), "fail": fail_cat, "other10": int(dk["cat"].isna().sum()),
-                    "kakao10": int(kakao.loc[in_cat.index].sum())})
-        print(f"{sid} 10분 {len(dk):>5} 중 카테고리 {sum(n10):>5} (5분 {sum(n5):>4}) · 경로 미확인 {fail_cat} · 카카오 도보 경로값 {idx[-1]['kakao10']} · {os.path.getsize(fp)/1e3:.0f}KB")
-
+        summ, sz, n_dk = write_station(w[w["station_id"] == sid], sid, OUT, len(CATS))
+        idx.append(summ); size += sz; total += summ["n10"]
+        print(f"{sid} 10분 {n_dk:>5} 중 카테고리 {summ['n10']:>5} (5분 {summ['n5']:>4}) · 경로 미확인 {summ['fail']} · 카카오 도보 경로값 {summ['kakao10']} · {sz/1e3:.0f}KB")
     meta = {"src": os.path.basename(src), "final": src == SRC_FINAL, "speed": SPEED, "m5": M5, "m10": M10, "cats": CATS,
-            "note": "도보 시간 = OSM 보행 경로(카카오 도보 경로값 보정), 보행 1.3 m/s 가정. 영업 여부 미확인",
-            "stations": idx}
+            "note": NOTE, "stations": idx}
     json.dump(meta, open(os.path.join(OUT, "index.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     print("상가정보에서 못 찾은 가게", no_match)
     print("합계 가게", total, "· 파일 합계 KB", round(size / 1e3))

@@ -23,3 +23,10 @@
 - 자료: `../analysis/walk_9/walk_routes_9_v2.csv`(팀 확정 규칙 2026-11-20, OSM 보행망 multi × 보정, 카카오 도보 경로값 표본, 보행 1.3 m/s). 7개 카테고리 대응은 `build_poi.py`의 표를 그대로 읽어 씀
 - `build_walk9.py`: → `data/walk9/<충전소ID>.json`(10분 안 가게, 도보 거리 순), `data/walk9/index.json`(9곳 요약). 경로 미확인(route_status≠ok)은 빼고 개수만 적음, 가게 이름의 전화번호는 가림
 - 실행: `~/.venvs/work/bin/python -I build_walk9.py` (`raw/step2/sbiz_서울.csv` 필요)
+
+## 서울 전체 도보 범위 (준비, 자료 받으면 실행)
+
+- `build_walk_seoul.py`: 분석 담당의 서울 전체 도보 경로 CSV → `data/walk_seoul/<충전소ID>.json`, `data/walk_seoul/index.json`(label "서울 도보 n곳", demo = 시연 9곳, 충전소별 kind·stay·low·lowWhy). 가게 처리 방식은 `build_walk9.py`의 `load_routes`·`write_station`을 그대로 씀
+- 입력은 `SRC_CANDIDATES`(analysis/walk_seoul_all, walk_seoul_fast) 중 처음 있는 파일, 또는 `--src`
+- 화면은 `data/walk_seoul/index.json`이 있으면 그것을, 없으면 `data/walk9`를 씀. 첫 화면 필터 칩 이름도 따라 바뀜("서울 도보 n곳" / "시연 9곳")
+- low(도보 시간 추정 정확도 낮음) 판정은 임시안: osm_flag 값이 있거나 10분 안 가게의 30% 넘게 대체·추정 보정인 충전소. 화면 단서 맨 앞에 굵게 표시

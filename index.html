@@ -307,7 +307,7 @@ body.nav .wxfx canvas{opacity:.55}
   <div class="chips" id="chips">
     <button class="chip" data-f="fast" aria-pressed="false">급속</button>
     <button class="chip" data-f="slow" aria-pressed="false">완속만</button>
-    <button class="chip" data-f="demo" aria-pressed="true"><i style="background:var(--mint2)"></i>시연 9곳</button>
+    <button class="chip" data-f="demo" aria-pressed="true"><i style="background:var(--mint2)"></i><span id="demoLabel">시연 9곳</span></button>
     <button class="chip" data-f="stay" aria-pressed="false"><i style="background:var(--accent)"></i>채비스테이</button>
     <button class="chip" data-f="free" aria-pressed="false"><i style="background:var(--q2)"></i>한가한 곳</button>
     <button class="chip" data-f="busy" aria-pressed="false"><i style="background:var(--q5)"></i>붐비는 곳</button>
@@ -450,10 +450,14 @@ let toastT; function toast(t){ const el = $('#toast'); el.textContent = t; el.st
 let sortBy = 'near';
 let D, shown = [], selected = null, hour = new Date().getHours(), tab = 'near';
 let me = null, meMarker = null, heading = null, follow = false, ready = false;
-const F = {fast:false, slow:false, stay:false, free:false, busy:false, demo:true};     // 기본은 시연 충전소 9곳만 보임(칩을 끄면 전체)
-/* 시연 충전소 9곳: 도보 5분·10분 안 가게(data/walk9, build_walk9.py). 목록 파일을 못 읽으면 9곳도 다른 충전소처럼 직선 반경으로 보여 줌 */
-let W9 = {}, W9M = null;
-const isW9 = s => !!(s && W9[s[C.id]]);
+const F = {fast:false, slow:false, stay:false, free:false, busy:false, demo:true};     // 기본은 도보 자료가 있는 충전소만 보임(칩을 끄면 전체)
+/* 도보 범위 자료: 앞에 있는 묶음부터 읽어 보고 처음 읽힌 것을 씀.
+   data/walk_seoul(build_walk_seoul.py, 서울 전체) → 없으면 data/walk9(build_walk9.py, 시연 9곳). 둘 다 못 읽으면 전부 직선 반경으로 보여 줌.
+   WK = 도보 자료가 있는 충전소(id → 요약), DEMO = 시연 충전소(초록 테두리·걷는 사람 배지). 요약의 low = 도보 시간 추정 정확도 낮음 */
+const WALK_SETS = ['data/walk_seoul', 'data/walk9'];
+let WK = {}, WKM = null, WDIR = null, DEMO = {};
+const isWalk = s => !!(s && WK[s[C.id]]);
+const isDemo = s => !!(s && DEMO[s[C.id]]);
 const SEOUL = [37.5665, 126.978];
 const EMPTY = {type:'FeatureCollection', features:[]};
 
@@ -498,7 +502,7 @@ function updateMap(){
     properties:{id:s[C.id], img:'m' + markKind(s) + '_' + bin(s[C.occ][hour]), k:s[C.stay] ? 1.7 : markKind(s) === 2 ? 0.85 : 1}});
   map.getSource('st').setData({type:'FeatureCollection', features:shown.filter(s => !s[C.stay]).map(f)});
   map.getSource('stay').setData({type:'FeatureCollection', features:shown.filter(s => s[C.stay]).map(f)});
-  map.getSource('demo').setData({type:'FeatureCollection', features:shown.filter(isW9).map(f)});
+  map.getSource('demo').setData({type:'FeatureCollection', features:shown.filter(isDemo).map(f)});
   map.getSource('sel').setData(selected ? {type:'FeatureCollection', features:[f(selected)]} : EMPTY);
   if (!selected || route) clearPoi(); else if (poi.s === selected) drawPoi();
   if (route && route.mode === 'walk'){ const d = route.dest;       // 도보 안내 중에는 목적지 핀 하나만 남김
@@ -1079,16 +1083,25 @@ function setTab(t){ tab = t; selected = null; $('#tabNear').setAttribute('aria-s
 
 /* 처음 화면: 9곳 목록과 충전소 자료가 둘 다 오면 9곳이 다 들어오게 맞춤. 9곳 목록을 못 읽으면 시연 칩을 끄고 전체 충전소를 보여 줌 */
 let demoFitted = false;
-function demoStart(){ if (!D || !ready || !W9M || demoFitted) return; demoFitted = true; refresh();
+function demoStart(){ if (!D || !ready || !WKM || demoFitted) return; demoFitted = true; refresh();
   if (F.demo && shown.length) fit(shown.map(s => [s[C.lat], s[C.lng]]), 14); }
-function demoFail(){ W9M = null; W9 = {}; F.demo = false; const b = document.querySelector('#chips .chip[data-f="demo"]'); if (b) b.setAttribute('aria-pressed', false); if (D) refresh(); }
-fetch('data/walk9/index.json').then(r => r.ok ? r.json() : null).then(m => { if (!m || !m.stations){ demoFail(); return; } W9M = m; m.stations.forEach(x => W9[x.id] = x); demoStart(); }).catch(demoFail);
+function demoFail(){ WKM = null; WK = {}; DEMO = {}; F.demo = false; const b = document.querySelector('#chips .chip[data-f="demo"]'); if (b) b.setAttribute('aria-pressed', false); if (D) refresh(); }
+const walkLabel = () => WKM && WKM.label ? WKM.label : `시연 ${Object.keys(WK).length}곳`;
+(async () => {
+  for (const dir of WALK_SETS){
+    try { const r = await fetch(dir + '/index.json'); if (!r.ok) continue; const m = await r.json(); if (!m || !m.stations || !m.stations.length) continue;
+      WKM = m; WDIR = dir; m.stations.forEach(x => WK[x.id] = x);
+      (m.demo || m.stations.map(x => x.id)).forEach(id => DEMO[id] = 1);      // demo 목록이 없으면(9곳 묶음) 전부 시연 충전소
+      $('#demoLabel').textContent = walkLabel(); demoStart(); return; } catch (e) {}
+  }
+  demoFail();
+})();
 Promise.all([fetch('data/stations.json').then(r => r.json()), loadSprites().then(() => mapLoaded)]).then(([d]) => { D = d; ready = true; refresh(); demoStart();
   if (me) map.getSource('acc').setData(circlePoly(me, 30)); wxTop(); });
 
 /* STEP 2 예비: 충전소를 눌렀을 때만 그 충전소의 주변 상권 파일을 읽어 옴.
    파일은 반경 300m(가까운 순 최대 400곳, 각 가게에 충전소까지 거리 m)를 담고 있고, 화면에서는 고른 반경(50m·100m, 기본 100m) 안만 걸러 보여 줌
-   시연 충전소 9곳은 대신 data/walk9/<id>.json(도보 10분 = 780m 안 가게, 도보 거리 순)을 읽고 도보 5분·10분으로 걸러 보여 줌.
+   도보 자료가 있는 충전소(WK, data/walk_seoul 또는 data/walk9)는 대신 <WDIR>/<id>.json(도보 10분 = 780m 안 가게, 도보 거리 순)을 읽고 도보 5분·10분으로 걸러 보여 줌.
    걸러 쓰기 쉽게 가게 한 줄을 [이름, 종류, 소분류, 위도, 경도, 도보 m, 도보 분, 5분 안, 카카오 도보 경로값]으로 바꿔 둠(직선 파일과 같은 자리 5 = m) */
 const POI_RS = [50, 100], WALK_MS = [5, 10];
 let poiR = 100, walkMin = 5;
@@ -1097,7 +1110,7 @@ try { const v = +localStorage.getItem('walkMin'); if (WALK_MS.includes(v)) walkM
 /* 목록은 처음 가까운 5곳만 보이고 '더보기'를 누를 때마다 20곳씩 늘어남(상한: 도보 100 · 직선 60). 종류·범위·충전소를 바꾸면 다시 5곳 */
 const POI_FIRST = 5, POI_STEP = 20;
 let poi = {s:null, data:null, cat:-1, state:'', show:POI_FIRST};
-const walkLim = () => walkMin === 5 ? (W9M ? W9M.m5 : 390) : (W9M ? W9M.m10 : 780);
+const walkLim = () => walkMin === 5 ? (WKM ? WKM.m5 : 390) : (WKM ? WKM.m10 : 780);
 function poiView(){            // 고른 범위 안의 가게와 종류별 개수. 직선 파일이 상한(400곳)에 걸렸고 그 400곳이 다 반경 안이면 실제는 더 많음(more)
   const d = poi.data; if (!d) return null;
   const key = d.walk ? 'w' + walkMin : poiR;
@@ -1132,12 +1145,12 @@ function drawPoi(){
 function loadPoi(s){
   if (!D.meta.poi){ poi = {s, data:null, cat:-1, state:'none', show:POI_FIRST}; return; }
   if (poi.s === s) return;
-  const walk = isW9(s);
+  const walk = isWalk(s);
   poi = {s, data:null, cat:-1, walk, show:POI_FIRST, state:s[C.poi] || walk ? 'loading' : 'uncovered'};
   drawPoi();
   if (!s[C.poi] && !walk) return;
   if (!walk) poiFit(s);
-  const url = walk ? 'data/walk9/' + s[C.id] + '.json' : 'data/poi/' + s[C.id] + '.json';
+  const url = walk ? WDIR + '/' + s[C.id] + '.json' : 'data/poi/' + s[C.id] + '.json';
   fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => { if (poi.s !== s) return;
     if (walk) d = {walk:true, n:d.n10.map(() => 0), fail:d.fail, p:d.p.map(x => [x[0], x[1], x[2], x[3], x[4], x[6], x[5], x[7], x[8]])};
     poi.data = d; poi.state = 'ok'; if (walk) poiFit(s); drawPoi(); renderPoi(); })
@@ -1145,7 +1158,7 @@ function loadPoi(s){
 }
 function renderPoi(){
   const m = D.meta.poi, on = !!selected && poi.s === selected && poi.state === 'ok', walk = !!(poi.data && poi.data.walk);
-  const cats = m ? m.cats : W9M.cats, rng = walk ? `도보 ${walkMin}분` : `주변 ${poiR}m`;
+  const cats = m ? m.cats : WKM.cats, rng = walk ? `도보 ${walkMin}분` : `주변 ${poiR}m`;
   document.body.classList.toggle('infra', on && !route);
   if (on){      // 위쪽 띠와 종류 단추
     const d = poiView(), plus = d.more ? '+' : '';
@@ -1168,7 +1181,8 @@ function renderPoi(){
   if (poi.state === 'error'){ el.innerHTML = `<h4>주변 인프라</h4><p>상권 자료를 불러오지 못함</p>`; return; }
   const d = poiView(), full = d.p.filter(x => poi.cat < 0 || x[1] === poi.cat).slice(0, walk ? 100 : 60), list = full.slice(0, poi.show);
   const rest = full.length - list.length;
-  const note = walk ? `<p class="w9note">${W9M.note}${poi.data.fail ? ` · 경로 미확인 ${poi.data.fail}곳은 뺌` : ''}${walkMin === 5 ? ' · 10분으로 넓혀 볼 수 있음' : ''}</p>` : '';
+  const low = walk && WK[selected[C.id]] && WK[selected[C.id]].low;
+  const note = walk ? `<p class="w9note">${low ? '<b>도보 시간 추정 정확도 낮음</b>' + (WK[selected[C.id]].lowWhy ? ` (${WK[selected[C.id]].lowWhy})` : '') + ' · ' : ''}${WKM.note}${poi.data.fail ? ` · 경로 미확인 ${poi.data.fail}곳은 뺌` : ''}${walkMin === 5 ? ' · 10분으로 넓혀 볼 수 있음' : ''}</p>` : '';
   if (!d.sum){ el.innerHTML = `<h4>${head}</h4>${note}<p class="hint">${rng} 안 상가 없음${!walk && poiR < 100 ? ' · 위쪽에서 100m로 넓혀 볼 수 있음' : ''}</p>`; return; }
   el.innerHTML = (walk ? `<h4>주변 인프라 도보 ${walkMin}분 · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳${d.sum > full.length && poi.cat < 0 ? ' / ' + d.sum.toLocaleString('ko-KR') + '곳' : ''})</h4>${note}`
       : `<h4>주변 인프라 ${poiR}m · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳)</h4>
@@ -1190,7 +1204,7 @@ function passes(s){
   if (F.fast && s[C.nfast] === 0) return false;
   if (F.slow && s[C.nfast] > 0) return false;
   if (F.stay && !s[C.stay]) return false;
-  if (F.demo && !isW9(s)) return false;
+  if (F.demo && !isWalk(s)) return false;
   if (F.free && !(o >= 0 && o < 25)) return false;
   if (F.busy && !(o >= 50)) return false;
   if (q && !(s[C.name].includes(q) || s[C.addr].includes(q))) return false;
@@ -1217,9 +1231,9 @@ function renderBody(){
   el.innerHTML = `<div class="sort" role="group" aria-label="정렬 기준">
       <button type="button" data-s="near" aria-pressed="${sortBy === 'near'}">가까운 순</button>
       <button type="button" data-s="occ" aria-pressed="${sortBy === 'occ'}">이용률 낮은 순</button></div>
-    <p class="hint">${F.demo ? '시연 충전소만 보는 중 (위쪽 "시연 9곳"을 끄면 전체) · ' : ''}${sortBy === 'near' ? '지도 가운데에서 가까운 30곳' : '지도 가운데에서 가까운 30곳 안에서 이용률 낮은 순'} · ${hour}시 이용률 (${D.meta.days_by_hour[hour]}일치 평균) · 조건에 맞는 ${shown.length.toLocaleString('ko-KR')}곳</p>` +
+    <p class="hint">${F.demo ? `도보 범위가 있는 충전소만 보는 중 (위쪽 "${walkLabel()}"을 끄면 전체) · ` : ''}${sortBy === 'near' ? '지도 가운데에서 가까운 30곳' : '지도 가운데에서 가까운 30곳 안에서 이용률 낮은 순'} · ${hour}시 이용률 (${D.meta.days_by_hour[hour]}일치 평균) · 조건에 맞는 ${shown.length.toLocaleString('ko-KR')}곳</p>` +
     (list.map(([d, s]) => `<div class="row" data-id="${s[C.id]}"><span class="dot" style="background:${RAMP[bin(s[C.occ][hour])]}"></span>
-      <div class="nm"><b>${s[C.name]}${s[C.stay] ? ' <span class="badge">스테이</span>' : ''}${isW9(s) ? ' <span class="badge walk9">도보 시연</span>' : ''}</b><span>${kmTxt(d)} · 충전기 ${s[C.n]}대(급속 ${s[C.nfast]}) · 최대 ${s[C.kw]}kW</span></div>
+      <div class="nm"><b>${s[C.name]}${s[C.stay] ? ' <span class="badge">스테이</span>' : ''}${isDemo(s) ? ' <span class="badge walk9">도보 시연</span>' : isWalk(s) ? ' <span class="badge walk9">도보</span>' : ''}</b><span>${kmTxt(d)} · 충전기 ${s[C.n]}대(급속 ${s[C.nfast]}) · 최대 ${s[C.kw]}kW</span></div>
       <div class="oc"><b>${occTxt(s[C.occ][hour])}</b><span>이용률</span></div></div>`).join('') || '<p class="hint">조건에 맞는 충전소 없음</p>');
   el.querySelectorAll('.sort button').forEach(b => b.onclick = () => { sortBy = b.dataset.s; renderBody(); });
   el.querySelectorAll('.row').forEach(r => r.onclick = () => select(D.stations.find(x => x[C.id] === r.dataset.id), true));
@@ -1301,7 +1315,7 @@ function renderDetail(el){
   const xl = [0,6,12,18,23].map(h => `<text x="${L0 + h * bw + bw / 2}" y="${H - 4}" text-anchor="middle">${h}시</text>`).join('');
   const dist = me ? ` · 내 위치에서 ${kmTxt(km(me, [s[C.lat], s[C.lng]]))}` : '';
   el.innerHTML = `<div class="det"><button class="back" id="back" type="button">← 목록</button>
-    <h3>${s[C.name]}${s[C.stay] ? ' <span class="badge">채비스테이</span>' : ''}${isW9(s) ? ' <span class="badge walk9">도보 시연</span>' : ''}</h3>
+    <h3>${s[C.name]}${s[C.stay] ? ' <span class="badge">채비스테이</span>' : ''}${isDemo(s) ? ' <span class="badge walk9">도보 시연</span>' : isWalk(s) ? ' <span class="badge walk9">도보</span>' : ''}</h3>
     <p class="wxline" id="wxSt"></p>
     <p>${s[C.addr]}</p><p>${s[C.kind]}${dist}</p>
     <div class="facts"><div><b>${occTxt(o[hour])}</b>${hour}시 이용률</div><div><b>${s[C.n]}대</b>충전기 (급속 ${s[C.nfast]})</div>
