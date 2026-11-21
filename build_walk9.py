@@ -9,6 +9,7 @@
 입력 CSV는 읽기만 함. 실행: ~/.venvs/work/bin/python -I build_walk9.py
 
 가게 한 줄 = [이름, 칩 번호(대표), 소분류, 위도, 경도, 도보 분, 도보 m, 5분 안(1/0), 카카오 도보 경로값(1/0), 세원 중분류(, 속한 칩 번호 목록: 둘 이상일 때만)]
+파일의 pid·wm = 줄 순서와 같은 place_id(shop: 뺌)·도보 m(소수 첫째 자리). 추천 점수(data/reco, index.html RECO)가 재이 ★·× 맞추기와 순서 비교에 씀
 n5·n10 = 칩별 가게 수(한 가게가 두 칩에 들면 둘 다 셈). index.json 의 n5·n10 = 가게 수(겹침 없이)
 - 도보 분 = ceil(walk_sec / 60), walk_sec = walk_m / 1.3. 5분 안 = walk_m <= 390, 10분 안 = walk_m <= 780
 - route_status 가 ok 가 아닌 가게(경로 미확인)는 파일에 넣지 않고 index.json 에 개수만 적음
@@ -92,21 +93,21 @@ def write_station(d, sid, out, n_cats, fail=None):
     dk = d[d["ok"] & (d["walk_m"] <= M10)]
     in_cat = dk[dk["cat"].notna()].sort_values(["walk_m", "name"])
     n5, n10 = [0] * n_cats, [0] * n_cats
-    items = []
+    items, pids, wms = [], [], []      # pids·wms: 추천 점수용(place_id 에서 'shop:' 뺀 값, 도보 m 소수 그대로). 줄 순서와 같음
     for _, r in in_cat.iterrows():
         cs = list(r["cats"]); c = cs[0]; in5 = int(r["walk_m"] <= M5)
         for k in cs: n10[k] += 1; n5[k] += in5
         row = [PHONE.sub("[전화번호]", str(r["name"]).strip()), c, r["sub"], round(float(r["lat"]), 5), round(float(r["lng"]), 5),
                max(1, math.ceil(r["walk_sec"] / 60 - 1e-9)), int(round(r["walk_m"])), in5, int(r["kakao"]), r["mid"]]
         if len(cs) > 1: row.append(cs)
-        items.append(row)
+        items.append(row); pids.append(str(r["place_id"]).replace("shop:", "")); wms.append(round(float(r["walk_m"]), 1))
     if fail is None:
         fr = d[~d["ok"] & (pd.to_numeric(d["straight_m"], errors="coerce") <= M10)]
         fail_cat = int(fr["cat"].notna().sum())
     else:
         fail_cat = int(fail)
     fp = os.path.join(out, sid + ".json")
-    json.dump({"id": sid, "n5": n5, "n10": n10, "fail": fail_cat, "p": items}, open(fp, "w", encoding="utf-8"),
+    json.dump({"id": sid, "n5": n5, "n10": n10, "fail": fail_cat, "p": items, "pid": pids, "wm": wms}, open(fp, "w", encoding="utf-8"),
               ensure_ascii=False, separators=(",", ":"))
     summ = {"id": sid, "n5": int((in_cat["walk_m"] <= M5).sum()), "n10": len(in_cat), "fail": fail_cat, "other10": int(dk["cat"].isna().sum()),
             "kakao10": int(in_cat["kakao"].sum())}

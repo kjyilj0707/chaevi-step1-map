@@ -24,6 +24,7 @@ if (window.top === window.self && matchMedia('(min-width: 821px)').matches) loca
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="reco.js"></script>
 <style>
 :root{
   --navy:#1b4965; --navy2:#143a52; --mint:#58ddd0; --mint2:#17a99a; --mintbg:#f8f0e2;
@@ -166,6 +167,38 @@ body.infra.placeon .listbtn{display:none}
 .placepop span{font-size:11px;color:var(--ink2)}
 .placepop .maplibregl-popup-tip{border-top-color:var(--surface);border-bottom-color:var(--surface)}
 @media (min-width:821px){ .listbtn{display:none !important} }
+/* 주변 인프라 추천(충전소 상세 안, 도보 충전소만) */
+.reco{margin:12px 0 4px;padding:12px 10px 8px;background:var(--mintbg);border-radius:14px}
+.reco h4{margin:0 0 8px}
+.rrow{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:1px 1px 6px;align-items:center}
+.rrow::-webkit-scrollbar{display:none}
+.rchip{flex:none;border:1px solid var(--axis);background:var(--surface);border-radius:99px;padding:6px 11px;font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap}
+.rchip[aria-pressed="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+.rchip.kw[aria-pressed="true"]{background:var(--mint2);border-color:var(--mint2)}
+.rseg2{flex:none;display:flex;gap:2px;background:var(--surface);border:1px solid var(--axis);border-radius:99px;padding:2px}
+.rseg2 button{border:0;background:transparent;border-radius:99px;padding:4px 9px;font-size:12px;font-weight:700;color:var(--ink2)}
+.rseg2 button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.rlab{flex:none;font-size:11px;color:var(--ink2);font-weight:600}
+.rctx{flex:none;font-size:11px;color:var(--ink2);white-space:nowrap}
+.rq{margin:6px 0 4px !important;font-size:13px !important;font-weight:700;color:var(--navy) !important}
+.rtrash{display:flex;align-items:center;gap:6px;margin:2px 0 8px !important;font-size:12px !important;color:var(--ink) !important}
+.rtrash .tx{flex:1;min-width:0}
+.rtrash .ti{flex:none;display:flex}
+.rtrash button{flex:none;border:1px solid var(--axis);background:var(--surface);border-radius:99px;padding:3px 9px;font-size:11px;font-weight:600;color:var(--ink2)}
+.rtrash button[aria-pressed="true"]{background:var(--ink2);border-color:var(--ink2);color:#fff}
+.rcard{display:flex;align-items:center;gap:10px;background:var(--surface);border:1.5px solid var(--grid);border-radius:12px;padding:8px 10px;margin:0 0 6px;cursor:pointer}
+.rcard.star{border-color:#e0a400;box-shadow:0 0 0 1px #e0a400 inset}
+.rcard .pin{width:32px;height:32px;border-radius:50%;flex:none;color:#fff;display:flex;align-items:center;justify-content:center}
+.rcard .nm{flex:1;min-width:0}
+.rcard .nm b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.rcard .nm span{display:block;font-size:11px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rcard .oc{flex:none;text-align:right}
+.rcard .oc b{display:block;font-size:13px;color:var(--navy);font-variant-numeric:tabular-nums}
+.tbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:1px 7px;color:#fff;background:var(--mint2)}
+.tbadge.tight{background:#d07a00}
+.rcard .nm .sbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:#6b4a00;background:#ffe9a8;vertical-align:1px}
+.rnote{font-size:11px !important;color:var(--ink2) !important;margin:2px 0 6px !important}
+.rfoot{font-size:10px !important;color:var(--muted) !important;margin:6px 0 0 !important}
 .back{border:0;background:var(--mintbg);color:var(--navy);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;margin-bottom:8px}
 h3{margin:0;font-size:17px;color:var(--navy)}
 .det p{margin:2px 0;font-size:12px;color:var(--ink2)}
@@ -386,7 +419,7 @@ const C = {id:0,name:1,addr:2,lat:3,lng:4,sido:5,kind:6,n:7,nfast:8,kw:9,apt:10,
 /* 가게 종류 모양 번호: 0~6 = 직선 반경 상권 파일(build_poi.py 7개: 식사·카페·테이크아웃·쇼핑·편의·관광여가·업무)
    7~13 = 도보 파일 칩(동권 활동, WACTS 순서). 도보 칩은 이름으로 모양을 찾음(index.json 의 cats) */
 const POI_COL = ['#eb6834','#6250d6','#eda100','#e87ba4','#2a78d6','#008300','#1baf7a',
-  '#2a78d6','#1baf7a','#b35fc4','#e87ba4','#eda100','#6250d6','#eb6834'];
+  '#2a78d6','#1baf7a','#b35fc4','#e87ba4','#eda100','#6250d6','#eb6834', '#3f8fb5', '#7a6f65'];      // 14 화장실, 15 쓰레기통
 const WACTS = ['편의점','약국','카페 테이크아웃','쇼핑','빠른 식사','카페 착석','일반 식당'];
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const RAMP = ['--nodata','--q1','--q2','--q3','--q4','--q5'].map(css);
@@ -406,6 +439,8 @@ const PICON = [
 { const TOGO = '<rect x="6.6" y="2.8" width="10.8" height="2.6" rx="1"/><path d="M5.6 6.4h12.8l-.5 2.2H6.1z"/><path d="M6.8 9.6h10.4l-1.3 10.6a1.7 1.7 0 0 1-1.7 1.5H9.8a1.7 1.7 0 0 1-1.7-1.5z"/>',
     CROSS = '<path d="M9.6 3.2a1 1 0 0 1 1-1h2.8a1 1 0 0 1 1 1v6.4h6.4a1 1 0 0 1 1 1v2.8a1 1 0 0 1-1 1h-6.4v6.4a1 1 0 0 1-1 1h-2.8a1 1 0 0 1-1-1v-6.4H3.2a1 1 0 0 1-1-1v-2.8a1 1 0 0 1 1-1h6.4z"/>';
   PICON.push(PICON[4], CROSS, TOGO, PICON[3], PICON[2], PICON[1], PICON[0]); }     // 편의점·약국·카페 테이크아웃·쇼핑·빠른 식사·카페 착석·일반 식당
+PICON.push('<circle cx="7.4" cy="4.4" r="2.2"/><path d="M5.2 7.8h4.4a1.1 1.1 0 0 1 1.1 1.1v5.4H9.3V21H5.5v-6.7H4.1V8.9a1.1 1.1 0 0 1 1.1-1.1z"/><circle cx="16.6" cy="4.4" r="2.2"/><path d="M14.6 7.8h4l2.6 7.6h-2.3V21h-4.6v-5.6h-2.3z"/>',      // 14 화장실(공중화장실)
+  '<rect x="4" y="5" width="16" height="2.4" rx="1"/><rect x="9.4" y="2.6" width="5.2" height="2.4" rx="1"/><path d="M5.6 8.6h12.8l-1.2 11.4a1.8 1.8 0 0 1-1.8 1.6H8.6a1.8 1.8 0 0 1-1.8-1.6z"/>');     // 15 쓰레기통(점수 밖, 지도 켜기 단추로만)
 const picon = (i, size) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="currentColor">${PICON[i]}</svg>`;
 const pinSVG = i => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96"><circle cx="24" cy="24" r="21" fill="${POI_COL[i]}" stroke="#fff" stroke-width="3"/><g transform="translate(11 11) scale(1.083)" fill="#fff" color="#fff">${PICON[i].replace(/currentColor/g, '#fff')}</g></svg>`;
 /* 표시 = 바탕(이용률 색) + 번개 모양. 종류는 테두리와 모양으로만 나눔(바탕색은 이용률 몫)
@@ -467,7 +502,7 @@ const zoomSize = (z, lo, hi) => lo + (hi - lo) * Math.max(0, Math.min(1, (z - 7)
 const sizeExpr = (lo, hi) => ['interpolate', ['linear'], ['zoom'], 7, ['*', ['get', 'k'], lo / 48], 16, ['*', ['get', 'k'], hi / 48]];
 const mapLoaded = new Promise(res => map.on('load', () => {
   Object.entries(sprites).forEach(([k, im]) => map.addImage(k, im, {pixelRatio:2}));
-  ['route','conn','acc','ring','poi','sel','demo','st','stay'].forEach(id => map.addSource(id, {type:'geojson', data:EMPTY}));
+  ['route','conn','acc','ring','trash','poi','sel','demo','st','stay'].forEach(id => map.addSource(id, {type:'geojson', data:EMPTY}));
   map.addLayer({id:'acc', type:'fill', source:'acc', paint:{'fill-color':'#58ddd0', 'fill-opacity':0.18, 'fill-outline-color':'#17a99a'}});
   map.addLayer({id:'route-case', type:'line', source:'route', layout:{'line-cap':'round', 'line-join':'round'}, paint:{'line-color':'#143a52', 'line-width':['interpolate',['linear'],['zoom'],8,6,16,14,18,17]}});
   map.addLayer({id:'route-line', type:'line', source:'route', layout:{'line-cap':'round', 'line-join':'round'}, paint:{'line-color':'#58ddd0', 'line-width':['interpolate',['linear'],['zoom'],8,3,16,9,18,12]}});
@@ -476,6 +511,8 @@ const mapLoaded = new Promise(res => map.on('load', () => {
     'icon-image':'chev', 'icon-size':['interpolate',['linear'],['zoom'],12,0.4,16,0.62,18,0.8], 'icon-allow-overlap':true, 'icon-ignore-placement':true, 'icon-rotation-alignment':'map'}});
   map.addLayer({id:'ring-fill', type:'fill', source:'ring', paint:{'fill-color':'#1b4965', 'fill-opacity':0.05}});
   map.addLayer({id:'ring', type:'line', source:'ring', paint:{'line-color':'#1b4965', 'line-width':1.5, 'line-dasharray':[3, 3]}});
+  map.addLayer({id:'trash', type:'symbol', source:'trash', layout:{'icon-image':'p15', 'icon-size':['interpolate',['linear'],['zoom'],13,0.14,15.5,0.28,18,0.42],
+    'icon-allow-overlap':true, 'icon-ignore-placement':true}});      // 쓰레기통: 가게 핀보다 작게, 켜기 단추를 눌렀을 때만
   map.addLayer({id:'poi', type:'symbol', source:'poi', layout:{'icon-image':['concat', 'p', ['to-string', ['get', 'c']]],
     'icon-size':['interpolate',['linear'],['zoom'],13,0.2,15.5,0.42,18,0.62], 'icon-allow-overlap':true, 'icon-ignore-placement':true}});
   map.addLayer({id:'sel', type:'circle', source:'sel', paint:{'circle-radius':['interpolate',['linear'],['zoom'],7,['*',['get','k'],9],16,['*',['get','k'],26]],
@@ -762,7 +799,8 @@ function wxStation(s){         // 충전소 카드의 날씨 한 줄
   const el = $('#wxSt'); if (!el) return;
   const v = wxPeek(s[C.lat], s[C.lng]); if (v){ el.innerHTML = wxHTML(v); return; }
   el.innerHTML = '<span class="wxmuted">날씨 불러오는 중…</span>';
-  wxGet(s[C.lat], s[C.lng]).then(w => { const e = $('#wxSt'); if (e && selected === s) e.innerHTML = wxHTML(w); })
+  wxGet(s[C.lat], s[C.lng]).then(w => { const e = $('#wxSt'); if (e && selected === s) e.innerHTML = wxHTML(w);
+      if (selected === s && poi.s === s && poi.data && poi.data.walk && !RS.wx) renderPoi(); })      // 추천의 비 조건을 지금 날씨로 다시 계산
     .catch(() => { const e = $('#wxSt'); if (e && selected === s) e.innerHTML = '<span class="wxmuted">날씨 정보 없음</span>'; });
 }
 let wxAt = null, wxW = null, wxDeb = null;
@@ -880,20 +918,42 @@ try { const v = +localStorage.getItem('walkMin'); if (WALK_MS.includes(v)) walkM
 /* 목록은 처음 가까운 5곳만 보이고 '더보기'를 누를 때마다 20곳씩 늘어남(상한: 도보 100 · 직선 60). 종류·범위·충전소를 바꾸면 다시 5곳 */
 const POI_FIRST = 5, POI_STEP = 20;
 let poi = {s:null, data:null, cat:-1, state:'', show:POI_FIRST};
+/* 주변 인프라 추천(11/22): 표 = data/reco/tables.json(build_reco.py, 기준 analysis/reco_tables), 점수 = reco.js(RECO).
+   도보 칩 끝에 '화장실'(공중화장실 data/reco/toilet/<id>.json)을 붙임. 쓰레기통(data/reco/trash/<id>.json)은 점수 밖, 한 줄 + 지도 켜기.
+   표를 못 읽으면 추천·화장실·쓰레기통 없이 기존 목록만 보임 */
+let RT = null;
+const RTP = fetch('data/reco/tables.json').then(r => r.ok ? r.json() : null).then(t => (RT = t && typeof RECO !== 'undefined' ? t : null)).catch(() => null);
+const wcats = () => WKM.cats.concat(RT ? ['화장실'] : []);
+const PERSONAS = [['P1', '휴게소형'], ['P2', '외출·산책'], ['P3', '마트 장보기'], ['P4a', '차 안 머묾'], ['P4b', '대기·잠깐']];
+const REMAINS = [15, 30, 45, 60];
+const RS = {persona:'P2', remain:30, kw:null, wx:null, hour:null, trashMap:false};     // wx: null = 지금 날씨, 'rain'·'clear' = 직접 고름. hour: null = 지금 시각(시험용으로 바꿀 수 있음)
+try { const v = localStorage.getItem('recoP'); if (PERSONAS.some(x => x[0] === v)) RS.persona = v; } catch (e) {}
+try { const v = +localStorage.getItem('recoR'); if (REMAINS.includes(v)) RS.remain = v; } catch (e) {}
+const recoHour = () => RS.hour == null ? new Date().getHours() : RS.hour;
+const isNight = () => { const h = recoHour(); return h >= 22 || h < 6; };
+const ACT_ICON = {'편의점':7, '약국':8, '카페 테이크아웃':9, '쇼핑':10, '빠른 식사(포장)':11, '빠른 식사(매장)':11, '카페 착석':12, '일반 식당':13, '화장실':14};
+const walkMinOf = m => Math.max(1, Math.ceil(m / (WKM ? WKM.speed : 1.3) / 60 - 1e-9));     // 목록과 같은 올림(도보 분)
+const openTxt = t => String(t || '').replace(/\s*\|\s*/g, ' ');      // 개방시간 '기타|06:00~24:00' → '기타 06:00~24:00'
+function recoWx(s){          // 지금 날씨(충전소 좌표, 기존 /weather) → 'rain'·'snow'·'clear'·null(모름). 직접 고르면 그 값
+  if (RS.wx) return RS.wx;
+  const w = wxPeek(s[C.lat], s[C.lng]); if (!w) return null;
+  return w.rain ? ([3, 7].includes(w.pty) ? 'snow' : 'rain') : 'clear';
+}
 /* 도보 파일은 한 가게가 칩 둘에 들 수 있음(카페 = 카페 테이크아웃·카페 착석): 가게 줄 9번 칸 = 속한 칩 목록(없으면 1번 칸 하나) */
 const inCat = (x, c) => c < 0 || (x[9] ? x[9].includes(c) : x[1] === c);
-function sk(c){               // 칩 번호 → 모양 번호(POI_COL·PICON·지도 핀)
+function sk(c){               // 칩 번호 → 모양 번호(POI_COL·PICON·지도 핀). 도보 칩 끝의 '화장실' = 14
   if (!(poi.data && poi.data.walk)) return c;
-  const k = WACTS.indexOf(WKM.cats[c]); return 7 + (k < 0 ? c % 7 : k);
+  const nm = wcats()[c]; if (nm === '화장실') return 14;
+  const k = WACTS.indexOf(nm); return 7 + (k < 0 ? c % 7 : k);
 }
 const shownCat = x => poi.cat >= 0 ? poi.cat : x[1];     // 칩을 골랐으면 그 칩 모양으로 보임(카페를 '카페 착석'으로 고르면 착석 색)
 const walkLim = () => walkMin === 5 ? (WKM ? WKM.m5 : 390) : (WKM ? WKM.m10 : 780);
 function poiView(){            // 고른 범위 안의 가게와 종류별 개수. 직선 파일이 상한(400곳)에 걸렸고 그 400곳이 다 반경 안이면 실제는 더 많음(more)
   const d = poi.data; if (!d) return null;
-  const key = d.walk ? 'w' + walkMin : poiR;
+  const night = d.walk && isNight(), key = d.walk ? 'w' + walkMin + (night ? 'n' : '') : poiR;
   if (d.v && d.v.r === key) return d.v;
   const lim = d.walk ? walkLim() : poiR;
-  const p = d.p.filter(x => x[5] <= lim), n = d.n.map(() => 0); p.forEach(x => (x[9] || [x[1]]).forEach(c => n[c]++));
+  const p = d.p.filter(x => x[5] <= lim && !(night && x[12] != null && !x[12].startsWith('상시'))), n = d.n.map(() => 0); p.forEach(x => (x[9] || [x[1]]).forEach(c => n[c]++));
   return d.v = {r:key, p, n, sum:p.length, more:!d.walk && d.total > d.p.length && p.length === d.p.length};
 }
 function poiFit(s){              // 반경 원이 화면에 들어오도록 맞춤(100m면 약 17.5, 50m면 약 18.5). 도보 범위는 범위 안 가게가 다 들어오게
@@ -911,13 +971,15 @@ function setPoiR(r){
 $('#infraR').onclick = e => { const b = e.target.closest('button'); if (b) setPoiR(+b.dataset.r); };
 function clearPoi(){ if (!poi.s && !poi.data) return; poi = {s:null, data:null, cat:-1, state:'', show:POI_FIRST};
   document.body.classList.remove('infra'); hidePlace();
-  if (ready){ map.getSource('poi').setData(EMPTY); map.getSource('ring').setData(EMPTY); } }
+  if (ready){ map.getSource('poi').setData(EMPTY); map.getSource('ring').setData(EMPTY); map.getSource('trash').setData(EMPTY); } }
 function drawPoi(){
   if (!ready || !poi.s) return; const s = poi.s, v = poiView(), walk = poi.data && poi.data.walk;
   map.getSource('ring').setData(walk || poi.walk ? EMPTY : circlePoly([s[C.lat], s[C.lng]], poiR));     // 도보 범위는 원으로 그리지 않음(길 따라 잰 거리라 모양이 원이 아님)
   const items = v ? v.p.filter(x => inCat(x, poi.cat)) : [];
   map.getSource('poi').setData({type:'FeatureCollection', features:items.map(x => ({type:'Feature', geometry:{type:'Point', coordinates:[x[4], x[3]]},
     properties:walk ? {n:x[0], c:sk(shownCat(x)), s:x[2], d:x[5], w:x[6]} : {n:x[0], c:sk(shownCat(x)), s:x[2], d:x[5]}}))});
+  const tr = walk && RS.trashMap && poi.data.trash ? poi.data.trash : [];
+  map.getSource('trash').setData({type:'FeatureCollection', features:tr.map(t => ({type:'Feature', geometry:{type:'Point', coordinates:[t[3], t[2]]}, properties:{n:t[1]}}))});
 }
 function loadPoi(s){
   if (!D.meta.poi){ poi = {s, data:null, cat:-1, state:'none', show:POI_FIRST}; return; }
@@ -928,14 +990,83 @@ function loadPoi(s){
   if (!s[C.poi] && !walk) return;
   if (!walk) poiFit(s);
   const url = walk ? WDIR + '/' + s[C.id] + '.json' : 'data/poi/' + s[C.id] + '.json';
-  fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => { if (poi.s !== s) return;
-    if (walk) d = {walk:true, n:d.n10.map(() => 0), fail:d.fail, p:d.p.map(x => [x[0], x[1], x[9] ? x[9] + ' · ' + x[2] : x[2], x[3], x[4], x[6], x[5], x[7], x[8], x[10] || null])};
+  /* 도보 충전소: 추천 표가 오면 공중화장실·쓰레기통 파일도 읽음(없거나 실패하면 빈 채로 — 가게 목록은 그대로 뜸) */
+  const id = s[C.id], side = (k, dir) => !walk ? Promise.resolve(null) : RTP.then(t => t && t[k] && t[k][id] ? fetch(`data/reco/${dir}/${id}.json`).then(r => r.ok ? r.json() : null) : null).catch(() => null);
+  Promise.all([fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }), side('toilet', 'toilet'), side('trash', 'trash')]).then(([d, toi, trash]) => { if (poi.s !== s) return;
+    if (walk){ const raw = d, cats = wcats(), ti = cats.indexOf('화장실');
+      /* 가게 한 줄(화면용): [이름, 칩, 업종, 위도, 경도, 도보 m, 도보 분, 5분 안, 카카오, 칩 목록, place_id, 도보 m(소수), 개방시간(화장실만)] */
+      const p = d.p.map((x, i) => [x[0], x[1], x[9] ? x[9] + ' · ' + x[2] : x[2], x[3], x[4], x[6], x[5], x[7], x[8], x[10] || null,
+        raw.pid ? 'shop:' + raw.pid[i] : null, raw.wm ? raw.wm[i] : x[6], null]);
+      if (ti >= 0 && toi) toi.forEach(t => p.push([t[1], ti, '공중화장실' + (t[5] ? ' · ' + openTxt(t[5]) : ''), t[2], t[3], Math.round(t[4]), walkMinOf(t[4]),
+        t[4] <= WKM.m5 ? 1 : 0, 0, null, 'toilet:' + t[0], t[4], t[5] || '']));
+      if (toi && toi.length) p.sort((a, b) => a[11] - b[11] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+      d = {walk:true, n:cats.map(() => 0), fail:d.fail, p, raw, toilets:toi || [], trash:trash || null}; }
     poi.data = d; poi.state = 'ok'; if (walk) poiFit(s); drawPoi(); renderPoi(); })
     .catch(() => { if (poi.s === s){ poi.state = 'error'; renderPoi(); } });
 }
+/* 추천 계산: 충전소·페르소나·남은 시간·날씨·시각·키워드가 같으면 다시 계산하지 않음 */
+let recoMemo = null;
+function recoRun(){
+  const s = poi.s, d = poi.data; if (!RT || !s || !d || !d.walk || !d.raw || !d.raw.pid) return null;
+  const wx = recoWx(s), conds = RECO.conditions(recoHour(), wx === 'clear' ? null : wx);
+  const key = [s[C.id], RS.persona, RS.remain, RS.kw, conds.join('+')].join('|');
+  if (recoMemo && recoMemo.key === key && recoMemo.d === d) return recoMemo;
+  if (!d.places) d.places = RECO.places(RT, s[C.id], d.raw, d.toilets, WKM.cats);
+  const res = RECO.score(RT, d.places, {persona:RS.persona, remain:RS.remain, conds, keyword:RS.kw, alpha:RT.alpha[s[C.id]] || 0});
+  const cards = RECO.display(RT, res, RS.persona, RS.kw), eff = RECO.effects(RT, conds);
+  return recoMemo = {key, d, wx, conds, res, cards, eff, ids:new Set(cards.map(r => r.p.pid))};
+}
+const recoCardIds = () => { const r = recoRun(); return r ? r.ids : null; };
+function recoCardRow(r){          // 카드 한 장 → 목록 가게 줄(지도에 보이기·도보 안내에 그대로 씀)
+  return poi.data.p.find(x => x[10] === r.p.pid) || null;
+}
+function recoBuild(){
+  const r = recoRun(); if (!r) return null;
+  const s = poi.s, h = recoHour(), night = r.conds.includes('night'), morning = r.conds.includes('morning');
+  const live = !RS.wx, wxName = {rain:'비', snow:'눈', clear:'비 없음'}[r.wx] || '날씨 정보 없음';
+  const tz = night ? '심야(22~06시)' : morning ? '아침(07~10시)' : '낮';
+  const pc = PERSONAS.map(([id, nm]) => `<button class="rchip" type="button" data-p="${id}" aria-pressed="${RS.persona === id}">${nm}</button>`).join('');
+  const rm = REMAINS.map(v => `<button type="button" data-r="${v}" aria-pressed="${RS.remain === v}">${v}분</button>`).join('');
+  const wet = r.wx === 'rain' || r.wx === 'snow';
+  const kws = Object.keys(RT.kw).map(k => `<button class="rchip kw" type="button" data-k="${k}" aria-pressed="${RT.kw[k] ? RS.kw === k : !RS.kw}">${k}</button>`).join('');
+  const tb = RT.trash && RT.trash[s[C.id]], tcov = (RT.trashCovered || []).includes(s[C.id]);
+  const trash = tb ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 16)}</span><span class="tx">가까운 쓰레기통 <b>${walkMinOf(tb[0])}분</b> (${tb[1]}) · 10분 안 ${tb[2]}곳</span><button type="button" id="trashBtn" aria-pressed="${RS.trashMap}">지도에 보기</button></p>`
+      : tcov ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 16)}</span><span class="tx">10분 안 가로쓰레기통 없음(서울시 목록 기준)</span></p>` : '';
+  const cards = r.cards.map((c, k) => { const p = c.p, ic = ACT_ICON[c.act] != null ? ACT_ICON[c.act] : 7, row = recoCardRow(c);
+    const tags = [c.act, p.kind === 'toilet' && p.open ? openTxt(p.open) : '', p.mall ? `건물 안 이동 +${p.mall}분` : ''].filter(Boolean).join(' · ');
+    return `<div class="rcard${p.star ? ' star' : ''}" data-k="${k}"><span class="pin" style="background:${POI_COL[ic]}">${picon(ic, 18)}</span>
+      <div class="nm"><b>${p.star ? `<span class="sbadge">★ ${p.brand || '브랜드'}</span>` : ''}${row ? row[0] : ''}</b><span>${tags}</span></div>
+      <div class="oc"><b>도보 ${walkMinOf(p.wm)}분</b><span class="tbadge${c.time === '빠듯' ? ' tight' : ''}">${c.time}</span></div></div>`; }).join('');
+  const why = [night ? '심야: 편도 5분 안, 화장실은 24시간 개방(상시)만, 편의점 우선' : '', wet ? `${wxName}: 편도 5분 안` : '',
+    morning ? '아침: 테이크아웃 커피·포장 식사 우선' : '', RT.alpha[s[C.id]] ? `지하주차장 출구 ${RT.alpha[s[C.id]]}분 포함` : ''].filter(Boolean).join(' · ');
+  const html = `<div class="reco"><h4>지금 다녀올 곳 추천</h4>
+    <div class="rrow" role="group" aria-label="충전 중 나는">${pc}</div>
+    <div class="rrow"><span class="rlab">남은 시간</span><div class="rseg2" id="recoR" role="group" aria-label="남은 충전 시간">${rm}</div></div>
+    <div class="rrow"><span class="rlab">날씨</span><button class="rchip" type="button" id="recoWx" aria-pressed="${wet}" title="눌러서 비 올 때·안 올 때로 바꿔 보기">${wet ? '☂ ' : ''}${wxName}${live ? ' · 지금' : ' (가정)'}</button><span class="rctx">${h}시 · ${tz}</span></div>
+    <p class="rq">지금 뭐 하고 싶으세요?</p>
+    <div class="rrow" role="group" aria-label="하고 싶은 것">${kws}</div>
+    ${trash}
+    ${cards || `<p class="hint">남은 ${RS.remain}분 안에 다녀올 곳 없음${RS.kw ? ' (키워드: ' + RS.kw + ')' : ''}</p>`}
+    ${why ? `<p class="rnote">${why}</p>` : ''}
+    <p class="rfoot">시간 판정: 남은 시간 − 왕복 도보 − 여유 5분 안에 들면 가능, 짧게만 되면 빠듯 · 추천 가중치는 충전 후기(VOC) 비율 기반 가정값임</p></div>`;
+  return {html, r};
+}
+function recoBind(el, rc){
+  const again = () => { poi.show = POI_FIRST; renderPoi(); };
+  el.querySelectorAll('.reco [data-p]').forEach(b => b.onclick = () => { RS.persona = b.dataset.p; try { localStorage.setItem('recoP', RS.persona); } catch (e) {} again(); });
+  el.querySelectorAll('#recoR button').forEach(b => b.onclick = () => { RS.remain = +b.dataset.r; try { localStorage.setItem('recoR', RS.remain); } catch (e) {} again(); });
+  el.querySelectorAll('.reco [data-k]').forEach(b => b.onclick = () => { const k = b.dataset.k; RS.kw = !RT.kw[k] || RS.kw === k ? null : k; again(); });
+  const w = $('#recoWx'); if (w) w.onclick = () => {      // 비 ↔ 비 없음을 직접 골라 봄. 고른 값이 지금 날씨와 같아지면 '가정'을 풀고 지금 날씨로 돌아감
+    const next = rc.r.wx === 'rain' || rc.r.wx === 'snow' ? 'clear' : 'rain';
+    RS.wx = null; const now = recoWx(poi.s), same = now === next || (now === 'snow' && next === 'rain');
+    RS.wx = same ? null : next; again(); };
+  const t = $('#trashBtn'); if (t) t.onclick = () => { RS.trashMap = !RS.trashMap; drawPoi(); renderPoi(); };
+  el.querySelectorAll('.rcard').forEach(c => c.onclick = () => { const x = recoCardRow(rc.r.cards[+c.dataset.k]); if (!x) return; setSheet(false); renderPoi();
+    map.easeTo({center:[x[4], x[3]], zoom:Math.max(map.getZoom(), 17), duration:500}); showPlace(x[0], sk(x[1]), x[2], x[5], [x[4], x[3]], x[6]); });
+}
 function renderPoi(){
   const m = D.meta.poi, on = !!selected && poi.s === selected && poi.state === 'ok', walk = !!(poi.data && poi.data.walk);
-  const cats = walk ? WKM.cats : m.cats, rng = walk ? `도보 ${walkMin}분` : `주변 ${poiR}m`;
+  const cats = walk ? wcats() : m.cats, rng = walk ? `도보 ${walkMin}분` : `주변 ${poiR}m`;
   document.body.classList.toggle('infra', on && !route);
   if (on){      // 위쪽 띠와 종류 단추
     const d = poiView(), plus = d.more ? '+' : '';
@@ -957,7 +1088,7 @@ function renderPoi(){
   if (poi.state === 'uncovered'){ el.innerHTML = `<h4>주변 인프라</h4><p>${selected[C.sido]}은(는) 상권 자료가 아직 없음 (현재 ${m.covered.length}개 시·도만 있음)</p>`; return; }
   if (poi.state === 'loading'){ el.innerHTML = `<h4>${head}</h4><p>불러오는 중…</p>`; return; }
   if (poi.state === 'error'){ el.innerHTML = `<h4>주변 인프라</h4><p>상권 자료를 불러오지 못함</p>`; return; }
-  const d = poiView(), full = d.p.filter(x => inCat(x, poi.cat)).slice(0, walk ? 100 : 60), list = full.slice(0, poi.show);
+  const d = poiView(), skip = walk && recoCardIds(), full = d.p.filter(x => inCat(x, poi.cat) && !(skip && skip.has(x[10]))).slice(0, walk ? 100 : 60), list = full.slice(0, poi.show);
   const rest = full.length - list.length;
   /* 충전소 단위 표시: low = 정확도 낮음(lowWhy 이유), pending = v2 판정 보류(카카오 미확인, 노량진 대체식의 행 단위 low와 다름),
      empty = 도보 10분 안 가게 0곳, WKM.excluded = 측정 이상으로 도보 자료에서 뺀 충전소(직선 반경으로 보여 줌) */
@@ -967,13 +1098,15 @@ function renderPoi(){
   const excl = !walk && WKM && WKM.excluded && WKM.excluded[selected[C.id]];
   const note = walk ? `<p class="w9note">${lowTxt}${(wk && wk.note) || WKM.note}${poi.data.fail ? ` · 경로 미확인 ${poi.data.fail}곳은 뺌` : ''}${walkMin === 5 && !empty ? ' · 10분으로 넓혀 볼 수 있음' : ''}</p>`
       : excl ? `<p class="w9note"><b>${excl}</b> · 직선 반경으로 보여 줌</p>` : '';
-  if (!d.sum){ el.innerHTML = `<h4>${head}</h4>${note}<p class="hint">${empty ? '도보 10분 안 가게 없음' : rng + ' 안 상가 없음'}${!walk && poiR < 100 ? ' · 위쪽에서 100m로 넓혀 볼 수 있음' : ''}</p>`; return; }
-  el.innerHTML = (walk ? `<h4>주변 인프라 도보 ${walkMin}분 · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳${d.sum > full.length && poi.cat < 0 ? ' / ' + d.sum.toLocaleString('ko-KR') + '곳' : ''})</h4>${note}`
+  const rc = walk ? recoBuild() : null, rh = rc ? rc.html : '';
+  if (!d.sum){ el.innerHTML = `${rh}<h4>${head}</h4>${note}<p class="hint">${empty ? '도보 10분 안 가게 없음' : rng + ' 안 상가 없음'}${!walk && poiR < 100 ? ' · 위쪽에서 100m로 넓혀 볼 수 있음' : ''}</p>`; if (rc) recoBind(el, rc); return; }
+  el.innerHTML = rh + (walk ? `<h4>${rc && rc.r.cards.length ? '그 밖의 곳' : '주변 인프라'} 도보 ${walkMin}분 · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳${d.sum > full.length && poi.cat < 0 ? ' / ' + d.sum.toLocaleString('ko-KR') + '곳' : ''})</h4>${note}`
       : `<h4>주변 인프라 ${poiR}m · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳)</h4>${note}
     ${d.more ? `<p class="hint">가게가 많아 가까운 ${d.sum}곳까지만 셈 (실제는 더 많음)</p>` : ''}`) +
     (list.map((x, k) => `<div class="prow" data-k="${k}"><span class="pin" style="background:${POI_COL[sk(shownCat(x))]}">${picon(sk(shownCat(x)), 17)}</span><div class="nm"><b>${x[0]}</b><span>${x[2]}${walk && x[8] ? ' · 카카오 도보 경로값' : ''}</span></div>` +
       (walk ? `<div class="oc"><b>도보 ${x[6]}분</b><span>${x[5]}m</span></div></div>` : `<div class="oc"><b>${x[5]}m</b></div></div>`)).join('') || '<p class="hint">해당하는 곳 없음</p>') +
     (rest > 0 ? `<button class="pmore" id="poiMore" type="button">더보기 (나머지 ${rest}곳)</button>` : full.length > POI_FIRST ? `<button class="pmore" id="poiMore" type="button">접기</button>` : '');
+  if (rc) recoBind(el, rc);
   const mb = $('#poiMore'); if (mb) mb.onclick = () => { const top = rest <= 0; poi.show = top ? POI_FIRST : poi.show + POI_STEP; renderPoi();
     if (top){ const h = el.querySelector('h4'); if (h) h.scrollIntoView({block:'nearest'}); } };
   el.querySelectorAll('.prow').forEach(r => r.onclick = () => { const x = list[+r.dataset.k]; setSheet(false); renderPoi();

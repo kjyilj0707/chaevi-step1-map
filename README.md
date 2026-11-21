@@ -30,3 +30,8 @@
 - 입력은 `SRC_CANDIDATES`(analysis/walk_seoul_all, walk_seoul_fast) 중 처음 있는 파일, 또는 `--src`
 - 화면은 `data/walk_seoul/index.json`이 있으면 그것을, 없으면 `data/walk9`를 씀. 첫 화면 필터 칩 이름도 따라 바뀜("서울 도보 n곳" / "시연 9곳")
 - low(도보 시간 추정 정확도 낮음) 판정은 임시안: osm_flag 값이 있거나 10분 안 가게의 30% 넘게 대체·추정 보정인 충전소. 화면 단서 맨 앞에 굵게 표시
+
+## 주변 인프라 추천 (2026-11-22)
+- 도보 충전소를 누르면 상세 안에 "지금 다녀올 곳 추천"(페르소나·남은 시간·날씨·시각·키워드 → 카드) + 그 밖의 곳 목록. 공중화장실은 칩·지도·목록에 함께(심야 22~06시는 '상시'만), 쓰레기통은 점수 밖 한 줄 + 지도 켜기.
+- 자료: `~/.venvs/work/bin/python -I build_reco.py` → `data/reco/`(tables.json, toilet/, trash/). 점수 = `reco.js`(기준 `analysis/reco_tables/score_reference.py`와 같은 결과)
+- 도보 파일 `pid`·`wm` 칸은 `build_walk9.py`가 넣음(`build_walk_seoul.py` 다시 실행)
