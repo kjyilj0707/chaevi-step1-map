@@ -9,7 +9,13 @@
    - 브라우저에서는 window.STRECO, node에서는 module.exports (확인용) */
 (function (g) {
   let T = null, P = null;
-  const round = (x, n) => Number(x.toFixed(n));
+  /* 파이썬 round(x, n)과 같은 반올림: 이진 값 그대로 반올림하고, 정확히 가운데(예: 0.78125)면 짝수 쪽.
+     toFixed 만 쓰면 가운데에서 큰 쪽으로 가서 점수가 0.0001 달라짐(거리 0·이용률 1/16 배수일 때, 61,200 상황 중 91) */
+  const round = (x, n) => {
+    const t = Math.abs(x).toFixed(60), rest = t.slice(t.indexOf('.') + 1 + n);
+    if (/^50*$/.test(rest)){ const lo = Math.floor(Math.abs(x) * 10 ** n), v = (lo % 2 ? lo + 1 : lo) / 10 ** n; return x < 0 ? -v : v; }
+    return Number(x.toFixed(n));
+  };
   function havKm(a1, o1, a2, o2){
     const r = 6371.0088, rad = Math.PI / 180, p1 = a1 * rad, p2 = a2 * rad, dp = p2 - p1, dl = (o2 - o1) * rad;
     const x = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
