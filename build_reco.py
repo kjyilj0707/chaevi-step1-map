@@ -64,6 +64,15 @@ def main():
         "display": {r["persona_id"]: {k: r[k] for k in ("display_mode", "max_cards", "allowed_big", "allowed_store_activity", "card_units")} for r in T["persona_display"]},
         "amenity": [{k: r[k] for k in ("amenity", "display")} for r in T["amenity"]],
     }
+    # 슬롯 틀(v4c 이상): 페르소나 → 슬롯에 든 대분류 목록(대체 칸은 안 넣음). 정보 입력 화면(onboard.js)이 카드 클릭 때 +1/n 나눌 때 씀
+    slots = {}
+    for r in T.get("persona_slots", []):
+        for b in str(r["big_categories"]).split("|"):
+            b = b.strip()
+            if b and b not in slots.setdefault(r["persona_id"], []):
+                slots[r["persona_id"]].append(b)
+    if slots:
+        out["slots"] = slots
 
     # α (동권 시나리오 입력, 충전소별 한 값)
     sc = pd.read_csv(DONGKWON, encoding="utf-8-sig", dtype={"station_id": str}).drop_duplicates("station_id")
