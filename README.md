@@ -36,3 +36,11 @@
 - 자료: `~/.venvs/work/bin/python -I build_reco.py` → `data/reco/`(tables.json, toilet/, trash/). 점수 = `reco.js`(기준 `analysis/reco_tables/score_reference.py`와 같은 결과)
 - v3e(11/22): 가중치 = 대분류, 시간·상황 = 가게 동권 활동(소분류로 정함), 키워드 = 재이가 붙인 소분류 필터. 보여 주기: P1·P2 대분류별 대표 1곳(5), P3 점수순(5), P4a 편의점·카페 테이크아웃·화장실(3), P4b 카드 단위 4개(편의점·카페(테이크아웃·착석 합침)·화장실·빠른 식사 포장, 점수순). 표나 대분류가 바뀌면 `build_walk9.py` → `build_walk_seoul.py` → `build_reco.py` 순서로 다시 만듦
 - 도보 파일 `pid`·`wm` 칸은 `build_walk9.py`가 넣음(`build_walk_seoul.py` 다시 실행)
+
+## 충전소 추천 (기본 지도 화면, MVP 3단계 v1, 2026-11-22)
+- '주변 충전소' 탭 맨 위 "지금 충전하기 좋은 곳" 상위 3곳 카드(이름·채비스테이/급속/완속·이유 한 줄(주변 · 붐빔(참고) · 거리)). 카드를 누르면 그 충전소 상세(주변 인프라 추천)로 감
+- 기준 위치 = 내 위치(권한 있을 때) 또는 지도 가운데, 반경 3km 직선. 페르소나·남은 시간 = 추천 설정(정보 입력 화면 기본값), 시각 = 지금
+- 자료: `data/reco/station_reco.json`(분석 담당 `analysis/station_reco/score_reference_station.py` 출력을 그대로 복사). 코드: `station_reco.js`(`STRECO`)
+- 가중치·반경·상위 몇 곳·붐빔 문구 경계·중립값·도보 자료 없는 충전소 처리(`no_walk_policy`)는 모두 JSON `score`·`reason`에서 읽음 → 규칙이 바뀌면 JSON만 바꾸면 됨
+- 남은 시간은 표에 있는 값(지금 30·45분) 중 가장 가까운 값으로 계산(15분 → 30분 표, 60분 → 45분 표, 화면 제목에 표시)
+- 붐빔은 STEP 1 4일치(11/8~11) 시간대 평균이라 문구에 항상 "(참고)", 관측 3회 미만은 "붐빔 자료 부족"(점수에는 0.5 중립)

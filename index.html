@@ -25,6 +25,7 @@ if (window.top === window.self && matchMedia('(min-width: 821px)').matches) loca
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="reco.js"></script>
+<script src="station_reco.js"></script>
 <link rel="stylesheet" href="onboard.css">
 <script src="onboard.js"></script>
 <style>
@@ -169,6 +170,18 @@ body.infra.placeon .listbtn{display:none}
 .placepop span{font-size:11px;color:var(--ink2)}
 .placepop .maplibregl-popup-tip{border-top-color:var(--surface);border-bottom-color:var(--surface)}
 @media (min-width:821px){ .listbtn{display:none !important} }
+/* 충전소 추천 패널(기본 지도 화면 '주변 충전소' 탭 맨 위, station_reco.js) */
+.sreco{margin:0 0 10px;padding:10px 10px 6px;background:var(--mintbg);border-radius:14px}
+.sreco h4{margin:0 0 6px;font-size:13px}
+.sreco h4 small{display:block;font-size:11px;font-weight:500;color:var(--ink2);margin-top:1px}
+.srcard{display:flex;align-items:flex-start;gap:9px;background:var(--surface);border:1.5px solid var(--grid);border-radius:12px;padding:8px 10px;margin:0 0 6px;cursor:pointer}
+.srcard:hover,.srcard:focus-visible{border-color:var(--mint2);outline:none}
+.srno{flex:none;width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.srnm{flex:1;min-width:0}
+.srnm b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.srnm .srk{display:block;font-size:11px;color:var(--ink2)}
+.srnm .srwhy{display:block;font-size:12px;color:var(--ink);line-height:1.4;margin-top:2px;word-break:keep-all}
+.srnote{font-size:10px !important;color:var(--muted) !important;margin:2px 2px 2px !important;line-height:1.45}
 /* 주변 인프라 추천(충전소 상세 안, 도보 충전소만) */
 .reco{margin:12px 0 4px;padding:12px 10px 8px;background:var(--mintbg);border-radius:14px}
 .reco h4{margin:0 0 8px}
@@ -626,7 +639,8 @@ function setHeading(h, src){            // 방향: 이동 중에는 GPS 진행 �
   if (follow && src === 'compass') map.easeTo({bearing:h, duration:300, easing:t => t});
 }
 function setMe(p){
-  const c = p.coords; me = [c.latitude, c.longitude];
+  const c = p.coords, firstFix = !me; me = [c.latitude, c.longitude];
+  if (firstFix && D && tab === 'near' && !selected && !route) setTimeout(renderBody, 0);      // 충전소 추천 패널 기준을 지도 가운데 → 내 위치로
   if (c.heading != null && !isNaN(c.heading) && (c.speed || 0) > 0.8) setHeading(c.heading, 'gps');
   else if (lastFix && km(lastFix, me) * 1000 > 8) setHeading(bearing(lastFix, me), 'gps');
   if (!lastFix || km(lastFix, me) * 1000 > 8) lastFix = me;
@@ -1161,6 +1175,14 @@ const kmTxt = d => d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(d < 10 ? 1 : 0
 
 function select(s, pan){ hideTip(); selected = s; if (pan && !s[C.poi]) flyTo(s[C.lat], s[C.lng], 15); if (!route) setSheet(!s[C.poi]); renderBody(); updateMap(); if (!route) loadPoi(s); renderPoi(); }
 
+/* 충전소 추천 패널: 기준 = 내 위치(권한 있을 때) 또는 지도 가운데, 페르소나·남은 시간 = 추천 설정(RS, 정보 입력 화면 기본값), 시각 = 지금(recoHour) */
+function srecoPanel(){
+  if (!window.STRECO || !STRECO.ready()) return '';
+  const c = map.getCenter(), ref = me ? {lat:me[0], lng:me[1], from:'me'} : {lat:c.lat, lng:c.lng, from:'center'};
+  const pn = (PERSONAS.find(x => x[0] === RS.persona) || [, RS.persona])[1];
+  return STRECO.panel(Object.assign(ref, {persona:RS.persona, personaName:pn, remain:RS.remain, hour:recoHour()}));
+}
+if (window.STRECO) STRECO.load('data/reco/station_reco.json', () => { if (D && tab === 'near' && !selected && !route) renderBody(); });
 function renderBody(){
   const el = $('#body');
   if (route) return renderNav();
@@ -1171,13 +1193,14 @@ function renderBody(){
   // 이용률 낮은 순: 가까운 30곳 안에서 다시 줄 세움 (기록 없는 곳은 맨 뒤, 같으면 가까운 순)
   if (sortBy === 'occ') list.sort((a, b) => { const x = a[1][C.occ][hour], y = b[1][C.occ][hour];
     return (x < 0) - (y < 0) || x - y || a[0] - b[0]; });
-  el.innerHTML = `<div class="sort" role="group" aria-label="정렬 기준">
+  el.innerHTML = srecoPanel() + `<div class="sort" role="group" aria-label="정렬 기준">
       <button type="button" data-s="near" aria-pressed="${sortBy === 'near'}">가까운 순</button>
       <button type="button" data-s="occ" aria-pressed="${sortBy === 'occ'}">이용률 낮은 순</button></div>
     <p class="hint">${F.demo ? `도보 범위가 있는 충전소만 보는 중 (위쪽 "${walkLabel()}"을 끄면 전체) · ` : ''}${sortBy === 'near' ? '지도 가운데에서 가까운 30곳' : '지도 가운데에서 가까운 30곳 안에서 이용률 낮은 순'} · ${hour}시 이용률 (${D.meta.days_by_hour[hour]}일치 평균) · 조건에 맞는 ${shown.length.toLocaleString('ko-KR')}곳</p>` +
     (list.map(([d, s]) => `<div class="row" data-id="${s[C.id]}"><span class="dot" style="background:${RAMP[bin(s[C.occ][hour])]}"></span>
       <div class="nm"><b>${s[C.name]}${s[C.stay] ? ' <span class="badge">스테이</span>' : ''}${isDemo(s) ? ' <span class="badge walk9">도보 시연</span>' : isWalk(s) ? ' <span class="badge walk9">도보</span>' : ''}</b><span>${kmTxt(d)} · 충전기 ${s[C.n]}대(급속 ${s[C.nfast]}) · 최대 ${s[C.kw]}kW</span></div>
       <div class="oc"><b>${occTxt(s[C.occ][hour])}</b><span>이용률</span></div></div>`).join('') || '<p class="hint">조건에 맞는 충전소 없음</p>');
+  if (window.STRECO) STRECO.bind(el, id => { const s = byId(id); if (s) select(s, true); });
   el.querySelectorAll('.sort button').forEach(b => b.onclick = () => { sortBy = b.dataset.s; renderBody(); });
   el.querySelectorAll('.row').forEach(r => r.onclick = () => select(D.stations.find(x => x[C.id] === r.dataset.id), true));
   el.scrollTop = 0;
