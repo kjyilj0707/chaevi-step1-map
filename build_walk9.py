@@ -2,8 +2,8 @@
 입력: ../analysis/walk_9/walk_routes_9_v2.csv (팀 확정판. 없으면 같은 칸 구성의 제안판 walk_routes_osm_9_v2_proposed.csv)
       ../data/team_drive/1121/sewon_sbiz_subcat_202609.csv (세원 소진공 전처리판, 11/21. 상가업소번호로 세원 중분류·소분류를 붙임.
         이 파일에 없는 가게(세원 77개 소분류 밖: 주점·구내식당·뷔페·서비스업 등)는 뺌.
-        범주 = 동권 활동(분석의 기준선 비교와 같음): ../analysis/activity_map/category_map_sewon.csv 의 activity 를 소진공_소분류(공백 제거)로 붙임.
-        activity 가 '대응 없음'(담배·PC방 등)인 가게는 뺌. 'A|B'(카페 = 테이크아웃·착석)인 가게는 두 칩 모두에 셈. 칩 묶음·순서는 ACTS)
+        범주(칩) = 새 대분류(v3e, 준엽 결정 11/22): ../analysis/reco_tables/reco_tables.json 의 category_map(소분류 → 대분류)을 소진공 소분류(공백 제거)로 붙임.
+        excluded=1(담배 소매)인 가게는 뺌. 가게 하나 = 대분류 하나. 칩 순서는 BIGS(화장실 칩은 화면이 공중화장실 파일로 끝에 붙임)
 출력: data/walk9/<충전소ID>.json  (지도에서 9곳 중 하나를 누를 때만 읽음)
       data/walk9/index.json        (9곳 목록과 요약. 페이지가 처음 열릴 때 읽음)
 입력 CSV는 읽기만 함. 실행: ~/.venvs/work/bin/python -I build_walk9.py
@@ -24,11 +24,10 @@ WALK_DIR = os.path.join(HERE, "..", "analysis", "walk_9")
 SRC_FINAL = os.path.join(WALK_DIR, "walk_routes_9_v2.csv")                 # 확정판이 생기면 이것을 씀
 SRC_PROPOSED = os.path.join(WALK_DIR, "walk_routes_osm_9_v2_proposed.csv")  # 확정판 전 개발용
 SBIZ = os.path.join(HERE, "..", "data", "team_drive", "1121", "sewon_sbiz_subcat_202609.csv")   # 세원 소진공 전처리판(77개 소분류)
-ACT_MAP = os.path.join(HERE, "..", "analysis", "activity_map", "category_map_sewon.csv")    # 세원 77 소분류 → 동권 활동(분석 정식판과 같은 표, 11/21)
-# 지도 칩(활동 시간이 짧은 순). 칩 하나 = 동권 활동 하나. 빠른 식사(포장)·(매장)은 대응표에서 늘 같은 소분류에 함께 붙어 칩 하나로 묶음
-ACTS = [("편의점", ["편의점"]), ("약국", ["약국"]), ("카페 테이크아웃", ["카페 테이크아웃"]), ("쇼핑", ["쇼핑"]),
-        ("빠른 식사", ["빠른 식사(포장)", "빠른 식사(매장)"]), ("카페 착석", ["카페 착석"]), ("일반 식당", ["일반 식당"])]
-NO_ACT = "대응 없음"
+CMAP = os.path.join(HERE, "..", "analysis", "reco_tables", "reco_tables.json")    # 추천 표 v3e: category_map(소분류 → 새 대분류, 동권 가게 활동)
+# 지도 칩 = 새 대분류(가게 12개). 화장실(13번째)은 index.html 이 공중화장실 파일로 끝에 붙임. 오락 2종도 칩으로 있음(가중치 바닥값이라 추천 카드엔 거의 안 나옴)
+BIGS = ["식사", "간편식", "카페·음료", "디저트·간식", "패션·잡화", "식품·편의", "뷰티·건강", "생활·리빙", "취미·문화", "기타 소매", "유원지·오락", "스포츠 서비스"]
+ACTS = [(b, [b]) for b in BIGS]      # (칩 이름, 묶인 값) 모양은 옛 판과 같게 둠
 OUT = os.path.join(HERE, "data", "walk9")
 SPEED, M5, M10 = 1.3, 390, 780
 PHONE = re.compile(r"0\d{1,2}[-. ]?\d{3,4}[-. ]?\d{4}")   # 가게 이름에 들어간 전화번호(공개 사이트라 가림)
@@ -36,24 +35,23 @@ STATIONS = ["CV002017", "CV000826", "CV001539", "CV001523", "CV004090", "CV00108
 
 
 def act_table():
-    """소진공 소분류 → 속한 칩 번호 목록(튜플). '대응 없음'은 빈 튜플. 대응표에 ACTS 밖의 활동이 있으면 멈춤"""
-    a = pd.read_csv(ACT_MAP, dtype=str)
-    a["sub"] = a["소진공_소분류"].str.strip(); a["activity"] = a["activity"].str.strip()
-    to_chip = {act: i for i, (_, acts) in enumerate(ACTS) for act in acts}
+    """소진공 소분류 → 속한 칩 번호 튜플(대분류 하나). excluded(담배 소매)는 빈 튜플. 표에 BIGS 밖 대분류가 있으면 멈춤"""
+    import json as _j
+    T = _j.load(open(CMAP, encoding="utf-8"))
     out = {}
-    for sub, act in zip(a["sub"], a["activity"]):
-        if act == NO_ACT:
+    for r in T["category_map"]:
+        sub, big = str(r["소분류"]).strip(), str(r["대분류"]).strip()
+        if sub == "공중화장실": continue
+        if int(r["excluded"]) == 1:
             out[sub] = (); continue
-        parts = [x.strip() for x in act.split("|")]
-        miss = [x for x in parts if x not in to_chip]
-        if miss: raise SystemExit(f"ACTS 에 없는 활동 {miss} ({sub})")
-        out[sub] = tuple(sorted({to_chip[x] for x in parts}))
+        if big not in BIGS: raise SystemExit(f"BIGS 에 없는 대분류 {big} ({sub})")
+        out[sub] = (BIGS.index(big),)
     return out
 
 
 def attach_cats(w):
     """place_id(shop:상가업소번호) → 세원 전처리판의 중분류·소분류(mid = 세원 중분류, sub)와 칩(cat = 대표 칩 번호, cats = 속한 칩 목록).
-    세원 파일에 없는 가게(77개 소분류 밖)와 '대응 없음' 소분류는 cat 이 빈칸(= 뺌)"""
+    세원 파일에 없는 가게(77개 소분류 밖)와 excluded(담배 소매) 소분류는 cat 이 빈칸(= 뺌)"""
     T = act_table()
     w = w.copy(); w["sid"] = w["place_id"].str.replace("shop:", "", regex=False)
     s = pd.read_csv(SBIZ, dtype=str, usecols=["상가업소번호", "상권업종대분류명", "상권업종중분류명", "상권업종소분류명"])

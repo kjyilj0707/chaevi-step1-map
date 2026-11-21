@@ -1,6 +1,6 @@
 """주변 인프라 추천 화면용 자료 만들기 (2026-11-22, 프론트엔드)
 입력(읽기만 함)
-  ../analysis/reco_tables/reco_tables.json                        추천 점수 표 v2(분석 담당, 준엽 11/22 결정 반영판)
+  ../analysis/reco_tables/reco_tables.json                        추천 점수 표 v3e(새 대분류, 분석 담당, 준엽 11/22 결정 반영판)
   ../analysis/walk_seoul_all/walk_routes_seoul_toilet_v2.csv      공중화장실 도보(10분 안)
   ../analysis/walk_seoul_all/walk_routes_seoul_trashbin_v2.csv    쓰레기통 도보(10분 안) + 옆의 summary_seoul_trashbin_v2.csv
   ../data/team_drive/1121/jaeyi_9stations_final_1122.csv          재이 9곳 최종판: ★·브랜드명·×·복합시설 편도 분 칸만 씀(주소·URL 등은 안 씀)
@@ -36,28 +36,32 @@ def main():
     T = json.load(open(TABLES, encoding="utf-8"))
     shutil.rmtree(OUT, ignore_errors=True); os.makedirs(os.path.join(OUT, "toilet"))
 
-    # 표: 점수에 쓰는 칸만
+    # 표: 점수에 쓰는 칸만 (v3e: 가중치 = 대분류, 시간·상황 = 가게 동권 활동, 키워드 = 소분류 필터)
     pw = {}
     for r in T["persona_activity"]:
         if r["mapped"] == 1:
-            pw.setdefault(r["persona_id"], {})[r["activity"]] = float(r["weight_mapped"])
+            pw.setdefault(r["persona_id"], {})[r["big_category"]] = float(r["weight_mapped"])
     names = {}
     for r in T["persona_activity"]:
         names.setdefault(r["persona_id"], r["persona_name"])
-    kw = {}
+    kw = {}        # 키워드 → None(필터 없음) 또는 {big: [대분류], sub: [소분류]}
     for r in T["keyword_activity"]:
         if r["mode"] == "none":
             kw[r["keyword"]] = None
-        elif r["mode"] == "filter" and r["mapped"] == 1:
-            kw.setdefault(r["keyword"], []).append(r["activity"])
-    ctx = [{k: r[k] for k in ("condition", "rule_type", "activity", "multiplier", "value")}
+        else:
+            k = kw.setdefault(r["keyword"], {"big": [], "sub": []})
+            if r["big_category"] not in k["big"]: k["big"].append(r["big_category"])
+            k["sub"] += [x for x in (r["subcat_filter"] or "").split("|") if x and x not in k["sub"]]
+    ctx = [{"condition": r["condition"], "rule_type": r["rule_type"], "activity": r["store_activity"], "multiplier": r["multiplier"], "value": r["value"]}
            for r in T["context_activity"] if r["rule_type"] in ("weight", "walk_cap", "walk_speed", "open_filter")]
+    # 소분류 → [대분류, [가게 활동]] (담배 소매 등 excluded 는 안 담음 = 후보에서 빠짐)
+    cmap = {str(r["소분류"]).strip(): [r["대분류"], r["store_activity"].split("|")] for r in T["category_map"] if int(r["excluded"]) == 0}
     out = {
         "version": T["version"], "built": T["built"], "params": T["params"],
         "time": {r["category"]: [float(r["act_min_low"]), float(r["act_min_high"])] for r in T["activity_time"]},
-        "pw": pw, "personaName": names, "kw": kw, "ctx": ctx,
-        "display": {r["persona_id"]: {k: r[k] for k in ("display_mode", "max_cards", "allowed_activities")} for r in T["persona_display"]},
-        "group": T["display_group"],
+        "pw": pw, "personaName": names, "kw": kw, "ctx": ctx, "cmap": cmap,
+        "bigs": [r["big_category"] for r in T["big_categories"]],
+        "display": {r["persona_id"]: {k: r[k] for k in ("display_mode", "max_cards", "allowed_big", "allowed_store_activity", "card_units")} for r in T["persona_display"]},
         "amenity": [{k: r[k] for k in ("amenity", "display")} for r in T["amenity"]],
     }
 

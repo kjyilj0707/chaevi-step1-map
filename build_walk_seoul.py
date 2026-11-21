@@ -160,7 +160,7 @@ def main():
             if sid in lows: ex["low"] = 1; ex["lowWhy"] = lows[sid]
             if lows.get(sid) == WHY_PENDING: ex["pending"] = 1
         summ.update(ex)
-        if summ["n10"] == 0: summ["empty"] = 1       # 세원 77개 소분류·동권 활동(대응 없음 뺌)으로 거른 뒤 도보 10분 안 가게가 0곳: v2 CV000753 과 같은 '가게 없음' 표시
+        if summ["n10"] == 0: summ["empty"] = 1       # 세원 77개 소분류(담배 소매 뺌)로 거른 뒤 도보 10분 안 가게가 0곳: v2 CV000753 과 같은 '가게 없음' 표시
         idx.append(summ); size += sz; total += summ["n10"]
 
     # 도보 10분 안 가게 0곳(앱용 CSV에 행 없음): 빈 파일로 넣어 지도에서 빠지지 않게 함
