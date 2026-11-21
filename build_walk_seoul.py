@@ -11,7 +11,7 @@
   (analysis/walk_seoul_all/README.md: 직선 추정 충전소(graph_src=none), osm_flag 충전소). 이유 문구는 graph_src·osm_flag 로 만듦
   summary 가 없으면 임시안: osm_flag 값이 있거나, 10분 안 가게 중 대체·추정 줄이 LOW_SHARE 넘는 충전소
 """
-import argparse, glob, json, os, shutil, sys
+import argparse, glob, json, os, re, shutil, sys
 import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -19,7 +19,8 @@ sys.path.insert(0, HERE)            # -I 로 실행해도 같은 폴더의 build
 import build_walk9 as B             # noqa: E402
 
 AN = os.path.join(HERE, "..", "analysis")
-SRC_CANDIDATES = [os.path.join(AN, "walk_seoul_all", "walk_routes_seoul_all_v2_within10_app.csv"),
+SRC_CANDIDATES = [os.path.join(AN, "walk_seoul_all", "walk_routes_seoul_all_v2_within10_app_share.csv"),   # 공유용(전화번호 두 패턴 가림)
+                  os.path.join(AN, "walk_seoul_all", "walk_routes_seoul_all_v2_within10_app.csv"),
                   os.path.join(AN, "walk_seoul_all", "walk_routes_seoul_all_v1_within10_app.csv"),
                   os.path.join(AN, "walk_seoul_all", "walk_routes_seoul_v2.csv"),
                   os.path.join(AN, "walk_seoul_all", "walk_routes_seoul.csv"),
@@ -29,6 +30,9 @@ OUT = os.path.join(HERE, "data", "walk_seoul")
 WALK9 = os.path.join(HERE, "data", "walk9")
 LOW_SHARE = 0.3
 FLAG_OK = {"", "0", "0.0", "ok", "none", "nan", "false"}
+PHONE2 = re.compile(r"(?<!\d)\d{3,4}[-.]\d{4}(?!\d)")    # 지역번호 없는 번호(1588-0000 등). 공유용 CSV와 같은 규칙으로 한 번 더 가림
+WHY_PENDING = "도보 거리 카카오 미확인(정확도 낮음)"
+EXCL_WHY = "측정 이상으로 도보 정보 제외"
 
 
 def pick_src():
@@ -94,7 +98,9 @@ def summary_low(path):
     out = {}
     for _, r in s[s["confidence"].eq("low")].iterrows():
         flag = str(r.get("osm_flag") or "").replace("nan", "").strip()
-        if r.get("graph_src") == "none":
+        if r.get("flag_judge_v2") == "pending_kakao":      # v2 판정 보류(카카오 무작위 쌍 없음). 노량진 대체식(행 단위 low)과 다름
+            why = WHY_PENDING
+        elif r.get("graph_src") == "none":
             why = "주변 길 정보 없이 직선거리 × 1.45로 추정"
         elif "snap50" in flag:
             why = "주변 길 정보가 덜 들어 있어 거리 오차가 클 수 있음"
@@ -104,6 +110,16 @@ def summary_low(path):
             why = "길 정보 확인 필요"
         out[r["station_id"]] = why
     return out
+
+
+def no_shop_ids(path):
+    """summary 에서 제외가 아니고 직선 1km 안 가게는 있는데 도보 10분 안 가게가 0곳인 충전소 → {id: (kind, stay)}.
+    앱용 CSV에는 행이 없어 빠지므로 빈 도보 파일로 넣어 '도보 10분 안 가게 없음'으로 보이게 함.
+    직선 1km 안 가게도 0곳인 곳(CV004747)과 좌표 오류(coord_outside_seoul)는 이전 판처럼 직선 반경으로 둠"""
+    s = pd.read_csv(path, dtype=str)
+    m = (~s["excluded"].fillna("").str.lower().isin(["1", "true"]) & s["graph_src"].ne("coord_outside_seoul")
+         & (pd.to_numeric(s["n_straight_1km"], errors="coerce") > 0) & (pd.to_numeric(s["n_walk780"], errors="coerce").fillna(0) == 0))
+    return {r["station_id"]: (r["kind"], int(float(r["stay"] or 0))) for _, r in s[m].iterrows()}
 
 
 def main():
@@ -117,13 +133,16 @@ def main():
     sm = a.summary or next(iter(sorted(glob.glob(os.path.join(os.path.dirname(src), "summary_seoul_all_v*.csv")))[-1:]), None)
     lows = summary_low(sm) if sm and os.path.exists(sm) else None
     print("정확도 판정", os.path.relpath(sm, HERE) if lows is not None else "임시안(행 단위)")
-    pq_path = src.replace("_within10_app.csv", ".parquet")
+    pq_path = re.sub(r"_within10_app(_share)?\.csv$", ".parquet", src)
     pq_path = pq_path if pq_path != src and os.path.exists(pq_path) else next(iter(sorted(glob.glob(os.path.join(os.path.dirname(src), "walk_routes_seoul_all_v*.parquet")))[-1:]), None)
     fails = fail_counts(pq_path) if pq_path else None
     print("경로 미확인 수", os.path.relpath(pq_path, HERE) if fails is not None else "입력 CSV 안에서(10분 안 행만 있으면 0)")
     straight = straight_only(sm) if lows is not None else set()
     excl = excluded_ids(sm) if lows is not None else set()
     w, CATS = B.load_routes(src)
+    n_ph = int(w["name"].astype(str).str.contains(PHONE2).sum())
+    w["name"] = w["name"].astype(str).str.replace(PHONE2, "[전화번호]", regex=True)
+    print("가게 이름 전화번호(지역번호 없는 패턴) 가림", n_ph)
     if excl:
         print("제외 충전소", sorted(excl), "· 입력에 남아 있던 행", int(w["station_id"].isin(excl).sum()))
         w = w[~w["station_id"].isin(excl)]
@@ -139,8 +158,20 @@ def main():
         if lows is not None:
             ex.pop("low", None); ex.pop("lowWhy", None)
             if sid in lows: ex["low"] = 1; ex["lowWhy"] = lows[sid]
+            if lows.get(sid) == WHY_PENDING: ex["pending"] = 1
         summ.update(ex)
         idx.append(summ); size += sz; total += summ["n10"]
+
+    # 도보 10분 안 가게 0곳(앱용 CSV에 행 없음): 빈 파일로 넣어 지도에서 빠지지 않게 함
+    empty = {}
+    if lows is not None:
+        have = {x["id"] for x in idx}
+        for sid, (kind, stay) in sorted(no_shop_ids(sm).items()):
+            if sid in have: continue
+            summ, sz, _ = B.write_station(w.iloc[0:0], sid, out, len(CATS), fail=None if fails is None else fails.get(sid, 0))
+            summ.update({"kind": kind, "stay": stay, "empty": 1}); idx.append(summ); size += sz; empty[sid] = 1
+        print("도보 10분 안 가게 없음(빈 파일)", sorted(empty))
+    idx.sort(key=lambda x: x["id"])
 
     # 시연 9곳 중 서울 전체판에 없는 곳은 data/walk9 파일을 그대로 가져와 시연 표시를 유지
     have = {x["id"] for x in idx}
@@ -155,10 +186,11 @@ def main():
     demo = [s for s in demo if s in {x["id"] for x in idx}]
 
     n_low = sum(1 for x in idx if x.get("low"))
+    excl_why = {sid: EXCL_WHY for sid in sorted(excl)}      # 화면: 직선 반경으로 보이되 이 문구를 붙임
     meta = {"src": os.path.basename(src), "summary": os.path.basename(sm) if lows is not None else None, "speed": B.SPEED, "m5": B.M5, "m10": B.M10, "cats": CATS, "note": B.NOTE,
-            "label": f"서울 도보 {len(idx)}곳", "demo": demo, "stations": idx}
+            "label": f"서울 도보 {len(idx)}곳", "demo": demo, "excluded": excl_why, "stations": idx}
     json.dump(meta, open(os.path.join(out, "index.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
-    print(f"충전소 파일 {len(idx)} · 합계 가게 {total} · 파일 합계 MB {size/1e6:.1f} · 정확도 낮음 {n_low} · 시연 {len(demo)}")
+    print(f"충전소 파일 {len(idx)} · 합계 가게 {total} · 파일 합계 MB {size/1e6:.1f} · 정확도 낮음 {n_low}(보류 {sum(1 for x in idx if x.get('pending'))}) · 가게 없음 {len(empty)} · 제외 {len(excl_why)} · 시연 {len(demo)}")
 
 
 if __name__ == "__main__":
