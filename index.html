@@ -925,7 +925,8 @@ function renderPoi(){
   if (on){      // 위쪽 띠와 종류 단추
     const d = poiView(), plus = d.more ? '+' : '';
     $('#infraTitle').textContent = selected[C.name];
-    $('#infraSub').textContent = !d.sum ? `${rng} 안 상가 없음` : `${rng} · ${poi.cat < 0 ? '전체 ' + d.sum.toLocaleString('ko-KR') + plus + '곳' : cats[poi.cat] + ' ' + d.n[poi.cat] + '곳'}`;
+    const wk0 = walk && WK[selected[C.id]] && WK[selected[C.id]].empty;
+    $('#infraSub').textContent = !d.sum ? (wk0 ? '도보 10분 안 가게 없음' : `${rng} 안 상가 없음`) : `${rng} · ${poi.cat < 0 ? '전체 ' + d.sum.toLocaleString('ko-KR') + plus + '곳' : cats[poi.cat] + ' ' + d.n[poi.cat] + '곳'}`;
     const R = $('#infraR'), want = walk ? 'w' : 'r';
     if (R.dataset.mode !== want){ R.dataset.mode = want; R.setAttribute('aria-label', walk ? '도보 시간' : '주변 반경');
       R.innerHTML = (walk ? WALK_MS.map(v => `<button type="button" data-r="${v}">${v}분</button>`) : POI_RS.map(v => `<button type="button" data-r="${v}">${v}m</button>`)).join(''); }
@@ -943,11 +944,17 @@ function renderPoi(){
   if (poi.state === 'error'){ el.innerHTML = `<h4>주변 인프라</h4><p>상권 자료를 불러오지 못함</p>`; return; }
   const d = poiView(), full = d.p.filter(x => poi.cat < 0 || x[1] === poi.cat).slice(0, walk ? 100 : 60), list = full.slice(0, poi.show);
   const rest = full.length - list.length;
-  const low = walk && WK[selected[C.id]] && WK[selected[C.id]].low;
-  const note = walk ? `<p class="w9note">${low ? '<b>도보 시간 추정 정확도 낮음</b>' + (WK[selected[C.id]].lowWhy ? ` (${WK[selected[C.id]].lowWhy})` : '') + ' · ' : ''}${(WK[selected[C.id]] && WK[selected[C.id]].note) || WKM.note}${poi.data.fail ? ` · 경로 미확인 ${poi.data.fail}곳은 뺌` : ''}${walkMin === 5 ? ' · 10분으로 넓혀 볼 수 있음' : ''}</p>` : '';
-  if (!d.sum){ el.innerHTML = `<h4>${head}</h4>${note}<p class="hint">${rng} 안 상가 없음${!walk && poiR < 100 ? ' · 위쪽에서 100m로 넓혀 볼 수 있음' : ''}</p>`; return; }
+  /* 충전소 단위 표시: low = 정확도 낮음(lowWhy 이유), pending = v2 판정 보류(카카오 미확인, 노량진 대체식의 행 단위 low와 다름),
+     empty = 도보 10분 안 가게 0곳, WKM.excluded = 측정 이상으로 도보 자료에서 뺀 충전소(직선 반경으로 보여 줌) */
+  const wk = walk ? WK[selected[C.id]] : null, low = !!(wk && wk.low), empty = !!(wk && wk.empty);
+  const lowTxt = !low ? '' : wk.pending ? `<b>${wk.lowWhy}</b> (주변 길 정보로 계산했으나 카카오 표본이 없어 확인 못 함) · `
+      : '<b>도보 시간 추정 정확도 낮음</b>' + (wk.lowWhy ? ` (${wk.lowWhy})` : '') + ' · ';
+  const excl = !walk && WKM && WKM.excluded && WKM.excluded[selected[C.id]];
+  const note = walk ? `<p class="w9note">${lowTxt}${(wk && wk.note) || WKM.note}${poi.data.fail ? ` · 경로 미확인 ${poi.data.fail}곳은 뺌` : ''}${walkMin === 5 && !empty ? ' · 10분으로 넓혀 볼 수 있음' : ''}</p>`
+      : excl ? `<p class="w9note"><b>${excl}</b> · 직선 반경으로 보여 줌</p>` : '';
+  if (!d.sum){ el.innerHTML = `<h4>${head}</h4>${note}<p class="hint">${empty ? '도보 10분 안 가게 없음' : rng + ' 안 상가 없음'}${!walk && poiR < 100 ? ' · 위쪽에서 100m로 넓혀 볼 수 있음' : ''}</p>`; return; }
   el.innerHTML = (walk ? `<h4>주변 인프라 도보 ${walkMin}분 · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳${d.sum > full.length && poi.cat < 0 ? ' / ' + d.sum.toLocaleString('ko-KR') + '곳' : ''})</h4>${note}`
-      : `<h4>주변 인프라 ${poiR}m · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳)</h4>
+      : `<h4>주변 인프라 ${poiR}m · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳)</h4>${note}
     ${d.more ? `<p class="hint">가게가 많아 가까운 ${d.sum}곳까지만 셈 (실제는 더 많음)</p>` : ''}`) +
     (list.map((x, k) => `<div class="prow" data-k="${k}"><span class="pin" style="background:${POI_COL[x[1]]}">${picon(x[1], 17)}</span><div class="nm"><b>${x[0]}</b><span>${x[2]}${walk && x[8] ? ' · 카카오 도보 경로값' : ''}</span></div>` +
       (walk ? `<div class="oc"><b>도보 ${x[6]}분</b><span>${x[5]}m</span></div></div>` : `<div class="oc"><b>${x[5]}m</b></div></div>`)).join('') || '<p class="hint">해당하는 곳 없음</p>') +
