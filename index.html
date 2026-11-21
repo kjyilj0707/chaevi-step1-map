@@ -417,10 +417,13 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
 const $ = s => document.querySelector(s);
 const C = {id:0,name:1,addr:2,lat:3,lng:4,sido:5,kind:6,n:7,nfast:8,kw:9,apt:10,stay:11,occ:12,med:13,ses:14,bad:15,poi:16};
 /* 가게 종류 모양 번호: 0~6 = 직선 반경 상권 파일(build_poi.py 7개: 식사·카페·테이크아웃·쇼핑·편의·관광여가·업무)
-   7~13 = 도보 파일 칩(동권 활동, WACTS 순서). 도보 칩은 이름으로 모양을 찾음(index.json 의 cats) */
+   7~13·16~21 = 도보 파일 칩(새 대분류 v3e, 11/22). 도보 칩은 이름으로 모양을 찾음(BIG_SHAPE, index.json 의 cats) */
 const POI_COL = ['#eb6834','#6250d6','#eda100','#e87ba4','#2a78d6','#008300','#1baf7a',
-  '#2a78d6','#1baf7a','#b35fc4','#e87ba4','#eda100','#6250d6','#eb6834', '#3f8fb5', '#7a6f65'];      // 14 화장실, 15 쓰레기통
-const WACTS = ['편의점','약국','카페 테이크아웃','쇼핑','빠른 식사','카페 착석','일반 식당'];
+  '#2a78d6','#1baf7a','#b35fc4','#e87ba4','#eda100','#6250d6','#eb6834', '#3f8fb5', '#7a6f65',      // 14 화장실, 15 쓰레기통
+  '#d6457f','#a0743c','#0e8fa3','#6b7785','#9b4fd0','#4a8f2a'];      // 16 디저트·간식, 17 생활·리빙, 18 취미·문화, 19 기타 소매, 20 유원지·오락, 21 스포츠 서비스
+/* 새 대분류 → 모양 번호(7~13 은 옛 활동 모양을 다시 씀: 식품·편의 = 장바구니, 뷰티·건강 = 십자, 패션·잡화 = 쇼핑백, 간편식 = 버거, 카페·음료 = 잔, 식사 = 수저) */
+const BIG_SHAPE = {'식품·편의':7, '뷰티·건강':8, '패션·잡화':10, '간편식':11, '카페·음료':12, '식사':13, '화장실':14,
+  '디저트·간식':16, '생활·리빙':17, '취미·문화':18, '기타 소매':19, '유원지·오락':20, '스포츠 서비스':21};
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const RAMP = ['--nodata','--q1','--q2','--q3','--q4','--q5'].map(css);
 const bin = v => v < 0 ? 0 : v < 10 ? 1 : v < 25 ? 2 : v < 50 ? 3 : v < 75 ? 4 : 5;
@@ -441,6 +444,12 @@ const PICON = [
   PICON.push(PICON[4], CROSS, TOGO, PICON[3], PICON[2], PICON[1], PICON[0]); }     // 편의점·약국·카페 테이크아웃·쇼핑·빠른 식사·카페 착석·일반 식당
 PICON.push('<circle cx="7.4" cy="4.4" r="2.2"/><path d="M5.2 7.8h4.4a1.1 1.1 0 0 1 1.1 1.1v5.4H9.3V21H5.5v-6.7H4.1V8.9a1.1 1.1 0 0 1 1.1-1.1z"/><circle cx="16.6" cy="4.4" r="2.2"/><path d="M14.6 7.8h4l2.6 7.6h-2.3V21h-4.6v-5.6h-2.3z"/>',      // 14 화장실(공중화장실)
   '<rect x="4" y="5" width="16" height="2.4" rx="1"/><rect x="9.4" y="2.6" width="5.2" height="2.4" rx="1"/><path d="M5.6 8.6h12.8l-1.2 11.4a1.8 1.8 0 0 1-1.8 1.6H8.6a1.8 1.8 0 0 1-1.8-1.6z"/>');     // 15 쓰레기통(점수 밖, 지도 켜기 단추로만)
+PICON.push('<circle cx="12" cy="7.6" r="4.8"/><path d="M7.2 11h9.6L12 21.6z"/>',      // 16 디저트·간식(아이스크림)
+  '<path d="M12 2.8l9.2 7.8h-2.4V21h-5v-6h-3.6v6h-5V10.6H2.8z"/>',      // 17 생활·리빙(집)
+  '<path d="M2.6 5.4c3.2-1.6 6.4-1.6 8.6.4v14.4c-2.2-1.8-5.4-1.8-8.6-.4z"/><path d="M21.4 5.4c-3.2-1.6-6.4-1.6-8.6.4v14.4c2.2-1.8 5.4-1.8 8.6-.4z"/>',      // 18 취미·문화(책)
+  '<path fill-rule="evenodd" d="M3 4.4A1.4 1.4 0 0 1 4.4 3h7.4l9.4 9.4-8.8 8.8L3 11.8zM7.6 9.4a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z"/>',      // 19 기타 소매(가격표)
+  '<path d="M7 7h10a5 5 0 0 1 4.9 6l-.8 4a2.5 2.5 0 0 1-4.3 1.2L14.6 16H9.4l-2.2 2.2A2.5 2.5 0 0 1 2.9 17l-.8-4A5 5 0 0 1 7 7z"/>',      // 20 유원지·오락(게임기)
+  '<rect x="1.8" y="9" width="3" height="6" rx="1"/><rect x="5" y="6.4" width="3.6" height="11.2" rx="1"/><rect x="8.6" y="10.8" width="6.8" height="2.4"/><rect x="15.4" y="6.4" width="3.6" height="11.2" rx="1"/><rect x="19.2" y="9" width="3" height="6" rx="1"/>');      // 21 스포츠 서비스(아령)
 const picon = (i, size) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="currentColor">${PICON[i]}</svg>`;
 const pinSVG = i => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96"><circle cx="24" cy="24" r="21" fill="${POI_COL[i]}" stroke="#fff" stroke-width="3"/><g transform="translate(11 11) scale(1.083)" fill="#fff" color="#fff">${PICON[i].replace(/currentColor/g, '#fff')}</g></svg>`;
 /* 표시 = 바탕(이용률 색) + 번개 모양. 종류는 테두리와 모양으로만 나눔(바탕색은 이용률 몫)
@@ -931,7 +940,6 @@ try { const v = localStorage.getItem('recoP'); if (PERSONAS.some(x => x[0] === v
 try { const v = +localStorage.getItem('recoR'); if (REMAINS.includes(v)) RS.remain = v; } catch (e) {}
 const recoHour = () => RS.hour == null ? new Date().getHours() : RS.hour;
 const isNight = () => { const h = recoHour(); return h >= 22 || h < 6; };
-const ACT_ICON = {'편의점':7, '약국':8, '카페 테이크아웃':9, '쇼핑':10, '빠른 식사(포장)':11, '빠른 식사(매장)':11, '카페 착석':12, '일반 식당':13, '화장실':14};
 const walkMinOf = m => Math.max(1, Math.ceil(m / (WKM ? WKM.speed : 1.3) / 60 - 1e-9));     // 목록과 같은 올림(도보 분)
 const openTxt = t => String(t || '').replace(/\s*\|\s*/g, ' ');      // 개방시간 '기타|06:00~24:00' → '기타 06:00~24:00'
 function recoWx(s){          // 지금 날씨(충전소 좌표, 기존 /weather) → 'rain'·'snow'·'clear'·null(모름). 직접 고르면 그 값
@@ -941,10 +949,9 @@ function recoWx(s){          // 지금 날씨(충전소 좌표, 기존 /weather)
 }
 /* 도보 파일은 한 가게가 칩 둘에 들 수 있음(카페 = 카페 테이크아웃·카페 착석): 가게 줄 9번 칸 = 속한 칩 목록(없으면 1번 칸 하나) */
 const inCat = (x, c) => c < 0 || (x[9] ? x[9].includes(c) : x[1] === c);
-function sk(c){               // 칩 번호 → 모양 번호(POI_COL·PICON·지도 핀). 도보 칩 끝의 '화장실' = 14
+function sk(c){               // 칩 번호 → 모양 번호(POI_COL·PICON·지도 핀). 도보 칩 = 새 대분류 이름(BIG_SHAPE), 끝의 '화장실' = 14
   if (!(poi.data && poi.data.walk)) return c;
-  const nm = wcats()[c]; if (nm === '화장실') return 14;
-  const k = WACTS.indexOf(nm); return 7 + (k < 0 ? c % 7 : k);
+  const k = BIG_SHAPE[wcats()[c]]; return k != null ? k : 7 + c % 7;
 }
 const shownCat = x => poi.cat >= 0 ? poi.cat : x[1];     // 칩을 골랐으면 그 칩 모양으로 보임(카페를 '카페 착석'으로 고르면 착석 색)
 const walkLim = () => walkMin === 5 ? (WKM ? WKM.m5 : 390) : (WKM ? WKM.m10 : 780);
@@ -1011,7 +1018,7 @@ function recoRun(){
   const wx = recoWx(s), conds = RECO.conditions(recoHour(), wx === 'clear' ? null : wx);
   const key = [s[C.id], RS.persona, RS.remain, RS.kw, conds.join('+')].join('|');
   if (recoMemo && recoMemo.key === key && recoMemo.d === d) return recoMemo;
-  if (!d.places) d.places = RECO.places(RT, s[C.id], d.raw, d.toilets, WKM.cats);
+  if (!d.places) d.places = RECO.places(RT, s[C.id], d.raw, d.toilets);
   const res = RECO.score(RT, d.places, {persona:RS.persona, remain:RS.remain, conds, keyword:RS.kw, alpha:RT.alpha[s[C.id]] || 0});
   const cards = RECO.display(RT, res, RS.persona, RS.kw), eff = RECO.effects(RT, conds);
   return recoMemo = {key, d, wx, conds, res, cards, eff, ids:new Set(cards.map(r => r.p.pid))};
@@ -1032,11 +1039,12 @@ function recoBuild(){
   const tb = RT.trash && RT.trash[s[C.id]], tcov = (RT.trashCovered || []).includes(s[C.id]);
   const trash = tb ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 16)}</span><span class="tx">가까운 쓰레기통 <b>${walkMinOf(tb[0])}분</b> (${tb[1]}) · 10분 안 ${tb[2]}곳</span><button type="button" id="trashBtn" aria-pressed="${RS.trashMap}">지도에 보기</button></p>`
       : tcov ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 16)}</span><span class="tx">10분 안 가로쓰레기통 없음(서울시 목록 기준)</span></p>` : '';
-  const cards = r.cards.map((c, k) => { const p = c.p, ic = ACT_ICON[c.act] != null ? ACT_ICON[c.act] : 7, row = recoCardRow(c);
-    const tags = [c.act, p.kind === 'toilet' && p.open ? openTxt(p.open) : '', p.mall ? `건물 안 이동 +${p.mall}분` : ''].filter(Boolean).join(' · ');
+  /* 카드 = 대분류 + 세원 중분류·소분류(화장실은 개방시간). P4b 는 카드 단위 이름(편의점·카페·빠른 식사(포장))을 대분류 뒤에 붙임 */
+  const cards = r.cards.map((c, k) => { const p = c.p, ic = BIG_SHAPE[c.group] != null ? BIG_SHAPE[c.group] : 7, row = recoCardRow(c);
+    const tags = [c.group, c.unit && c.unit !== c.group && !(row && row[2].includes(c.unit)) ? c.unit : '', row ? row[2] : '', p.mall ? `건물 안 이동 +${p.mall}분` : ''].filter(Boolean).join(' · ');
     return `<div class="rcard${p.star ? ' star' : ''}" data-k="${k}"><span class="pin" style="background:${POI_COL[ic]}">${picon(ic, 18)}</span>
       <div class="nm"><b>${p.star ? `<span class="sbadge">★ ${p.brand || '브랜드'}</span>` : ''}${row ? row[0] : ''}</b><span>${tags}</span></div>
-      <div class="oc"><b>도보 ${walkMinOf(p.wm)}분</b><span class="tbadge${c.time === '빠듯' ? ' tight' : ''}">${c.time}</span></div></div>`; }).join('');
+      <div class="oc"><b>도보 ${walkMinOf(p.wm)}분</b><span class="tbadge${/빠듯|불가/.test(c.time) ? ' tight' : ''}">${c.time}</span></div></div>`; }).join('');
   const why = [night ? '심야: 편도 5분 안, 화장실은 24시간 개방(상시)만, 편의점 우선' : '', wet ? `${wxName}: 편도 5분 안` : '',
     morning ? '아침: 테이크아웃 커피·포장 식사 우선' : '', RT.alpha[s[C.id]] ? `지하주차장 출구 ${RT.alpha[s[C.id]]}분 포함` : ''].filter(Boolean).join(' · ');
   const html = `<div class="reco"><h4>지금 다녀올 곳 추천</h4>
