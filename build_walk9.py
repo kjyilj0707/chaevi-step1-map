@@ -3,7 +3,9 @@
       ../data/team_drive/1121/sewon_sbiz_subcat_202609.csv (세원 소진공 전처리판, 11/21. 상가업소번호로 세원 중분류·소분류를 붙임.
         이 파일에 없는 가게(세원 77개 소분류 밖: 주점·구내식당·뷔페·서비스업 등)는 뺌.
         범주(칩) = 새 대분류(v3e, 준엽 결정 11/22): ../analysis/reco_tables/reco_tables.json 의 category_map(소분류 → 대분류)을 소진공 소분류(공백 제거)로 붙임.
-        excluded=1(담배 소매)인 가게는 뺌. 가게 하나 = 대분류 하나. 칩 순서는 BIGS(화장실 칩은 화면이 공중화장실 파일로 끝에 붙임)
+        v5b: store_overrides(가게 단위 예외: 올리브영 → 화장품, 전자담배 → 담배)를 category_map 보다 먼저 씀(place_id 로 소분류를 바꿈).
+        excluded=1(inclusion = exclude, 11/22 동권 표 13 소분류)인 가게는 뺌(카드·목록·지도 모두). 담배 소매는 v5b 부터 포함(기타 소매 칩).
+        올리브영 중복 묶음(merged_into)은 충전소마다 도보가 가장 짧은 1곳만 남김. 가게 하나 = 대분류 하나. 칩 순서는 BIGS(화장실 칩은 화면이 공중화장실 파일로 끝에 붙임)
 출력: data/walk9/<충전소ID>.json  (지도에서 9곳 중 하나를 누를 때만 읽음)
       data/walk9/index.json        (9곳 목록과 요약. 페이지가 처음 열릴 때 읽음)
 입력 CSV는 읽기만 함. 실행: ~/.venvs/work/bin/python -I build_walk9.py
@@ -35,9 +37,8 @@ STATIONS = ["CV002017", "CV000826", "CV001539", "CV001523", "CV004090", "CV00108
 
 
 def act_table():
-    """소진공 소분류 → 속한 칩 번호 튜플(대분류 하나). excluded(담배 소매)는 빈 튜플. 표에 BIGS 밖 대분류가 있으면 멈춤"""
-    import json as _j
-    T = _j.load(open(CMAP, encoding="utf-8"))
+    """소진공 소분류 → 속한 칩 번호 튜플(대분류 하나). excluded(inclusion != include)는 빈 튜플. 표에 BIGS 밖 대분류가 있으면 멈춤"""
+    T = _tables()
     out = {}
     for r in T["category_map"]:
         sub, big = str(r["소분류"]).strip(), str(r["대분류"]).strip()
@@ -46,6 +47,27 @@ def act_table():
             out[sub] = (); continue
         if big not in BIGS: raise SystemExit(f"BIGS 에 없는 대분류 {big} ({sub})")
         out[sub] = (BIGS.index(big),)
+    return out
+
+
+_T = None
+
+
+def _tables():
+    global _T
+    if _T is None:
+        _T = json.load(open(CMAP, encoding="utf-8"))
+    return _T
+
+
+def overrides():
+    """v5b store_overrides: place_id(shop:…) → (새 소분류, 세원 중분류(새 소분류의 category_map 값), 포함 여부, 묶음 키 merged_into)"""
+    T = _tables()
+    mid = {str(r["소분류"]).strip(): str(r.get("세원_중분류") or "").strip() for r in T["category_map"]}
+    out = {}
+    for r in T.get("store_overrides", []):
+        sub = str(r["새_소분류"]).strip()
+        out[str(r["place_id"])] = (sub, mid.get(sub, ""), str(r.get("inclusion", "include")) == "include", str(r.get("merged_into") or ""))
     return out
 
 
@@ -58,9 +80,17 @@ def attach_cats(w):
     s = s.rename(columns={"상가업소번호": "sid", "상권업종대분류명": "big", "상권업종중분류명": "mid", "상권업종소분류명": "sub"})
     s["mid"] = s["mid"].str.strip(); s["sub"] = s["sub"].str.strip()
     w = w.drop(columns=[c for c in ["상권업종소분류명", "상권업종중분류명", "상권업종대분류명"] if c in w.columns]).merge(s, on="sid", how="left")
+    ov = overrides()      # v5b: 가게 단위 예외가 category_map 보다 먼저
+    pid = w["place_id"].astype(str)
+    hit = pid.isin(ov)
+    w.loc[hit, "sub"] = [ov[p][0] for p in pid[hit]]
+    w.loc[hit, "mid"] = [ov[p][1] for p in pid[hit]]
+    w["dup_key"] = [ov[p][3] if p in ov and ov[p][3] else p for p in pid]
     miss = sorted(set(w["sub"].dropna()) - set(T))
     if miss: raise SystemExit(f"대응표에 없는 소분류 {miss}")
     w["cats"] = w["sub"].map(T)
+    off = hit & ~pid.map(lambda p: ov.get(p, (0, 0, True))[2])
+    w.loc[off, "cats"] = [()] * int(off.sum())
     w["cat"] = w["cats"].map(lambda t: t[0] if isinstance(t, tuple) and t else None)
     return w
 
@@ -89,7 +119,10 @@ def write_station(d, sid, out, n_cats, fail=None):
     """충전소 하나의 표 d → out/<sid>.json. 요약(dict)과 파일 크기를 돌려줌.
     fail: 경로 미확인 수를 밖에서 셌을 때(10분 안 행만 있는 앱용 파일은 실패 행이 없어 여기서 셀 수 없음)"""
     dk = d[d["ok"] & (d["walk_m"] <= M10)]
-    in_cat = dk[dk["cat"].notna()].sort_values(["walk_m", "name"])
+    in_cat = dk[dk["cat"].notna()]
+    if "dup_key" in in_cat.columns:     # v5b: 올리브영 중복 묶음은 이 충전소에서 도보가 가장 짧은 1곳만(score_reference 와 같은 (도보, place_id) 순)
+        in_cat = in_cat.sort_values(["walk_m", "place_id"]).drop_duplicates("dup_key", keep="first")
+    in_cat = in_cat.sort_values(["walk_m", "name"])
     n5, n10 = [0] * n_cats, [0] * n_cats
     items, pids, wms = [], [], []      # pids·wms: 추천 점수용(place_id 에서 'shop:' 뺀 값, 도보 m 소수 그대로). 줄 순서와 같음
     for _, r in in_cat.iterrows():
