@@ -864,7 +864,8 @@ Promise.all([fetch('data/stations.json').then(r => r.json()), loadSprites().then
 /* STEP 2 예비: 충전소를 눌렀을 때만 그 충전소의 주변 상권 파일을 읽어 옴.
    파일은 반경 300m(가까운 순 최대 400곳, 각 가게에 충전소까지 거리 m)를 담고 있고, 화면에서는 고른 반경(50m·100m, 기본 100m) 안만 걸러 보여 줌
    도보 자료가 있는 충전소(WK, data/walk_seoul 또는 data/walk9)는 대신 <WDIR>/<id>.json(도보 10분 = 780m 안 가게, 도보 거리 순)을 읽고 도보 5분·10분으로 걸러 보여 줌.
-   걸러 쓰기 쉽게 가게 한 줄을 [이름, 종류, 소분류, 위도, 경도, 도보 m, 도보 분, 5분 안, 카카오 도보 경로값]으로 바꿔 둠(직선 파일과 같은 자리 5 = m) */
+   걸러 쓰기 쉽게 가게 한 줄을 [이름, 종류, 업종, 위도, 경도, 도보 m, 도보 분, 5분 안, 카카오 도보 경로값]으로 바꿔 둠(직선 파일과 같은 자리 5 = m).
+   업종 = 세원 중분류 · 소분류(도보 파일 10번째 칸에 세원 중분류가 있을 때. 세원 소진공 전처리판 77개 소분류, 11/21) */
 const POI_RS = [50, 100], WALK_MS = [5, 10];
 let poiR = 100, walkMin = 5;
 try { const v = +localStorage.getItem('poiR'); if (POI_RS.includes(v)) poiR = v; } catch (e) {}
@@ -914,7 +915,7 @@ function loadPoi(s){
   if (!walk) poiFit(s);
   const url = walk ? WDIR + '/' + s[C.id] + '.json' : 'data/poi/' + s[C.id] + '.json';
   fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => { if (poi.s !== s) return;
-    if (walk) d = {walk:true, n:d.n10.map(() => 0), fail:d.fail, p:d.p.map(x => [x[0], x[1], x[2], x[3], x[4], x[6], x[5], x[7], x[8]])};
+    if (walk) d = {walk:true, n:d.n10.map(() => 0), fail:d.fail, p:d.p.map(x => [x[0], x[1], x[9] ? x[9] + ' · ' + x[2] : x[2], x[3], x[4], x[6], x[5], x[7], x[8]])};
     poi.data = d; poi.state = 'ok'; if (walk) poiFit(s); drawPoi(); renderPoi(); })
     .catch(() => { if (poi.s === s){ poi.state = 'error'; renderPoi(); } });
 }

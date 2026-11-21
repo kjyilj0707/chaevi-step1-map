@@ -1,7 +1,7 @@
 """서울 전체 충전소(급속 + 완속): 도보 10분(780m) 안 가게를 충전소별 파일로 만들기. build_walk9.py 의 서울판.
 입력: 분석 담당의 서울 전체 도보 경로 CSV (칸은 walk_routes_9_v2.csv 와 같은 세원 방식 + kind, stay, osm_flag, correction)
       아래 SRC_CANDIDATES 중 처음 있는 파일을 씀. 다른 파일을 쓰려면 --src 경로
-      raw/step2/sbiz_서울.csv (중분류·소분류, build_walk9.load_routes 와 같음)
+      ../data/team_drive/1121/sewon_sbiz_subcat_202609.csv (세원 77개 소분류·세원 중분류, build_walk9.attach_cats 와 같음)
 출력: data/walk_seoul/<충전소ID>.json  (가게 줄 모양은 data/walk9 와 같음)
       data/walk_seoul/index.json        (충전소 요약 + demo(시연 9곳) + label + 정확도 낮음 표시)
 화면(index.html)은 data/walk_seoul/index.json 이 있으면 이것을 먼저 쓰고, 없으면 data/walk9 를 씀.
@@ -146,7 +146,7 @@ def main():
     if excl:
         print("제외 충전소", sorted(excl), "· 입력에 남아 있던 행", int(w["station_id"].isin(excl).sum()))
         w = w[~w["station_id"].isin(excl)]
-    print("충전소", w["station_id"].nunique(), "· 상가정보에서 못 찾은 가게", int(w["sub"].isna().sum()))
+    print("충전소", w["station_id"].nunique(), "· 세원 77개 소분류 밖(뺌) 가게 줄", int(w["sub"].isna().sum()), "/", len(w))
 
     out = a.out
     shutil.rmtree(out, ignore_errors=True); os.makedirs(out)
@@ -160,6 +160,7 @@ def main():
             if sid in lows: ex["low"] = 1; ex["lowWhy"] = lows[sid]
             if lows.get(sid) == WHY_PENDING: ex["pending"] = 1
         summ.update(ex)
+        if summ["n10"] == 0: summ["empty"] = 1       # 세원 77개 소분류로 거른 뒤 도보 10분 안 가게가 0곳: v2 CV000753 과 같은 '가게 없음' 표시
         idx.append(summ); size += sz; total += summ["n10"]
 
     # 도보 10분 안 가게 0곳(앱용 CSV에 행 없음): 빈 파일로 넣어 지도에서 빠지지 않게 함
@@ -190,7 +191,7 @@ def main():
     meta = {"src": os.path.basename(src), "summary": os.path.basename(sm) if lows is not None else None, "speed": B.SPEED, "m5": B.M5, "m10": B.M10, "cats": CATS, "note": B.NOTE,
             "label": f"서울 도보 {len(idx)}곳", "demo": demo, "excluded": excl_why, "stations": idx}
     json.dump(meta, open(os.path.join(out, "index.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
-    print(f"충전소 파일 {len(idx)} · 합계 가게 {total} · 파일 합계 MB {size/1e6:.1f} · 정확도 낮음 {n_low}(보류 {sum(1 for x in idx if x.get('pending'))}) · 가게 없음 {len(empty)} · 제외 {len(excl_why)} · 시연 {len(demo)}")
+    print(f"충전소 파일 {len(idx)} · 합계 가게 {total} · 파일 합계 MB {size/1e6:.1f} · 정확도 낮음 {n_low}(보류 {sum(1 for x in idx if x.get('pending'))}) · 가게 없음 {sum(1 for x in idx if x.get('empty'))}(빈 파일 {len(empty)}) · 제외 {len(excl_why)} · 시연 {len(demo)}")
 
 
 if __name__ == "__main__":
