@@ -68,7 +68,7 @@ NOTE_STRAIGHT = "도보 시간 = 직선거리 × 1.45 추정(카카오 서울 �
 
 
 def fail_counts(parquet):
-    """전체 행 파일(parquet)에서 직선 780m 안인데 경로를 못 찾은(route_status != ok 이고 거리 없음) 가게를 충전소별로, 7개 카테고리 안만 셈.
+    """전체 행 파일(parquet)에서 직선 780m 안인데 경로를 못 찾은(route_status != ok 이고 거리 없음) 가게를 충전소별로, 지도 칩(동권 활동) 안만 셈.
     route_status=excluded(v1.1: 충전소째 제외)는 실패로 세지 않음"""
     import pyarrow.parquet as pq
     t = pq.read_table(parquet, columns=["station_id", "place_id", "straight_m", "route_status", "walk_m"]).to_pandas()
@@ -160,7 +160,7 @@ def main():
             if sid in lows: ex["low"] = 1; ex["lowWhy"] = lows[sid]
             if lows.get(sid) == WHY_PENDING: ex["pending"] = 1
         summ.update(ex)
-        if summ["n10"] == 0: summ["empty"] = 1       # 세원 77개 소분류로 거른 뒤 도보 10분 안 가게가 0곳: v2 CV000753 과 같은 '가게 없음' 표시
+        if summ["n10"] == 0: summ["empty"] = 1       # 세원 77개 소분류·동권 활동(대응 없음 뺌)으로 거른 뒤 도보 10분 안 가게가 0곳: v2 CV000753 과 같은 '가게 없음' 표시
         idx.append(summ); size += sz; total += summ["n10"]
 
     # 도보 10분 안 가게 0곳(앱용 CSV에 행 없음): 빈 파일로 넣어 지도에서 빠지지 않게 함

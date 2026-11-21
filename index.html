@@ -383,7 +383,11 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
 <script>
 const $ = s => document.querySelector(s);
 const C = {id:0,name:1,addr:2,lat:3,lng:4,sido:5,kind:6,n:7,nfast:8,kw:9,apt:10,stay:11,occ:12,med:13,ses:14,bad:15,poi:16};
-const POI_COL = ['#eb6834','#6250d6','#eda100','#e87ba4','#2a78d6','#008300','#1baf7a'];   // 식사·카페·테이크아웃·쇼핑·편의·관광여가·업무
+/* 가게 종류 모양 번호: 0~6 = 직선 반경 상권 파일(build_poi.py 7개: 식사·카페·테이크아웃·쇼핑·편의·관광여가·업무)
+   7~13 = 도보 파일 칩(동권 활동, WACTS 순서). 도보 칩은 이름으로 모양을 찾음(index.json 의 cats) */
+const POI_COL = ['#eb6834','#6250d6','#eda100','#e87ba4','#2a78d6','#008300','#1baf7a',
+  '#2a78d6','#1baf7a','#b35fc4','#e87ba4','#eda100','#6250d6','#eb6834'];
+const WACTS = ['편의점','약국','카페 테이크아웃','쇼핑','빠른 식사','카페 착석','일반 식당'];
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const RAMP = ['--nodata','--q1','--q2','--q3','--q4','--q5'].map(css);
 const bin = v => v < 0 ? 0 : v < 10 ? 1 : v < 25 ? 2 : v < 50 ? 3 : v < 75 ? 4 : 5;
@@ -399,6 +403,9 @@ const PICON = [
   '<path d="M2.6 10h18.8l-1.7 9.3a1.7 1.7 0 0 1-1.7 1.4H6a1.7 1.7 0 0 1-1.7-1.4z"/><path d="M7.4 10.2L12 4l4.6 6.2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>',
   '<path d="M2.6 6.6h18.8v3.6a1.8 1.8 0 0 0 0 3.6v3.6H2.6v-3.6a1.8 1.8 0 0 0 0-3.6z"/>',
   '<rect x="4.6" y="4.8" width="14.8" height="10.6" rx="1.7"/><path d="M2 17h20v.9a1.9 1.9 0 0 1-1.9 1.9H3.9A1.9 1.9 0 0 1 2 17.9z"/>'];
+{ const TOGO = '<rect x="6.6" y="2.8" width="10.8" height="2.6" rx="1"/><path d="M5.6 6.4h12.8l-.5 2.2H6.1z"/><path d="M6.8 9.6h10.4l-1.3 10.6a1.7 1.7 0 0 1-1.7 1.5H9.8a1.7 1.7 0 0 1-1.7-1.5z"/>',
+    CROSS = '<path d="M9.6 3.2a1 1 0 0 1 1-1h2.8a1 1 0 0 1 1 1v6.4h6.4a1 1 0 0 1 1 1v2.8a1 1 0 0 1-1 1h-6.4v6.4a1 1 0 0 1-1 1h-2.8a1 1 0 0 1-1-1v-6.4H3.2a1 1 0 0 1-1-1v-2.8a1 1 0 0 1 1-1h6.4z"/>';
+  PICON.push(PICON[4], CROSS, TOGO, PICON[3], PICON[2], PICON[1], PICON[0]); }     // 편의점·약국·카페 테이크아웃·쇼핑·빠른 식사·카페 착석·일반 식당
 const picon = (i, size) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="currentColor">${PICON[i]}</svg>`;
 const pinSVG = i => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96"><circle cx="24" cy="24" r="21" fill="${POI_COL[i]}" stroke="#fff" stroke-width="3"/><g transform="translate(11 11) scale(1.083)" fill="#fff" color="#fff">${PICON[i].replace(/currentColor/g, '#fff')}</g></svg>`;
 /* 표시 = 바탕(이용률 색) + 번개 모양. 종류는 테두리와 모양으로만 나눔(바탕색은 이용률 몫)
@@ -873,13 +880,20 @@ try { const v = +localStorage.getItem('walkMin'); if (WALK_MS.includes(v)) walkM
 /* 목록은 처음 가까운 5곳만 보이고 '더보기'를 누를 때마다 20곳씩 늘어남(상한: 도보 100 · 직선 60). 종류·범위·충전소를 바꾸면 다시 5곳 */
 const POI_FIRST = 5, POI_STEP = 20;
 let poi = {s:null, data:null, cat:-1, state:'', show:POI_FIRST};
+/* 도보 파일은 한 가게가 칩 둘에 들 수 있음(카페 = 카페 테이크아웃·카페 착석): 가게 줄 9번 칸 = 속한 칩 목록(없으면 1번 칸 하나) */
+const inCat = (x, c) => c < 0 || (x[9] ? x[9].includes(c) : x[1] === c);
+function sk(c){               // 칩 번호 → 모양 번호(POI_COL·PICON·지도 핀)
+  if (!(poi.data && poi.data.walk)) return c;
+  const k = WACTS.indexOf(WKM.cats[c]); return 7 + (k < 0 ? c % 7 : k);
+}
+const shownCat = x => poi.cat >= 0 ? poi.cat : x[1];     // 칩을 골랐으면 그 칩 모양으로 보임(카페를 '카페 착석'으로 고르면 착석 색)
 const walkLim = () => walkMin === 5 ? (WKM ? WKM.m5 : 390) : (WKM ? WKM.m10 : 780);
 function poiView(){            // 고른 범위 안의 가게와 종류별 개수. 직선 파일이 상한(400곳)에 걸렸고 그 400곳이 다 반경 안이면 실제는 더 많음(more)
   const d = poi.data; if (!d) return null;
   const key = d.walk ? 'w' + walkMin : poiR;
   if (d.v && d.v.r === key) return d.v;
   const lim = d.walk ? walkLim() : poiR;
-  const p = d.p.filter(x => x[5] <= lim), n = d.n.map(() => 0); p.forEach(x => n[x[1]]++);
+  const p = d.p.filter(x => x[5] <= lim), n = d.n.map(() => 0); p.forEach(x => (x[9] || [x[1]]).forEach(c => n[c]++));
   return d.v = {r:key, p, n, sum:p.length, more:!d.walk && d.total > d.p.length && p.length === d.p.length};
 }
 function poiFit(s){              // 반경 원이 화면에 들어오도록 맞춤(100m면 약 17.5, 50m면 약 18.5). 도보 범위는 범위 안 가게가 다 들어오게
@@ -901,9 +915,9 @@ function clearPoi(){ if (!poi.s && !poi.data) return; poi = {s:null, data:null, 
 function drawPoi(){
   if (!ready || !poi.s) return; const s = poi.s, v = poiView(), walk = poi.data && poi.data.walk;
   map.getSource('ring').setData(walk || poi.walk ? EMPTY : circlePoly([s[C.lat], s[C.lng]], poiR));     // 도보 범위는 원으로 그리지 않음(길 따라 잰 거리라 모양이 원이 아님)
-  const items = v ? v.p.filter(x => poi.cat < 0 || x[1] === poi.cat) : [];
+  const items = v ? v.p.filter(x => inCat(x, poi.cat)) : [];
   map.getSource('poi').setData({type:'FeatureCollection', features:items.map(x => ({type:'Feature', geometry:{type:'Point', coordinates:[x[4], x[3]]},
-    properties:walk ? {n:x[0], c:x[1], s:x[2], d:x[5], w:x[6]} : {n:x[0], c:x[1], s:x[2], d:x[5]}}))});
+    properties:walk ? {n:x[0], c:sk(shownCat(x)), s:x[2], d:x[5], w:x[6]} : {n:x[0], c:sk(shownCat(x)), s:x[2], d:x[5]}}))});
 }
 function loadPoi(s){
   if (!D.meta.poi){ poi = {s, data:null, cat:-1, state:'none', show:POI_FIRST}; return; }
@@ -915,13 +929,13 @@ function loadPoi(s){
   if (!walk) poiFit(s);
   const url = walk ? WDIR + '/' + s[C.id] + '.json' : 'data/poi/' + s[C.id] + '.json';
   fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => { if (poi.s !== s) return;
-    if (walk) d = {walk:true, n:d.n10.map(() => 0), fail:d.fail, p:d.p.map(x => [x[0], x[1], x[9] ? x[9] + ' · ' + x[2] : x[2], x[3], x[4], x[6], x[5], x[7], x[8]])};
+    if (walk) d = {walk:true, n:d.n10.map(() => 0), fail:d.fail, p:d.p.map(x => [x[0], x[1], x[9] ? x[9] + ' · ' + x[2] : x[2], x[3], x[4], x[6], x[5], x[7], x[8], x[10] || null])};
     poi.data = d; poi.state = 'ok'; if (walk) poiFit(s); drawPoi(); renderPoi(); })
     .catch(() => { if (poi.s === s){ poi.state = 'error'; renderPoi(); } });
 }
 function renderPoi(){
   const m = D.meta.poi, on = !!selected && poi.s === selected && poi.state === 'ok', walk = !!(poi.data && poi.data.walk);
-  const cats = m ? m.cats : WKM.cats, rng = walk ? `도보 ${walkMin}분` : `주변 ${poiR}m`;
+  const cats = walk ? WKM.cats : m.cats, rng = walk ? `도보 ${walkMin}분` : `주변 ${poiR}m`;
   document.body.classList.toggle('infra', on && !route);
   if (on){      // 위쪽 띠와 종류 단추
     const d = poiView(), plus = d.more ? '+' : '';
@@ -933,7 +947,7 @@ function renderPoi(){
       R.innerHTML = (walk ? WALK_MS.map(v => `<button type="button" data-r="${v}">${v}분</button>`) : POI_RS.map(v => `<button type="button" data-r="${v}">${v}m</button>`)).join(''); }
     R.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.r === (walk ? walkMin : poiR)));
     $('#infraClear').style.visibility = poi.cat < 0 ? 'hidden' : 'visible';
-    $('#infraChips').innerHTML = cats.map((c, i) => `<button class="chip" type="button" data-c="${i}" aria-pressed="${poi.cat === i}"><span class="ic" style="color:${POI_COL[i]}">${picon(i, 18)}</span>${c} <b>${d.n[i]}</b></button>`).join('');
+    $('#infraChips').innerHTML = cats.map((c, i) => `<button class="chip" type="button" data-c="${i}" aria-pressed="${poi.cat === i}"><span class="ic" style="color:${POI_COL[sk(i)]}">${picon(sk(i), 18)}</span>${c} <b>${d.n[i]}</b></button>`).join('');
     $('#infraChips').querySelectorAll('.chip').forEach(b => b.onclick = () => { const c = +b.dataset.c; poi.cat = poi.cat === c ? -1 : c; poi.show = POI_FIRST; hidePlace(); drawPoi(); renderPoi(); });
     $('#listBtnTxt').textContent = sheetH > baseH() ? '지도 보기' : '목록 보기';
   }
@@ -943,7 +957,7 @@ function renderPoi(){
   if (poi.state === 'uncovered'){ el.innerHTML = `<h4>주변 인프라</h4><p>${selected[C.sido]}은(는) 상권 자료가 아직 없음 (현재 ${m.covered.length}개 시·도만 있음)</p>`; return; }
   if (poi.state === 'loading'){ el.innerHTML = `<h4>${head}</h4><p>불러오는 중…</p>`; return; }
   if (poi.state === 'error'){ el.innerHTML = `<h4>주변 인프라</h4><p>상권 자료를 불러오지 못함</p>`; return; }
-  const d = poiView(), full = d.p.filter(x => poi.cat < 0 || x[1] === poi.cat).slice(0, walk ? 100 : 60), list = full.slice(0, poi.show);
+  const d = poiView(), full = d.p.filter(x => inCat(x, poi.cat)).slice(0, walk ? 100 : 60), list = full.slice(0, poi.show);
   const rest = full.length - list.length;
   /* 충전소 단위 표시: low = 정확도 낮음(lowWhy 이유), pending = v2 판정 보류(카카오 미확인, 노량진 대체식의 행 단위 low와 다름),
      empty = 도보 10분 안 가게 0곳, WKM.excluded = 측정 이상으로 도보 자료에서 뺀 충전소(직선 반경으로 보여 줌) */
@@ -957,13 +971,13 @@ function renderPoi(){
   el.innerHTML = (walk ? `<h4>주변 인프라 도보 ${walkMin}분 · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳${d.sum > full.length && poi.cat < 0 ? ' / ' + d.sum.toLocaleString('ko-KR') + '곳' : ''})</h4>${note}`
       : `<h4>주변 인프라 ${poiR}m · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳)</h4>${note}
     ${d.more ? `<p class="hint">가게가 많아 가까운 ${d.sum}곳까지만 셈 (실제는 더 많음)</p>` : ''}`) +
-    (list.map((x, k) => `<div class="prow" data-k="${k}"><span class="pin" style="background:${POI_COL[x[1]]}">${picon(x[1], 17)}</span><div class="nm"><b>${x[0]}</b><span>${x[2]}${walk && x[8] ? ' · 카카오 도보 경로값' : ''}</span></div>` +
+    (list.map((x, k) => `<div class="prow" data-k="${k}"><span class="pin" style="background:${POI_COL[sk(shownCat(x))]}">${picon(sk(shownCat(x)), 17)}</span><div class="nm"><b>${x[0]}</b><span>${x[2]}${walk && x[8] ? ' · 카카오 도보 경로값' : ''}</span></div>` +
       (walk ? `<div class="oc"><b>도보 ${x[6]}분</b><span>${x[5]}m</span></div></div>` : `<div class="oc"><b>${x[5]}m</b></div></div>`)).join('') || '<p class="hint">해당하는 곳 없음</p>') +
     (rest > 0 ? `<button class="pmore" id="poiMore" type="button">더보기 (나머지 ${rest}곳)</button>` : full.length > POI_FIRST ? `<button class="pmore" id="poiMore" type="button">접기</button>` : '');
   const mb = $('#poiMore'); if (mb) mb.onclick = () => { const top = rest <= 0; poi.show = top ? POI_FIRST : poi.show + POI_STEP; renderPoi();
     if (top){ const h = el.querySelector('h4'); if (h) h.scrollIntoView({block:'nearest'}); } };
   el.querySelectorAll('.prow').forEach(r => r.onclick = () => { const x = list[+r.dataset.k]; setSheet(false); renderPoi();
-    map.easeTo({center:[x[4], x[3]], zoom:Math.max(map.getZoom(), 17), duration:500}); showPlace(x[0], x[1], x[2], x[5], [x[4], x[3]], walk ? x[6] : 0); });
+    map.easeTo({center:[x[4], x[3]], zoom:Math.max(map.getZoom(), 17), duration:500}); showPlace(x[0], sk(shownCat(x)), x[2], x[5], [x[4], x[3]], walk ? x[6] : 0); });
 }
 $('#infraBack').onclick = () => { selected = null; renderBody(); updateMap(); };
 $('#infraClear').onclick = () => { poi.cat = -1; poi.show = POI_FIRST; hidePlace(); drawPoi(); renderPoi(); };

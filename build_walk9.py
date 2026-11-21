@@ -2,12 +2,14 @@
 입력: ../analysis/walk_9/walk_routes_9_v2.csv (팀 확정판. 없으면 같은 칸 구성의 제안판 walk_routes_osm_9_v2_proposed.csv)
       ../data/team_drive/1121/sewon_sbiz_subcat_202609.csv (세원 소진공 전처리판, 11/21. 상가업소번호로 세원 중분류·소분류를 붙임.
         이 파일에 없는 가게(세원 77개 소분류 밖: 주점·구내식당·뷔페·서비스업 등)는 뺌.
-        7개 카테고리 대응은 build_poi.py의 표를 그대로 읽어 씀(소분류 → 원본 중분류 순). 표에 없는 세원 소분류는 대분류로 채움: 소매 → 쇼핑, 예술·스포츠 → 관광·여가)
+        범주 = 동권 활동(분석의 기준선 비교와 같음): ../analysis/activity_map/category_map_sewon.csv 의 activity 를 소진공_소분류(공백 제거)로 붙임.
+        activity 가 '대응 없음'(담배·PC방 등)인 가게는 뺌. 'A|B'(카페 = 테이크아웃·착석)인 가게는 두 칩 모두에 셈. 칩 묶음·순서는 ACTS)
 출력: data/walk9/<충전소ID>.json  (지도에서 9곳 중 하나를 누를 때만 읽음)
       data/walk9/index.json        (9곳 목록과 요약. 페이지가 처음 열릴 때 읽음)
 입력 CSV는 읽기만 함. 실행: ~/.venvs/work/bin/python -I build_walk9.py
 
-가게 한 줄 = [이름, 카테고리 번호, 소분류, 위도, 경도, 도보 분, 도보 m, 5분 안(1/0), 카카오 도보 경로값(1/0), 세원 중분류]
+가게 한 줄 = [이름, 칩 번호(대표), 소분류, 위도, 경도, 도보 분, 도보 m, 5분 안(1/0), 카카오 도보 경로값(1/0), 세원 중분류(, 속한 칩 번호 목록: 둘 이상일 때만)]
+n5·n10 = 칩별 가게 수(한 가게가 두 칩에 들면 둘 다 셈). index.json 의 n5·n10 = 가게 수(겹침 없이)
 - 도보 분 = ceil(walk_sec / 60), walk_sec = walk_m / 1.3. 5분 안 = walk_m <= 390, 10분 안 = walk_m <= 780
 - route_status 가 ok 가 아닌 가게(경로 미확인)는 파일에 넣지 않고 index.json 에 개수만 적음
 - 가게 이름 안의 전화번호 패턴은 "[전화번호]"로 바꿈
@@ -21,43 +23,53 @@ WALK_DIR = os.path.join(HERE, "..", "analysis", "walk_9")
 SRC_FINAL = os.path.join(WALK_DIR, "walk_routes_9_v2.csv")                 # 확정판이 생기면 이것을 씀
 SRC_PROPOSED = os.path.join(WALK_DIR, "walk_routes_osm_9_v2_proposed.csv")  # 확정판 전 개발용
 SBIZ = os.path.join(HERE, "..", "data", "team_drive", "1121", "sewon_sbiz_subcat_202609.csv")   # 세원 소진공 전처리판(77개 소분류)
-BIG_CAT = {"소매": 3, "예술·스포츠": 5}     # build_poi.py 표에 없는 세원 소분류의 카테고리(대분류 기준)
+ACT_MAP = os.path.join(HERE, "..", "analysis", "activity_map", "category_map_sewon.csv")    # 세원 77 소분류 → 동권 활동(분석 정식판과 같은 표, 11/21)
+# 지도 칩(활동 시간이 짧은 순). 칩 하나 = 동권 활동 하나. 빠른 식사(포장)·(매장)은 대응표에서 늘 같은 소분류에 함께 붙어 칩 하나로 묶음
+ACTS = [("편의점", ["편의점"]), ("약국", ["약국"]), ("카페 테이크아웃", ["카페 테이크아웃"]), ("쇼핑", ["쇼핑"]),
+        ("빠른 식사", ["빠른 식사(포장)", "빠른 식사(매장)"]), ("카페 착석", ["카페 착석"]), ("일반 식당", ["일반 식당"])]
+NO_ACT = "대응 없음"
 OUT = os.path.join(HERE, "data", "walk9")
 SPEED, M5, M10 = 1.3, 390, 780
 PHONE = re.compile(r"0\d{1,2}[-. ]?\d{3,4}[-. ]?\d{4}")   # 가게 이름에 들어간 전화번호(공개 사이트라 가림)
 STATIONS = ["CV002017", "CV000826", "CV001539", "CV001523", "CV004090", "CV001087", "CV004512", "CV000939", "CV002137"]
 
 
-def poi_tables():
-    """build_poi.py 는 실행하면 전체를 다시 만들므로 import 하지 않고, 맨 위의 CATS·MID·SUB 표만 읽음"""
-    tree = ast.parse(open(os.path.join(HERE, "build_poi.py"), encoding="utf-8").read())
-    got = {}
-    for node in tree.body:
-        if isinstance(node, ast.Assign) and len(node.targets) == 1 and getattr(node.targets[0], "id", None) in ("CATS", "MID", "SUB"):
-            got[node.targets[0].id] = ast.literal_eval(node.value)
-    return got["CATS"], got["MID"], got["SUB"]
+def act_table():
+    """소진공 소분류 → 속한 칩 번호 목록(튜플). '대응 없음'은 빈 튜플. 대응표에 ACTS 밖의 활동이 있으면 멈춤"""
+    a = pd.read_csv(ACT_MAP, dtype=str)
+    a["sub"] = a["소진공_소분류"].str.strip(); a["activity"] = a["activity"].str.strip()
+    to_chip = {act: i for i, (_, acts) in enumerate(ACTS) for act in acts}
+    out = {}
+    for sub, act in zip(a["sub"], a["activity"]):
+        if act == NO_ACT:
+            out[sub] = (); continue
+        parts = [x.strip() for x in act.split("|")]
+        miss = [x for x in parts if x not in to_chip]
+        if miss: raise SystemExit(f"ACTS 에 없는 활동 {miss} ({sub})")
+        out[sub] = tuple(sorted({to_chip[x] for x in parts}))
+    return out
 
 
 def attach_cats(w):
-    """place_id(shop:상가업소번호) → 세원 전처리판의 중분류·소분류(mid = 세원 중분류, sub)와 7개 카테고리 번호(cat).
-    세원 파일에 없는 가게는 mid·sub·cat 이 빈칸(= 7개 카테고리 밖으로 보고 뺌)"""
-    CATS, MID, SUB = poi_tables()
+    """place_id(shop:상가업소번호) → 세원 전처리판의 중분류·소분류(mid = 세원 중분류, sub)와 칩(cat = 대표 칩 번호, cats = 속한 칩 목록).
+    세원 파일에 없는 가게(77개 소분류 밖)와 '대응 없음' 소분류는 cat 이 빈칸(= 뺌)"""
+    T = act_table()
     w = w.copy(); w["sid"] = w["place_id"].str.replace("shop:", "", regex=False)
-    s = pd.read_csv(SBIZ, dtype=str, usecols=["상가업소번호", "상권업종대분류명", "상권업종중분류명_원본", "상권업종중분류명", "상권업종소분류명"])
-    s = s.rename(columns={"상가업소번호": "sid", "상권업종대분류명": "big", "상권업종중분류명_원본": "mid0", "상권업종중분류명": "mid", "상권업종소분류명": "sub"})
-    s["mid"] = s["mid"].str.strip()
+    s = pd.read_csv(SBIZ, dtype=str, usecols=["상가업소번호", "상권업종대분류명", "상권업종중분류명", "상권업종소분류명"])
+    s = s.rename(columns={"상가업소번호": "sid", "상권업종대분류명": "big", "상권업종중분류명": "mid", "상권업종소분류명": "sub"})
+    s["mid"] = s["mid"].str.strip(); s["sub"] = s["sub"].str.strip()
     w = w.drop(columns=[c for c in ["상권업종소분류명", "상권업종중분류명", "상권업종대분류명"] if c in w.columns]).merge(s, on="sid", how="left")
-    cat = w["sub"].map(SUB)
-    m = cat.isna(); cat[m] = w.loc[m, "mid0"].str.strip().map(MID)
-    m = cat.isna(); cat[m] = w.loc[m, "big"].map(BIG_CAT)
-    w["cat"] = cat
+    miss = sorted(set(w["sub"].dropna()) - set(T))
+    if miss: raise SystemExit(f"대응표에 없는 소분류 {miss}")
+    w["cats"] = w["sub"].map(T)
+    w["cat"] = w["cats"].map(lambda t: t[0] if isinstance(t, tuple) and t else None)
     return w
 
 
 def load_routes(src, stations=None):
-    """도보 경로 CSV(세원 칸 방식) → 7개 카테고리(cat), 도보 m·초, 성공 여부(ok), 카카오 도보 경로값 여부(kakao) 칸을 붙인 표.
+    """도보 경로 CSV(세원 칸 방식) → 칩(cat·cats), 도보 m·초, 성공 여부(ok), 카카오 도보 경로값 여부(kakao) 칸을 붙인 표.
     stations 를 주면 그 충전소만. 서울 전체판(build_walk_seoul.py)도 이 함수를 그대로 씀"""
-    CATS, MID, SUB = poi_tables()
+    CATS = [c for c, _ in ACTS]
     w = pd.read_csv(src, dtype={"station_id": str, "place_id": str, "route_status": str, "correction": str, "kakao_checked": str, "osm_flag": str})
     if stations is not None:
         w = w[w["station_id"].isin(stations)].copy()
@@ -82,10 +94,12 @@ def write_station(d, sid, out, n_cats, fail=None):
     n5, n10 = [0] * n_cats, [0] * n_cats
     items = []
     for _, r in in_cat.iterrows():
-        c = int(r["cat"]); in5 = int(r["walk_m"] <= M5)
-        n10[c] += 1; n5[c] += in5
-        items.append([PHONE.sub("[전화번호]", str(r["name"]).strip()), c, r["sub"], round(float(r["lat"]), 5), round(float(r["lng"]), 5),
-                      max(1, math.ceil(r["walk_sec"] / 60 - 1e-9)), int(round(r["walk_m"])), in5, int(r["kakao"]), r["mid"]])
+        cs = list(r["cats"]); c = cs[0]; in5 = int(r["walk_m"] <= M5)
+        for k in cs: n10[k] += 1; n5[k] += in5
+        row = [PHONE.sub("[전화번호]", str(r["name"]).strip()), c, r["sub"], round(float(r["lat"]), 5), round(float(r["lng"]), 5),
+               max(1, math.ceil(r["walk_sec"] / 60 - 1e-9)), int(round(r["walk_m"])), in5, int(r["kakao"]), r["mid"]]
+        if len(cs) > 1: row.append(cs)
+        items.append(row)
     if fail is None:
         fr = d[~d["ok"] & (pd.to_numeric(d["straight_m"], errors="coerce") <= M10)]
         fail_cat = int(fr["cat"].notna().sum())
@@ -94,7 +108,7 @@ def write_station(d, sid, out, n_cats, fail=None):
     fp = os.path.join(out, sid + ".json")
     json.dump({"id": sid, "n5": n5, "n10": n10, "fail": fail_cat, "p": items}, open(fp, "w", encoding="utf-8"),
               ensure_ascii=False, separators=(",", ":"))
-    summ = {"id": sid, "n5": sum(n5), "n10": sum(n10), "fail": fail_cat, "other10": int(dk["cat"].isna().sum()),
+    summ = {"id": sid, "n5": int((in_cat["walk_m"] <= M5).sum()), "n10": len(in_cat), "fail": fail_cat, "other10": int(dk["cat"].isna().sum()),
             "kakao10": int(in_cat["kakao"].sum())}
     return summ, os.path.getsize(fp), len(dk)
 

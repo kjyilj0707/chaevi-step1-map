@@ -20,7 +20,7 @@
 ## 시연 충전소 9곳: 도보 5분·10분 범위
 
 - 9곳(`build_walk9.py`의 `STATIONS`)은 직선 반경 대신 도보 5분(390m)·10분(780m) 안 가게를 보여 줌. 지도에서 초록 걷는 사람 배지로 표시, 위쪽 "시연 9곳" 칩으로 9곳만 볼 수 있음
-- 자료: `../analysis/walk_9/walk_routes_9_v2.csv`(팀 확정 규칙 2026-11-20, OSM 보행망 multi × 보정, 카카오 도보 경로값 표본, 보행 1.3 m/s). 7개 카테고리 대응은 `build_poi.py`의 표를 그대로 읽어 씀
+- 자료: `../analysis/walk_9/walk_routes_9_v2.csv`(팀 확정 규칙 2026-11-20, OSM 보행망 multi × 보정, 카카오 도보 경로값 표본, 보행 1.3 m/s). 지도 칩 = 동권 활동 7개(편의점·약국·카페 테이크아웃·쇼핑·빠른 식사·카페 착석·일반 식당). `../analysis/activity_map/category_map_sewon.csv`(세원 77 소분류 → 활동, 분석 기준선 비교와 같은 표)의 activity를 소분류로 붙임. `대응 없음`(담배·PC방 등)은 뺌, 카페·아이스크림은 카페 테이크아웃·카페 착석 두 칩에 모두 셈. 직선 반경 화면(도보 자료 없는 충전소)은 위 7개 카테고리 그대로
 - `build_walk9.py`: → `data/walk9/<충전소ID>.json`(10분 안 가게, 도보 거리 순), `data/walk9/index.json`(9곳 요약). 경로 미확인(route_status≠ok)은 빼고 개수만 적음, 가게 이름의 전화번호는 가림
 - 실행: `~/.venvs/work/bin/python -I build_walk9.py` (`raw/step2/sbiz_서울.csv` 필요)
 
