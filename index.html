@@ -25,6 +25,8 @@ if (window.top === window.self && matchMedia('(min-width: 821px)').matches) loca
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="reco.js"></script>
+<link rel="stylesheet" href="onboard.css">
+<script src="onboard.js"></script>
 <style>
 :root{
   --navy:#1b4965; --navy2:#143a52; --mint:#58ddd0; --mint2:#17a99a; --mintbg:#f8f0e2;
@@ -832,7 +834,7 @@ $('#wx').onclick = () => { if (!wxW) return; const w = wxW;      // 412px 화면
 
 $('#locate').onclick = () => { if (me && route && route.track) setFollow(true); else locate(); };
 /* 소개 화면 없이 바로 지도: 열자마자 위치를 묻고(지도는 서울 도보 충전소 범위 그대로), 나침반 권한은 첫 터치·클릭 때 물음 */
-locate(true);
+if (window.ONB) ONB.after(() => locate(true)); else locate(true);      // 첫 실행 질문 화면(onboard.js)이 떠 있으면 닫힌 뒤 위치 요청
 const firstTouch = () => { initCompass(); removeEventListener('click', firstTouch, true); removeEventListener('touchend', firstTouch, true); };
 addEventListener('click', firstTouch, true); addEventListener('touchend', firstTouch, true);
 $('#home').onclick = () => {        // 처음: 검색·선택을 지우고 첫 화면 범위로
@@ -938,6 +940,7 @@ const REMAINS = [15, 30, 45, 60];
 const RS = {persona:'P2', remain:30, kw:null, wx:null, hour:null, trashMap:false};     // wx: null = 지금 날씨, 'rain'·'clear' = 직접 고름. hour: null = 지금 시각(시험용으로 바꿀 수 있음)
 try { const v = localStorage.getItem('recoP'); if (PERSONAS.some(x => x[0] === v)) RS.persona = v; } catch (e) {}
 try { const v = +localStorage.getItem('recoR'); if (REMAINS.includes(v)) RS.remain = v; } catch (e) {}
+if (window.ONB) ONB.init(RS, REMAINS, () => { recoMemo = null; if (selected && poi.s === selected && poi.data){ poi.show = POI_FIRST; renderPoi(); } });     // 정보 입력 화면: 페르소나·남은 시간·동승 기본값
 const recoHour = () => RS.hour == null ? new Date().getHours() : RS.hour;
 const isNight = () => { const h = recoHour(); return h >= 22 || h < 6; };
 const walkMinOf = m => Math.max(1, Math.ceil(m / (WKM ? WKM.speed : 1.3) / 60 - 1e-9));     // 목록과 같은 올림(도보 분)
@@ -1015,7 +1018,7 @@ function loadPoi(s){
 let recoMemo = null;
 function recoRun(){
   const s = poi.s, d = poi.data; if (!RT || !s || !d || !d.walk || !d.raw || !d.raw.pid) return null;
-  const wx = recoWx(s), conds = RECO.conditions(recoHour(), wx === 'clear' ? null : wx);
+  const wx = recoWx(s), conds = RECO.conditions(recoHour(), wx === 'clear' ? null : wx).concat(window.ONB ? ONB.conds() : []);
   const key = [s[C.id], RS.persona, RS.remain, RS.kw, conds.join('+')].join('|');
   if (recoMemo && recoMemo.key === key && recoMemo.d === d) return recoMemo;
   if (!d.places) d.places = RECO.places(RT, s[C.id], d.raw, d.toilets);
@@ -1051,6 +1054,7 @@ function recoBuild(){
     <div class="rrow" role="group" aria-label="충전 중 나는">${pc}</div>
     <div class="rrow"><span class="rlab">남은 시간</span><div class="rseg2" id="recoR" role="group" aria-label="남은 충전 시간">${rm}</div></div>
     <div class="rrow"><span class="rlab">날씨</span><button class="rchip" type="button" id="recoWx" aria-pressed="${wet}" title="눌러서 비 올 때·안 올 때로 바꿔 보기">${wet ? '☂ ' : ''}${wxName}${live ? ' · 지금' : ' (가정)'}</button><span class="rctx">${h}시 · ${tz}</span></div>
+    ${window.ONB ? ONB.chips() : ''}
     <p class="rq">지금 뭐 하고 싶으세요?</p>
     <div class="rrow" role="group" aria-label="하고 싶은 것">${kws}</div>
     ${trash}
@@ -1068,8 +1072,9 @@ function recoBind(el, rc){
     const next = rc.r.wx === 'rain' || rc.r.wx === 'snow' ? 'clear' : 'rain';
     RS.wx = null; const now = recoWx(poi.s), same = now === next || (now === 'snow' && next === 'rain');
     RS.wx = same ? null : next; again(); };
+  if (window.ONB) ONB.bind(el, again);
   const t = $('#trashBtn'); if (t) t.onclick = () => { RS.trashMap = !RS.trashMap; drawPoi(); renderPoi(); };
-  el.querySelectorAll('.rcard').forEach(c => c.onclick = () => { const x = recoCardRow(rc.r.cards[+c.dataset.k]); if (!x) return; setSheet(false); renderPoi();
+  el.querySelectorAll('.rcard').forEach(c => c.onclick = () => { if (window.ONB) ONB.card(rc.r.cards[+c.dataset.k].group, RT); const x = recoCardRow(rc.r.cards[+c.dataset.k]); if (!x) return; setSheet(false); renderPoi();
     map.easeTo({center:[x[4], x[3]], zoom:Math.max(map.getZoom(), 17), duration:500}); showPlace(x[0], sk(x[1]), x[2], x[5], [x[4], x[3]], x[6]); });
 }
 function renderPoi(){

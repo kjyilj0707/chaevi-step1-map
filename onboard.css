@@ -1,0 +1,43 @@
+/* 정보 입력(첫 실행) 화면과 '내 습관' 메뉴 — 색·글꼴은 index.html :root 값을 씀 */
+.onb{position:fixed;inset:0;z-index:6000;background:var(--surface);display:flex;justify-content:center;overflow-y:auto}
+.onb[hidden]{display:none}
+.onb-in{width:100%;max-width:480px;min-height:100%;display:flex;flex-direction:column;padding:calc(12px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom))}
+.onb-top{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:10px;height:44px}
+.onb-back{border:0;background:var(--mintbg);color:var(--navy);width:36px;height:36px;border-radius:50%;font-size:22px;line-height:1;font-weight:700}
+.onb-bar{height:6px;background:var(--grid);border-radius:3px;overflow:hidden}
+.onb-bar i{display:block;height:100%;background:var(--mint2);border-radius:3px;transition:width .25s}
+.onb-skip{border:0;background:transparent;color:var(--ink2);font-size:13px;font-weight:600;padding:8px 4px}
+.onb-body{flex:1;display:flex;flex-direction:column;padding-top:18px}
+.onb-body h2{margin:0 0 14px;font-size:22px;line-height:1.35;color:var(--navy);letter-spacing:-.01em}
+.onb-body h2 em{font-style:normal;color:var(--mint2)}
+.onb-hero{flex:1}
+.onb-hero img{display:block;border-radius:14px;margin:18px 0 18px}
+.onb-hero > p{margin:0 0 14px;color:var(--ink2);font-size:15px}
+.onb-note{list-style:none;margin:0;padding:12px 14px;background:var(--mintbg);border-radius:14px;font-size:13px;color:var(--ink)}
+.onb-note li{padding-left:14px;position:relative;line-height:1.8}
+.onb-note li::before{content:"";position:absolute;left:0;top:.75em;width:6px;height:6px;border-radius:50%;background:var(--mint2)}
+.onb-step{margin:0 0 6px !important;font-size:12px !important;font-weight:700;color:var(--mint2) !important;font-variant-numeric:tabular-nums}
+.onb-opts{display:flex;flex-direction:column;gap:10px}
+.onb-opt{border:1.5px solid var(--axis);background:var(--surface);border-radius:14px;padding:15px 16px;text-align:left;font-size:16px;font-weight:600;color:var(--ink);box-shadow:0 2px 8px rgba(74,52,28,.08)}
+.onb-opt:active{background:var(--mintbg)}
+.onb-opt[aria-pressed="true"]{border-color:var(--navy);background:var(--navy);color:#fff}
+.onb-desc{font-size:15px !important;color:var(--ink) !important;background:var(--mintbg);border-radius:14px;padding:12px 14px}
+.onb-tags{display:flex;gap:6px;flex-wrap:wrap}
+.onb-tags span{border:1px solid var(--axis);border-radius:99px;padding:5px 11px;font-size:12px;font-weight:600;color:var(--navy);background:var(--surface)}
+.onb-small{font-size:12px !important;color:var(--muted) !important}
+.onb-foot{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:22px}
+.onb-go{width:100%;border:0;background:var(--navy);color:#fff;border-radius:99px;padding:15px;font-size:16px;font-weight:700;box-shadow:var(--shadow)}
+.onb-link{border:0;background:transparent;color:var(--ink2);font-size:13px;font-weight:600;padding:10px;text-decoration:underline;text-underline-offset:3px}
+body.onb-on .maplibregl-ctrl,body.onb-on #toast{visibility:hidden}
+
+/* 오른쪽 버튼 줄의 '내 습관' 버튼과 작은 메뉴 */
+#onbFab{flex-direction:column;gap:0;font-size:9px;line-height:1.1}
+#onbFab svg{width:20px;height:20px}
+body.nav #onbFab,body.nav .onb-menu{display:none}
+.onb-menu{position:fixed;z-index:1150;right:72px;top:calc(132px + env(safe-area-inset-top));width:220px;background:var(--surface);border-radius:14px;box-shadow:var(--shadow);padding:12px}
+.onb-menu[hidden]{display:none}
+.onb-menu b{display:block;color:var(--navy);font-size:13px;margin-bottom:4px}
+.onb-menu p{margin:0 0 10px;font-size:12px;color:var(--ink)}
+.onb-menu p span{color:var(--muted);font-size:11px}
+.onb-menu button{display:block;width:100%;border:0;background:var(--navy);color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:600;margin-top:6px}
+.onb-menu button.ghost{background:var(--mintbg);color:var(--navy)}
