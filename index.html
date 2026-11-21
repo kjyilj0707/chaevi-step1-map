@@ -198,6 +198,9 @@ body.infra.placeon .listbtn{display:none}
 .rcard .oc b{display:block;font-size:13px;color:var(--navy);font-variant-numeric:tabular-nums}
 .tbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:1px 7px;color:#fff;background:var(--mint2)}
 .tbadge.tight{background:#d07a00}
+.rchip small{font-size:10px;font-weight:500;margin-left:4px;opacity:.75;font-variant-numeric:tabular-nums}
+.rshare{font-size:10px !important;color:var(--ink2) !important;margin:-3px 0 6px !important}
+.rcard .nm .fbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:var(--ink2);background:var(--grid);vertical-align:1px}
 .rcard .nm .sbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:#6b4a00;background:#ffe9a8;vertical-align:1px}
 .rnote{font-size:11px !important;color:var(--ink2) !important;margin:2px 0 6px !important}
 .rfoot{font-size:10px !important;color:var(--muted) !important;margin:6px 0 0 !important}
@@ -425,7 +428,7 @@ const POI_COL = ['#eb6834','#6250d6','#eda100','#e87ba4','#2a78d6','#008300','#1
   '#d6457f','#a0743c','#0e8fa3','#6b7785','#9b4fd0','#4a8f2a'];      // 16 디저트·간식, 17 생활·리빙, 18 취미·문화, 19 기타 소매, 20 유원지·오락, 21 스포츠 서비스
 /* 새 대분류 → 모양 번호(7~13 은 옛 활동 모양을 다시 씀: 식품·편의 = 장바구니, 뷰티·건강 = 십자, 패션·잡화 = 쇼핑백, 간편식 = 버거, 카페·음료 = 잔, 식사 = 수저) */
 const BIG_SHAPE = {'식품·편의':7, '뷰티·건강':8, '패션·잡화':10, '간편식':11, '카페·음료':12, '식사':13, '화장실':14,
-  '디저트·간식':16, '생활·리빙':17, '취미·문화':18, '기타 소매':19, '유원지·오락':20, '스포츠 서비스':21};
+  '디저트·간식':16, '생활·리빙':17, '취미·문화':18, '기타 소매':19, '유원지·오락':20, '스포츠 서비스':21, '쓰레기통':15, '공원':5};      // 쓰레기통·공원 = 추천 슬롯 카드(v5b)
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const RAMP = ['--nodata','--q1','--q2','--q3','--q4','--q5'].map(css);
 const bin = v => v < 0 ? 0 : v < 10 ? 1 : v < 25 ? 2 : v < 50 ? 3 : v < 75 ? 4 : 5;
@@ -1002,7 +1005,7 @@ function loadPoi(s){
   const url = walk ? WDIR + '/' + s[C.id] + '.json' : 'data/poi/' + s[C.id] + '.json';
   /* 도보 충전소: 추천 표가 오면 공중화장실·쓰레기통 파일도 읽음(없거나 실패하면 빈 채로 — 가게 목록은 그대로 뜸) */
   const id = s[C.id], side = (k, dir) => !walk ? Promise.resolve(null) : RTP.then(t => t && t[k] && t[k][id] ? fetch(`data/reco/${dir}/${id}.json`).then(r => r.ok ? r.json() : null) : null).catch(() => null);
-  Promise.all([fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }), side('toilet', 'toilet'), side('trash', 'trash')]).then(([d, toi, trash]) => { if (poi.s !== s) return;
+  Promise.all([fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }), side('toilet', 'toilet'), side('trash', 'trash'), side('park', 'park')]).then(([d, toi, trash, park]) => { if (poi.s !== s) return;
     if (walk){ const raw = d, cats = wcats(), ti = cats.indexOf('화장실');
       /* 가게 한 줄(화면용): [이름, 칩, 업종, 위도, 경도, 도보 m, 도보 분, 5분 안, 카카오, 칩 목록, place_id, 도보 m(소수), 개방시간(화장실만)] */
       const p = d.p.map((x, i) => [x[0], x[1], x[9] ? x[9] + ' · ' + x[2] : x[2], x[3], x[4], x[6], x[5], x[7], x[8], x[10] || null,
@@ -1010,7 +1013,7 @@ function loadPoi(s){
       if (ti >= 0 && toi) toi.forEach(t => p.push([t[1], ti, '공중화장실' + (t[5] ? ' · ' + openTxt(t[5]) : ''), t[2], t[3], Math.round(t[4]), walkMinOf(t[4]),
         t[4] <= WKM.m5 ? 1 : 0, 0, null, 'toilet:' + t[0], t[4], t[5] || '']));
       if (toi && toi.length) p.sort((a, b) => a[11] - b[11] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-      d = {walk:true, n:cats.map(() => 0), fail:d.fail, p, raw, toilets:toi || [], trash:trash || null}; }
+      d = {walk:true, n:cats.map(() => 0), fail:d.fail, p, raw, toilets:toi || [], trash:trash || null, parks:park || null}; }
     poi.data = d; poi.state = 'ok'; if (walk) poiFit(s); drawPoi(); renderPoi(); })
     .catch(() => { if (poi.s === s){ poi.state = 'error'; renderPoi(); } });
 }
@@ -1021,13 +1024,17 @@ function recoRun(){
   const wx = recoWx(s), conds = RECO.conditions(recoHour(), wx === 'clear' ? null : wx).concat(window.ONB ? ONB.conds() : []);
   const key = [s[C.id], RS.persona, RS.remain, RS.kw, conds.join('+')].join('|');
   if (recoMemo && recoMemo.key === key && recoMemo.d === d) return recoMemo;
-  if (!d.places) d.places = RECO.places(RT, s[C.id], d.raw, d.toilets);
-  const res = RECO.score(RT, d.places, {persona:RS.persona, remain:RS.remain, conds, keyword:RS.kw, alpha:RT.alpha[s[C.id]] || 0});
-  const cards = RECO.display(RT, res, RS.persona, RS.kw), eff = RECO.effects(RT, conds);
-  return recoMemo = {key, d, wx, conds, res, cards, eff, ids:new Set(cards.map(r => r.p.pid))};
+  if (!d.places){ d.places = RECO.places(RT, s[C.id], d.raw, d.toilets); d.extra = RECO.extras(d.trash, d.parks); }
+  /* v5b: 키워드 없음·'아무거나!' = 페르소나별 슬롯 틀(쓰레기통·공원 카드 포함), 키워드 = v3e 필터 점수순 */
+  const out = RECO.recommend(RT, d.places, d.extra, {persona:RS.persona, remain:RS.remain, conds, keyword:RS.kw, alpha:RT.alpha[s[C.id]] != null ? RT.alpha[s[C.id]] : (RT.alphaDefault || 0)});
+  const res = out.res, cards = out.cards, eff = RECO.effects(RT, conds);
+  return recoMemo = {key, d, wx, conds, res, cards, mode:out.mode, eff, ids:new Set(cards.map(r => r.p.pid))};
 }
 const recoCardIds = () => { const r = recoRun(); return r ? r.ids : null; };
-function recoCardRow(r){          // 카드 한 장 → 목록 가게 줄(지도에 보이기·도보 안내에 그대로 씀)
+function recoCardRow(r){          // 카드 한 장 → 목록 가게 줄(지도에 보이기·도보 안내에 그대로 씀). 쓰레기통·공원 카드는 그 파일 줄로 같은 모양을 만듦
+  const k = r.p.kind;
+  if (k === 'trash' || k === 'park'){ const t = (k === 'trash' ? poi.data.trash : poi.data.parks || [])[r.p.row]; if (!t) return null;
+    return [t[1], -1, (k === 'trash' ? '가로쓰레기통' : '공원') + (t[5] ? ' · ' + t[5] : ''), t[2], t[3], Math.round(t[4]), walkMinOf(t[4]), 0, 0, null, r.p.pid, t[4], '', BIG_SHAPE[r.p.big]]; }
   return poi.data.p.find(x => x[10] === r.p.pid) || null;
 }
 function recoBuild(){
@@ -1035,7 +1042,8 @@ function recoBuild(){
   const s = poi.s, h = recoHour(), night = r.conds.includes('night'), morning = r.conds.includes('morning');
   const live = !RS.wx, wxName = {rain:'비', snow:'눈', clear:'비 없음'}[r.wx] || '날씨 정보 없음';
   const tz = night ? '심야(22~06시)' : morning ? '아침(07~10시)' : '낮';
-  const pc = PERSONAS.map(([id, nm]) => `<button class="rchip" type="button" data-p="${id}" aria-pressed="${RS.persona === id}">${nm}</button>`).join('');
+  /* 페르소나 칩(v5b): VOC 글 비율 순서(외출·산책 → 휴게소 → 차 안 → 대기 → 마트), 칩에 두 비율(기존 자료·새 카페·디시) */
+  const pc = (RT.share && RT.share.length ? RT.share.map(x => [x.persona_id, x.label, x]) : PERSONAS).map(([id, nm, x]) => `<button class="rchip" type="button" data-p="${id}" aria-pressed="${RS.persona === id}"${x ? ` title="VOC 글 기준: 기존 자료 ${x.share_base}% · 새 카페·디시 ${x.share_new}%"` : ''}>${nm}${x ? `<small>${x.share_base}%·${x.share_new}%</small>` : ''}</button>`).join('');
   const rm = REMAINS.map(v => `<button type="button" data-r="${v}" aria-pressed="${RS.remain === v}">${v}분</button>`).join('');
   const wet = r.wx === 'rain' || r.wx === 'snow';
   const kws = Object.keys(RT.kw).map(k => `<button class="rchip kw" type="button" data-k="${k}" aria-pressed="${RT.kw[k] ? RS.kw === k : !RS.kw}">${k}</button>`).join('');
@@ -1043,15 +1051,18 @@ function recoBuild(){
   const trash = tb ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 16)}</span><span class="tx">가까운 쓰레기통 <b>${walkMinOf(tb[0])}분</b> (${tb[1]}) · 10분 안 ${tb[2]}곳</span><button type="button" id="trashBtn" aria-pressed="${RS.trashMap}">지도에 보기</button></p>`
       : tcov ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 16)}</span><span class="tx">10분 안 가로쓰레기통 없음(서울시 목록 기준)</span></p>` : '';
   /* 카드 = 대분류 + 세원 중분류·소분류(화장실은 개방시간). P4b 는 카드 단위 이름(편의점·카페·빠른 식사(포장))을 대분류 뒤에 붙임 */
+  /* 슬롯 카드 중 대체(원래 슬롯 종류가 없어 대체 목록에서 채운 카드)는 '대체' 표시 */
   const cards = r.cards.map((c, k) => { const p = c.p, ic = BIG_SHAPE[c.group] != null ? BIG_SHAPE[c.group] : 7, row = recoCardRow(c);
     const tags = [c.group, c.unit && c.unit !== c.group && !(row && row[2].includes(c.unit)) ? c.unit : '', row ? row[2] : '', p.mall ? `건물 안 이동 +${p.mall}분` : ''].filter(Boolean).join(' · ');
+    const fb = c.fb ? `<span class="fbadge" title="원래 자리(${c.slotBig.replace(/\|/g, '·')})에 다녀올 곳이 없어 대신 넣음">대체</span>` : '';
     return `<div class="rcard${p.star ? ' star' : ''}" data-k="${k}"><span class="pin" style="background:${POI_COL[ic]}">${picon(ic, 18)}</span>
-      <div class="nm"><b>${p.star ? `<span class="sbadge">★ ${p.brand || '브랜드'}</span>` : ''}${row ? row[0] : ''}</b><span>${tags}</span></div>
+      <div class="nm"><b>${p.star ? `<span class="sbadge">★ ${p.brand || '브랜드'}</span>` : ''}${row ? row[0] : ''}</b><span>${fb}${tags}</span></div>
       <div class="oc"><b>도보 ${walkMinOf(p.wm)}분</b><span class="tbadge${/빠듯|불가/.test(c.time) ? ' tight' : ''}">${c.time}</span></div></div>`; }).join('');
   const why = [night ? '심야: 편도 5분 안, 화장실은 24시간 개방(상시)만, 편의점 우선' : '', wet ? `${wxName}: 편도 5분 안` : '',
     morning ? '아침: 테이크아웃 커피·포장 식사 우선' : '', RT.alpha[s[C.id]] ? `지하주차장 출구 ${RT.alpha[s[C.id]]}분 포함` : ''].filter(Boolean).join(' · ');
   const html = `<div class="reco"><h4>지금 다녀올 곳 추천</h4>
     <div class="rrow" role="group" aria-label="충전 중 나는">${pc}</div>
+    ${RT.share && RT.share.length ? '<p class="rshare">칩 비율 = VOC 글 기준(기존 자료·새 카페·디시)</p>' : ''}
     <div class="rrow"><span class="rlab">남은 시간</span><div class="rseg2" id="recoR" role="group" aria-label="남은 충전 시간">${rm}</div></div>
     <div class="rrow"><span class="rlab">날씨</span><button class="rchip" type="button" id="recoWx" aria-pressed="${wet}" title="눌러서 비 올 때·안 올 때로 바꿔 보기">${wet ? '☂ ' : ''}${wxName}${live ? ' · 지금' : ' (가정)'}</button><span class="rctx">${h}시 · ${tz}</span></div>
     ${window.ONB ? ONB.chips() : ''}
@@ -1074,8 +1085,10 @@ function recoBind(el, rc){
     RS.wx = same ? null : next; again(); };
   if (window.ONB) ONB.bind(el, again);
   const t = $('#trashBtn'); if (t) t.onclick = () => { RS.trashMap = !RS.trashMap; drawPoi(); renderPoi(); };
-  el.querySelectorAll('.rcard').forEach(c => c.onclick = () => { if (window.ONB) ONB.card(rc.r.cards[+c.dataset.k].group, RT); const x = recoCardRow(rc.r.cards[+c.dataset.k]); if (!x) return; setSheet(false); renderPoi();
-    map.easeTo({center:[x[4], x[3]], zoom:Math.max(map.getZoom(), 17), duration:500}); showPlace(x[0], sk(x[1]), x[2], x[5], [x[4], x[3]], x[6]); });
+  el.querySelectorAll('.rcard').forEach(c => c.onclick = () => { if (window.ONB) ONB.card(rc.r.cards[+c.dataset.k].group, RT); const x = recoCardRow(rc.r.cards[+c.dataset.k]); if (!x) return;
+    if (x[1] < 0 && rc.r.cards[+c.dataset.k].p.kind === 'trash' && !RS.trashMap){ RS.trashMap = true; drawPoi(); }      // 쓰레기통 카드: 지도에 쓰레기통 핀도 켬
+    setSheet(false); renderPoi();
+    map.easeTo({center:[x[4], x[3]], zoom:Math.max(map.getZoom(), 17), duration:500}); showPlace(x[0], x[1] < 0 ? x[13] : sk(x[1]), x[2], x[5], [x[4], x[3]], x[6]); });
 }
 function renderPoi(){
   const m = D.meta.poi, on = !!selected && poi.s === selected && poi.state === 'ok', walk = !!(poi.data && poi.data.walk);

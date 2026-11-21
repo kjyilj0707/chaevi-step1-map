@@ -1,6 +1,7 @@
 """주변 인프라 추천 화면용 자료 만들기 (2026-11-22, 프론트엔드)
 입력(읽기만 함)
-  ../analysis/reco_tables/reco_tables.json                        추천 점수 표 v3e(새 대분류, 분석 담당, 준엽 11/22 결정 반영판)
+  ../analysis/reco_tables/reco_tables.json                        추천 표 v5b(페르소나별 고정 슬롯 틀 + 동권 11/22 시간·제외 표, 분석 담당)
+  ../analysis/walk_seoul_all/walk_routes_seoul_park_v2.csv        공원 도보(아직 없음 = 공원 데이터 대기. 생기면 data/reco/park/<id>.json 을 만듦)
   ../analysis/walk_seoul_all/walk_routes_seoul_toilet_v2.csv      공중화장실 도보(10분 안)
   ../analysis/walk_seoul_all/walk_routes_seoul_trashbin_v2.csv    쓰레기통 도보(10분 안) + 옆의 summary_seoul_trashbin_v2.csv
   ../data/team_drive/1121/jaeyi_9stations_final_1122.csv          재이 9곳 최종판: ★·브랜드명·×·복합시설 편도 분 칸만 씀(주소·URL 등은 안 씀)
@@ -9,6 +10,8 @@
   data/reco/tables.json        화면이 쓰는 표(설명 칸은 뺌) + 재이 표시 + α + 화장실 파일 목록 + 쓰레기통(있으면)
   data/reco/toilet/<id>.json   충전소별 도보 10분 안 공중화장실 [연번, 이름, 위도, 경도, 도보 m, 개방시간, 유형]
   data/reco/trash/<id>.json    충전소별 도보 10분 안 가로쓰레기통 [연번, 세부 위치, 위도, 경도, 도보 m, 종류]
+  data/reco/park/<id>.json     충전소별 도보 10분 안 공원 [연번, 이름, 위도, 경도, 도보 m, 공원구분] (공원 파일이 있을 때만)
+가게 단위 예외(store_overrides)와 올리브영 중복 묶음은 도보 파일(build_walk9.py·build_walk_seoul.py)에 이미 반영됨
 점수 계산은 index.html 의 RECO(= analysis/reco_tables/score_reference.py 와 같은 규칙)
 실행: ~/.venvs/work/bin/python -I build_reco.py
 """
@@ -21,7 +24,7 @@ TABLES = os.path.join(ROOT, "analysis/reco_tables/reco_tables.json")
 TOILET = os.path.join(ROOT, "analysis/walk_seoul_all/walk_routes_seoul_toilet_v2.csv")
 TRASH = os.path.join(ROOT, "analysis/walk_seoul_all/walk_routes_seoul_trashbin_v2.csv")
 JAEYI = os.path.join(ROOT, "data/team_drive/1121/jaeyi_9stations_final_1122.csv")
-DONGKWON = os.path.join(ROOT, "data/team_drive/1121/cloud_inputs/dongkwon_1121/scenario_inputs.csv")
+PARK = os.path.join(ROOT, "analysis/walk_seoul_all/walk_routes_seoul_park_v2.csv")
 OUT = os.path.join(HERE, "data", "reco")
 USE_TRASH = True       # 쓰레기통(11/22 도보표 준비됨). False 면 화면에 쓰레기통 줄·지도 표시가 안 나옴
 PHONE = re.compile(r"0\d{1,2}[-. ]?\d{3,4}[-. ]?\d{4}|(?<!\d)\d{3,4}[-.]\d{4}(?!\d)")
@@ -56,8 +59,9 @@ def main():
            for r in T["context_activity"] if r["rule_type"] in ("weight", "walk_cap", "walk_speed", "open_filter")]
     # 소분류 → [대분류, [가게 활동]] (담배 소매 등 excluded 는 안 담음 = 후보에서 빠짐)
     cmap = {str(r["소분류"]).strip(): [r["대분류"], r["store_activity"].split("|")] for r in T["category_map"] if int(r["excluded"]) == 0}
+    P = T["params"]
     out = {
-        "version": T["version"], "built": T["built"], "params": T["params"],
+        "version": T["version"], "built": T["built"], "params": {k: v for k, v in P.items() if k not in ("alpha_by_station", "excluded_subcats", "inclusion_values", "time_formula")},
         "time": {r["category"]: [float(r["act_min_low"]), float(r["act_min_high"])] for r in T["activity_time"]},
         "pw": pw, "personaName": names, "kw": kw, "ctx": ctx, "cmap": cmap,
         "bigs": [r["big_category"] for r in T["big_categories"]],
@@ -73,10 +77,18 @@ def main():
                 slots[r["persona_id"]].append(b)
     if slots:
         out["slots"] = slots
+    # v4 이상 슬롯 틀 전체(카드 채우기): 페르소나 → [{n: slot_no, big: [대분류], count, fb: [[대분류, ...] 선택지 순서], distinct}]
+    sd = {}
+    for r in sorted(T.get("persona_slots", []), key=lambda r: (r["persona_id"], int(r["slot_no"]))):
+        sd.setdefault(r["persona_id"], []).append({"n": int(r["slot_no"]), "big": str(r["big_categories"]).split("|"), "count": int(r["count"]),
+            "fb": [o.split("+") for o in str(r["fallback"] or "").split("|") if o], "distinct": int(r["distinct_subcat"])})
+    out["slotDef"] = sd
+    # 페르소나 칩: VOC 글 비율(기존 자료·새 카페·디시) 순서와 기본 선택
+    out["share"] = [{k: r[k] for k in ("persona_id", "label", "share_base", "share_new", "order", "default")} for r in sorted(T.get("persona_share_reference") or [], key=lambda r: r["order"])]
 
-    # α (동권 시나리오 입력, 충전소별 한 값)
-    sc = pd.read_csv(DONGKWON, encoding="utf-8-sig", dtype={"station_id": str}).drop_duplicates("station_id")
-    out["alpha"] = {r.station_id: float(r.alpha_min) for r in sc.itertuples() if float(r.alpha_min) != 0}
+    # α: 표 params.alpha_by_station(v5, 동권 시나리오 입력과 같은 값). 0 인 곳과 표에 없는 충전소는 alpha_default
+    out["alpha"] = {r["station_id"]: float(r["alpha_min"]) for r in P.get("alpha_by_station", []) if float(r["alpha_min"]) != float(P.get("alpha_default", 0))}
+    out["alphaDefault"] = float(P.get("alpha_default", 0))
 
     # 재이 9곳 최종판: (충전소, 장소) → [★ 1/0, 브랜드명, × 1/0, 복합시설 편도 분]. 기본값(○, ★ 없음, 복합시설 없음)인 줄은 안 담음
     j = pd.read_csv(JAEYI, dtype=str, usecols=["충전소 ID", "장소ID", "기본 추천 구분", "브랜드 우선 추천(★)", "브랜드명", "복합시설 내부 이동 가정(편도 분)"])
@@ -124,6 +136,19 @@ def main():
         if os.path.exists(sm):
             s = pd.read_csv(sm, encoding="utf-8-sig", dtype=str)
             out["trashCovered"] = sorted(s.loc[~s["excluded"].fillna("0").isin(["1", "True", "true"]), "station_id"])
+
+    # 공원(데이터 대기): 파일이 생기면 충전소별 파일 + 표에 수. 없으면 화면은 공원 슬롯을 대체 규칙으로 채움
+    out["park"] = {}
+    if os.path.exists(PARK):
+        os.makedirs(os.path.join(OUT, "park"))
+        pk = pd.read_csv(PARK, encoding="utf-8-sig", dtype={"station_id": str, "place_id": str})
+        pk = pk[pd.to_numeric(pk["walk_m"], errors="coerce").notna()].copy()
+        pk["walk_m"] = pk["walk_m"].astype(float)
+        for sid, d in pk.sort_values(["station_id", "walk_m", "place_id"]).groupby("station_id"):
+            rows = [[str(r.place_id).replace("park:", ""), clean(r.name), round(float(r.lat), 6), round(float(r.lng), 6),
+                     round(float(r.walk_m), 1), clean(getattr(r, "공원구분", ""))] for r in d.itertuples()]
+            json.dump(rows, open(os.path.join(OUT, "park", sid + ".json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+            out["park"][sid] = len(rows)
 
     json.dump(out, open(os.path.join(OUT, "tables.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     print(f"표 저장 · 재이 표시 {n_j}줄({len(jy)}곳) · α {out['alpha']} · 화장실 파일 {len(tid)}곳 {sum(tid.values())}줄 · 쓰레기통 {len(out['trash'])}곳 / 요약 {len(out['trashCovered'])}곳")

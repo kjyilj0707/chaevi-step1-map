@@ -1,4 +1,11 @@
-/* 주변 인프라 추천 점수 v3e (2026-11-22, 새 대분류). 기준 구현 = analysis/reco_tables/score_reference.py (같은 결과가 나와야 함)
+/* 주변 인프라 추천 v5b (2026-11-22). 기준 구현 = analysis/reco_tables/score_reference.py (같은 결과가 나와야 함)
+   기본 카드 = 페르소나별 고정 슬롯 틀(R.slotCandidates → R.fillSlots, T.slotDef). 키워드(아무거나! 제외)가 켜지면 아래 v3e 점수(R.score → R.display)
+   슬롯 후보 = 가게·화장실 + 쓰레기통(시간 1~3분, 상황 곱 없음) + 공원(파일이 있을 때만, 상황 곱 = 산책).
+     시간 '불가'·상황 곱 0 제외, 활동이 여럿이면 (가능<빠듯, 곱 큰 순, 같으면 앞 활동). 순서 = 시간 → 곱 큰 순 → 편도 짧은 순 → place_id
+     제약: 쓴 장소 다시 안 씀, 같은 대분류 2장(params.big_cap, 슬롯 카드만, params.big_cap_exempt 예외), distinct 면 슬롯 안 소분류 중복 없음
+     모자라면 fallback 목록 순서대로 첫 번째로 1장 채울 수 있는 것(대체 카드는 상한 예외), 그래도 없으면 카드 수가 줄어듦. 표시 = 슬롯 순서
+   가게 단위 예외(올리브영·전자담배)와 올리브영 중복 묶음은 도보 파일에 이미 반영됨(build_walk9.py). v5b 부터 재이 ×(담배)도 빼지 않음
+   ---- 아래는 v3e 점수(키워드가 켜졌을 때) ----
    점수 = 시간 계수(가게 동권 활동) × 페르소나 가중치(가게 대분류) × Π 상황 곱셈값(가게 동권 활동)
    가게 → T.cmap[소분류] = [대분류, [가게 활동]]. 공중화장실 = 대분류·활동 '화장실'. 담배 소매 등 표에 없는 소분류는 뺌
    가용 = 남은 − 왕복 도보 − α − 복합시설 왕복(2 × 재이 편도 분) − 여유 5
@@ -54,7 +61,6 @@
     const P = T.params, e = R.effects(T, o.conds || []), sc = R.scope(T, o.persona, o.keyword), pw = T.pw[o.persona];
     const out = [];
     for (const p of places){
-      if (p.x) continue;
       if (sc.big && !sc.big.has(p.big)) continue;
       if (sc.sub && !sc.sub.has(p.sub)) continue;
       const ow = p.wm / (e.speed * 60);
@@ -113,6 +119,79 @@
     });
     (toilets || []).forEach((t, i) => out.push(mark({pid:'toilet:' + t[0], wm:t[4], sub:'공중화장실', big:'화장실', acts:['화장실'], open:t[5], row:i, kind:'toilet'}, 'toilet:' + t[0])));
     return out;
+  };
+  /* 쓰레기통·공원 파일 → 슬롯 후보 줄. trash: [연번, 세부 위치, 위도, 경도, 도보 m, 종류], park: [연번, 이름, 위도, 경도, 도보 m, 공원구분] */
+  R.extras = (trash, parks) => {
+    const out = [];
+    (trash || []).forEach((t, i) => out.push({pid:'trash:' + t[0], wm:t[4], sub:'가로쓰레기통', big:'쓰레기통', acts:['쓰레기 버리기'], row:i, kind:'trash'}));
+    (parks || []).forEach((t, i) => out.push({pid:'park:' + t[0], wm:t[4], sub:t[5] || '공원', big:'공원', acts:['산책'], row:i, kind:'park'}));
+    return out;
+  };
+  const RANK = {'가능': 0, '빠듯': 1};
+  /* 슬롯 후보(점수순): [{p, ow, avail, act, time, tr(시간 순위), mult(상황 곱), group}] */
+  R.slotCandidates = (T, places, o) => {
+    const P = T.params, e = R.effects(T, o.conds || []), out = [];
+    for (const p of places){
+      const ow = p.wm / (e.speed * 60);
+      if (!(ow <= e.cap)) continue;
+      const avail = o.remain - 2 * ow - (o.alpha || 0) - 2 * (p.mall || 0) - P.buffer_min;
+      let best = null;
+      if (p.big === '쓰레기통'){
+        const [tf, st] = R.timeFactor(T, avail, '쓰레기 버리기');
+        if (tf !== 0) best = [RANK[st], 1.0, '쓰레기 버리기', st];
+      } else if (p.big === '공원'){
+        const m = '산책' in e.mult ? e.mult['산책'] : 1.0, [tf, st] = R.timeFactor(T, avail, '산책');
+        if (m !== 0 && tf !== 0) best = [RANK[st], m, '산책', st];
+      } else {
+        for (const a of p.acts){
+          if (a in e.openf && !String(p.open || '').startsWith(e.openf[a])) continue;
+          const [tf, st] = R.timeFactor(T, avail, a), m = a in e.mult ? e.mult[a] : 1.0;
+          if (tf === 0 || m === 0) continue;
+          if (!best || RANK[st] < best[0] || (RANK[st] === best[0] && m > best[1])) best = [RANK[st], m, a, st];
+        }
+      }
+      if (best) out.push({p, ow, avail, tr:best[0], mult:best[1], act:best[2], time:best[3], group:p.big});
+    }
+    out.sort((a, b) => a.tr - b.tr || b.mult - a.mult || a.ow - b.ow || cmpPid(a.p.pid, b.p.pid));
+    return out;
+  };
+  /* 슬롯 틀 채우기 → {cards: [후보 + {slot, slotBig, fb(대체로 채운 선택지 이름, 슬롯 카드는 '')}], events: [[원 슬롯 대분류, 대체 이름 또는 null]]} */
+  R.fillSlots = (T, c, persona) => {
+    const P = T.params, CAP = +P.big_cap, exempt = new Set((P.big_cap_exempt || {})[persona] || []), slots = (T.slotDef || {})[persona] || [];
+    const used = new Set(), nBig = {}, cards = [], missing = [], events = [];
+    const ok = (r, fb) => !used.has(r.p.pid) && (fb || exempt.has(r.p.big) || (nBig[r.p.big] || 0) < CAP);
+    const take = (r, slot, fb) => { used.add(r.p.pid); nBig[r.p.big] = (nBig[r.p.big] || 0) + 1;
+      cards.push(Object.assign({}, r, {slot:slot.n, slotBig:slot.big.join('|'), fb:fb || '', k:cards.length})); };
+    for (const slot of slots){
+      const bigs = new Set(slot.big), subs = new Set(); let n = 0;
+      for (const r of c){
+        if (!bigs.has(r.p.big)) continue;
+        if (n === slot.count) break;
+        if (!ok(r, false) || (slot.distinct === 1 && subs.has(r.p.sub))) continue;
+        take(r, slot); subs.add(r.p.sub); n++;
+      }
+      for (let i = n; i < slot.count; i++) missing.push(slot);
+    }
+    for (const slot of missing){
+      let got = null;
+      for (const opt of slot.fb){
+        for (const r of c) if (opt.includes(r.p.big) && ok(r, true)){ got = [r, opt.join('+')]; break; }
+        if (got) break;
+      }
+      if (got){ take(got[0], slot, got[1]); events.push([slot.big.join('|'), got[1]]); }
+      else events.push([slot.big.join('|'), null]);
+    }
+    cards.sort((a, b) => a.slot - b.slot || a.k - b.k);
+    return {cards, events};
+  };
+  /* 화면 동작: 키워드(필터)가 켜지면 v3e(가게·화장실만), 아니면 슬롯 틀(가게·화장실 + 쓰레기통·공원) */
+  R.recommend = (T, places, extra, o) => {
+    if (o.keyword && T.kw[o.keyword]){
+      const res = R.score(T, places, o);
+      return {mode:'keyword', res, cards:R.display(T, res, o.persona, o.keyword), events:[]};
+    }
+    const c = R.slotCandidates(T, places.concat(extra || []), o), f = R.fillSlots(T, c, o.persona);
+    return {mode:'slots', res:c, cards:f.cards, events:f.events};
   };
   g.RECO = R;
 })(typeof window !== 'undefined' ? window : globalThis);
