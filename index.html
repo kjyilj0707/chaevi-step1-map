@@ -171,17 +171,20 @@ body.infra.placeon .listbtn{display:none}
 .placepop .maplibregl-popup-tip{border-top-color:var(--surface);border-bottom-color:var(--surface)}
 @media (min-width:821px){ .listbtn{display:none !important} }
 /* 충전소 추천 패널(기본 지도 화면 '주변 충전소' 탭 맨 위, station_reco.js) */
-.sreco{margin:0 0 10px;padding:10px 10px 6px;background:var(--mintbg);border-radius:14px}
-.sreco h4{margin:0 0 6px;font-size:13px}
-.sreco h4 small{display:block;font-size:11px;font-weight:500;color:var(--ink2);margin-top:1px}
-.srcard{display:flex;align-items:flex-start;gap:9px;background:var(--surface);border:1.5px solid var(--grid);border-radius:12px;padding:8px 10px;margin:0 0 6px;cursor:pointer}
+.sreco{margin:0 -14px 8px;padding:2px 0 4px}
+.sreco h4{margin:0 14px 5px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sreco h4 small{font-size:11px;font-weight:500;color:var(--ink2);margin-left:4px}
+/* 가로로 넘기는 카드 한 줄: 한 장 = 너비 78%(다음 카드가 옆에 살짝 보임), 높이 약 90px */
+.srstrip{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding:0 14px;padding:0 14px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.srstrip::-webkit-scrollbar{display:none}
+.srcard{flex:0 0 78%;max-width:300px;scroll-snap-align:start;box-sizing:border-box;min-height:86px;background:var(--mintbg);border:1.5px solid var(--grid);border-radius:12px;padding:7px 10px 7px;cursor:pointer}
 .srcard:hover,.srcard:focus-visible{border-color:var(--mint2);outline:none}
-.srno{flex:none;width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
-.srnm{flex:1;min-width:0}
-.srnm b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
-.srnm .srk{display:block;font-size:11px;color:var(--ink2)}
-.srnm .srwhy{display:block;font-size:12px;color:var(--ink);line-height:1.4;margin-top:2px;word-break:keep-all}
-.srnote{font-size:10px !important;color:var(--muted) !important;margin:2px 2px 2px !important;line-height:1.45}
+.srtop{display:flex;align-items:center;gap:7px;min-width:0}
+.srno{flex:none;width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.srtop b{flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.srcard .srwhy{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;color:var(--ink);line-height:1.38;margin-top:3px;word-break:keep-all}
+.srcard .srk{display:block;font-size:10.5px;color:var(--ink2);margin:2px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srnote{font-size:10px !important;color:var(--muted) !important;margin:5px 14px 0 !important;line-height:1.45}
 /* 주변 인프라 추천(충전소 상세 안, 도보 충전소만) */
 .reco{margin:12px 0 4px;padding:12px 10px 8px;background:var(--mintbg);border-radius:14px}
 .reco h4{margin:0 0 8px}
@@ -214,6 +217,7 @@ body.infra.placeon .listbtn{display:none}
 .rchip small{font-size:10px;font-weight:500;margin-left:4px;opacity:.75;font-variant-numeric:tabular-nums}
 .rshare{font-size:10px !important;color:var(--ink2) !important;margin:-3px 0 6px !important}
 .rcard .nm .fbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:var(--ink2);background:var(--grid);vertical-align:1px}
+.rcard .nm .kbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:#fff;background:#2f8f4e;vertical-align:1px}
 .rcard .nm .sbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:#6b4a00;background:#ffe9a8;vertical-align:1px}
 .rnote{font-size:11px !important;color:var(--ink2) !important;margin:2px 0 6px !important}
 .rfoot{font-size:10px !important;color:var(--muted) !important;margin:6px 0 0 !important}
@@ -438,10 +442,10 @@ const C = {id:0,name:1,addr:2,lat:3,lng:4,sido:5,kind:6,n:7,nfast:8,kw:9,apt:10,
    7~13·16~21 = 도보 파일 칩(새 대분류 v3e, 11/22). 도보 칩은 이름으로 모양을 찾음(BIG_SHAPE, index.json 의 cats) */
 const POI_COL = ['#eb6834','#6250d6','#eda100','#e87ba4','#2a78d6','#008300','#1baf7a',
   '#2a78d6','#1baf7a','#b35fc4','#e87ba4','#eda100','#6250d6','#eb6834', '#3f8fb5', '#7a6f65',      // 14 화장실, 15 쓰레기통
-  '#d6457f','#a0743c','#0e8fa3','#6b7785','#9b4fd0','#4a8f2a'];      // 16 디저트·간식, 17 생활·리빙, 18 취미·문화, 19 기타 소매, 20 유원지·오락, 21 스포츠 서비스
+  '#d6457f','#a0743c','#0e8fa3','#6b7785','#9b4fd0','#4a8f2a', '#2f8f4e'];      // 16 디저트·간식, 17 생활·리빙, 18 취미·문화, 19 기타 소매, 20 유원지·오락, 21 스포츠 서비스, 22 공원
 /* 새 대분류 → 모양 번호(7~13 은 옛 활동 모양을 다시 씀: 식품·편의 = 장바구니, 뷰티·건강 = 십자, 패션·잡화 = 쇼핑백, 간편식 = 버거, 카페·음료 = 잔, 식사 = 수저) */
 const BIG_SHAPE = {'식품·편의':7, '뷰티·건강':8, '패션·잡화':10, '간편식':11, '카페·음료':12, '식사':13, '화장실':14,
-  '디저트·간식':16, '생활·리빙':17, '취미·문화':18, '기타 소매':19, '유원지·오락':20, '스포츠 서비스':21, '쓰레기통':15, '공원':5};      // 쓰레기통·공원 = 추천 슬롯 카드(v5b)
+  '디저트·간식':16, '생활·리빙':17, '취미·문화':18, '기타 소매':19, '유원지·오락':20, '스포츠 서비스':21, '쓰레기통':15, '공원':22};      // 쓰레기통·공원 = 추천 슬롯 카드(v5b), 공원 = 나무 모양(v5d)
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const RAMP = ['--nodata','--q1','--q2','--q3','--q4','--q5'].map(css);
 const bin = v => v < 0 ? 0 : v < 10 ? 1 : v < 25 ? 2 : v < 50 ? 3 : v < 75 ? 4 : 5;
@@ -467,7 +471,8 @@ PICON.push('<circle cx="12" cy="7.6" r="4.8"/><path d="M7.2 11h9.6L12 21.6z"/>',
   '<path d="M2.6 5.4c3.2-1.6 6.4-1.6 8.6.4v14.4c-2.2-1.8-5.4-1.8-8.6-.4z"/><path d="M21.4 5.4c-3.2-1.6-6.4-1.6-8.6.4v14.4c2.2-1.8 5.4-1.8 8.6-.4z"/>',      // 18 취미·문화(책)
   '<path fill-rule="evenodd" d="M3 4.4A1.4 1.4 0 0 1 4.4 3h7.4l9.4 9.4-8.8 8.8L3 11.8zM7.6 9.4a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z"/>',      // 19 기타 소매(가격표)
   '<path d="M7 7h10a5 5 0 0 1 4.9 6l-.8 4a2.5 2.5 0 0 1-4.3 1.2L14.6 16H9.4l-2.2 2.2A2.5 2.5 0 0 1 2.9 17l-.8-4A5 5 0 0 1 7 7z"/>',      // 20 유원지·오락(게임기)
-  '<rect x="1.8" y="9" width="3" height="6" rx="1"/><rect x="5" y="6.4" width="3.6" height="11.2" rx="1"/><rect x="8.6" y="10.8" width="6.8" height="2.4"/><rect x="15.4" y="6.4" width="3.6" height="11.2" rx="1"/><rect x="19.2" y="9" width="3" height="6" rx="1"/>');      // 21 스포츠 서비스(아령)
+  '<rect x="1.8" y="9" width="3" height="6" rx="1"/><rect x="5" y="6.4" width="3.6" height="11.2" rx="1"/><rect x="8.6" y="10.8" width="6.8" height="2.4"/><rect x="15.4" y="6.4" width="3.6" height="11.2" rx="1"/><rect x="19.2" y="9" width="3" height="6" rx="1"/>',      // 21 스포츠 서비스(아령)
+  '<path d="M12 2.2c3 0 5.4 2.3 5.6 5.2a4.4 4.4 0 0 1-1.2 8.5H13.2V21.8h-2.4V15.9H7.6a4.4 4.4 0 0 1-1.2-8.5C6.6 4.5 9 2.2 12 2.2z"/>');      // 22 공원(나무)
 const picon = (i, size) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="currentColor">${PICON[i]}</svg>`;
 const pinSVG = i => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="96" height="96"><circle cx="24" cy="24" r="21" fill="${POI_COL[i]}" stroke="#fff" stroke-width="3"/><g transform="translate(11 11) scale(1.083)" fill="#fff" color="#fff">${PICON[i].replace(/currentColor/g, '#fff')}</g></svg>`;
 /* 표시 = 바탕(이용률 색) + 번개 모양. 종류는 테두리와 모양으로만 나눔(바탕색은 이용률 몫)
@@ -951,13 +956,14 @@ let poi = {s:null, data:null, cat:-1, state:'', show:POI_FIRST};
    표를 못 읽으면 추천·화장실·쓰레기통 없이 기존 목록만 보임 */
 let RT = null;
 const RTP = fetch('data/reco/tables.json').then(r => r.ok ? r.json() : null).then(t => (RT = t && typeof RECO !== 'undefined' ? t : null)).catch(() => null);
-const wcats = () => WKM.cats.concat(RT ? ['화장실'] : []);
+const wcats = () => WKM.cats.concat(RT ? ['화장실'] : [], RT && RT.park && Object.keys(RT.park).length ? ['공원'] : []);     // 끝에 화장실·공원(v5d) 칩
 const PERSONAS = [['P1', '휴게소형'], ['P2', '외출·산책'], ['P3', '마트 장보기'], ['P4a', '차 안 머묾'], ['P4b', '대기·잠깐']];
 const REMAINS = [15, 30, 45, 60];
 const RS = {persona:'P2', remain:30, kw:null, wx:null, hour:null, trashMap:false};     // wx: null = 지금 날씨, 'rain'·'clear' = 직접 고름. hour: null = 지금 시각(시험용으로 바꿀 수 있음)
 try { const v = localStorage.getItem('recoP'); if (PERSONAS.some(x => x[0] === v)) RS.persona = v; } catch (e) {}
 try { const v = +localStorage.getItem('recoR'); if (REMAINS.includes(v)) RS.remain = v; } catch (e) {}
-if (window.ONB) ONB.init(RS, REMAINS, () => { recoMemo = null; if (selected && poi.s === selected && poi.data){ poi.show = POI_FIRST; renderPoi(); } });     // 정보 입력 화면: 페르소나·남은 시간·동승 기본값
+if (window.ONB) ONB.init(RS, REMAINS, () => { recoMemo = null; if (selected && poi.s === selected && poi.data){ poi.show = POI_FIRST; renderPoi(); }
+  else if (D && tab === 'near' && !selected && !route) renderBody(); });     // 기본 화면이면 충전소 추천 패널을 새 페르소나·남은 시간으로 다시 그림     // 정보 입력 화면: 페르소나·남은 시간·동승 기본값
 const recoHour = () => RS.hour == null ? new Date().getHours() : RS.hour;
 const isNight = () => { const h = recoHour(); return h >= 22 || h < 6; };
 const walkMinOf = m => Math.max(1, Math.ceil(m / (WKM ? WKM.speed : 1.3) / 60 - 1e-9));     // 목록과 같은 올림(도보 분)
@@ -1020,13 +1026,16 @@ function loadPoi(s){
   /* 도보 충전소: 추천 표가 오면 공중화장실·쓰레기통 파일도 읽음(없거나 실패하면 빈 채로 — 가게 목록은 그대로 뜸) */
   const id = s[C.id], side = (k, dir) => !walk ? Promise.resolve(null) : RTP.then(t => t && t[k] && t[k][id] ? fetch(`data/reco/${dir}/${id}.json`).then(r => r.ok ? r.json() : null) : null).catch(() => null);
   Promise.all([fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }), side('toilet', 'toilet'), side('trash', 'trash'), side('park', 'park')]).then(([d, toi, trash, park]) => { if (poi.s !== s) return;
-    if (walk){ const raw = d, cats = wcats(), ti = cats.indexOf('화장실');
+    if (walk){ const raw = d, cats = wcats(), ti = cats.indexOf('화장실'), pi = cats.indexOf('공원');
       /* 가게 한 줄(화면용): [이름, 칩, 업종, 위도, 경도, 도보 m, 도보 분, 5분 안, 카카오, 칩 목록, place_id, 도보 m(소수), 개방시간(화장실만)] */
       const p = d.p.map((x, i) => [x[0], x[1], x[9] ? x[9] + ' · ' + x[2] : x[2], x[3], x[4], x[6], x[5], x[7], x[8], x[10] || null,
         raw.pid ? 'shop:' + raw.pid[i] : null, raw.wm ? raw.wm[i] : x[6], null]);
       if (ti >= 0 && toi) toi.forEach(t => p.push([t[1], ti, '공중화장실' + (t[5] ? ' · ' + openTxt(t[5]) : ''), t[2], t[3], Math.round(t[4]), walkMinOf(t[4]),
         t[4] <= WKM.m5 ? 1 : 0, 0, null, 'toilet:' + t[0], t[4], t[5] || '']));
-      if (toi && toi.length) p.sort((a, b) => a[11] - b[11] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+      /* 공원(v5d): 업종 = '공원 · 공원유형', 개방시간 칸 null(심야에도 목록에는 보임. 추천 카드는 심야·비에 산책 ×0) */
+      if (pi >= 0 && park) park.forEach(t => p.push([t[1], pi, '공원 · ' + (t[5] || '공원'), t[2], t[3], Math.round(t[4]), walkMinOf(t[4]),
+        t[4] <= WKM.m5 ? 1 : 0, 0, null, 'park:' + t[0], t[4], null]));
+      if ((toi && toi.length) || (park && park.length)) p.sort((a, b) => a[11] - b[11] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
       d = {walk:true, n:cats.map(() => 0), fail:d.fail, p, raw, toilets:toi || [], trash:trash || null, parks:park || null}; }
     poi.data = d; poi.state = 'ok'; if (walk) poiFit(s); drawPoi(); renderPoi(); })
     .catch(() => { if (poi.s === s){ poi.state = 'error'; renderPoi(); } });
@@ -1048,7 +1057,7 @@ const recoCardIds = () => { const r = recoRun(); return r ? r.ids : null; };
 function recoCardRow(r){          // 카드 한 장 → 목록 가게 줄(지도에 보이기·도보 안내에 그대로 씀). 쓰레기통·공원 카드는 그 파일 줄로 같은 모양을 만듦
   const k = r.p.kind;
   if (k === 'trash' || k === 'park'){ const t = (k === 'trash' ? poi.data.trash : poi.data.parks || [])[r.p.row]; if (!t) return null;
-    return [t[1], -1, (k === 'trash' ? '가로쓰레기통' : '공원') + (t[5] ? ' · ' + t[5] : ''), t[2], t[3], Math.round(t[4]), walkMinOf(t[4]), 0, 0, null, r.p.pid, t[4], '', BIG_SHAPE[r.p.big]]; }
+    return [t[1], -1, k === 'trash' ? '가로쓰레기통' + (t[5] ? ' · ' + t[5] : '') : t[5] || '공원', t[2], t[3], Math.round(t[4]), walkMinOf(t[4]), 0, 0, null, r.p.pid, t[4], '', BIG_SHAPE[r.p.big]]; }
   return poi.data.p.find(x => x[10] === r.p.pid) || null;
 }
 function recoBuild(){
@@ -1067,11 +1076,14 @@ function recoBuild(){
   /* 카드 = 대분류 + 세원 중분류·소분류(화장실은 개방시간). P4b 는 카드 단위 이름(편의점·카페·빠른 식사(포장))을 대분류 뒤에 붙임 */
   /* 슬롯 카드 중 대체(원래 슬롯 종류가 없어 대체 목록에서 채운 카드)는 '대체' 표시 */
   const cards = r.cards.map((c, k) => { const p = c.p, ic = BIG_SHAPE[c.group] != null ? BIG_SHAPE[c.group] : 7, row = recoCardRow(c);
-    const tags = [c.group, c.unit && c.unit !== c.group && !(row && row[2].includes(c.unit)) ? c.unit : '', row ? row[2] : '', p.mall ? `건물 안 이동 +${p.mall}분` : ''].filter(Boolean).join(' · ');
+    /* 공원 카드(v5d park_data.card_fields): 제목 = 공원 이름, 라벨 = 공원유형, 어린이공원이면 배지(라벨 대신) */
+    const kid = p.kind === 'park' && p.child ? '<span class="kbadge">어린이공원</span>' : '';
+    const tags = [c.group, c.unit && c.unit !== c.group && !(row && row[2].includes(c.unit)) ? c.unit : '', row && !kid ? row[2] : '', p.mall ? `건물 안 이동 +${p.mall}분` : ''].filter(Boolean).join(' · ');
     const fb = c.fb ? `<span class="fbadge" title="원래 자리(${c.slotBig.replace(/\|/g, '·')})에 다녀올 곳이 없어 대신 넣음">대체</span>` : '';
     return `<div class="rcard${p.star ? ' star' : ''}" data-k="${k}"><span class="pin" style="background:${POI_COL[ic]}">${picon(ic, 18)}</span>
-      <div class="nm"><b>${p.star ? `<span class="sbadge">★ ${p.brand || '브랜드'}</span>` : ''}${row ? row[0] : ''}</b><span>${fb}${tags}</span></div>
+      <div class="nm"><b>${p.star ? `<span class="sbadge">★ ${p.brand || '브랜드'}</span>` : ''}${row ? row[0] : ''}</b><span>${fb}${kid}${tags}</span></div>
       <div class="oc"><b>도보 ${walkMinOf(p.wm)}분</b><span class="tbadge${/빠듯|불가/.test(c.time) ? ' tight' : ''}">${c.time}</span></div></div>`; }).join('');
+  const noWalk = RS.kw && RT.kw[RS.kw] && RT.kw[RS.kw].big.includes('공원') && r.eff.mult['산책'] === 0;     // '산책하고 싶어요' + 비·심야(산책 ×0)
   const why = [night ? '심야: 편도 5분 안, 화장실은 24시간 개방(상시)만, 편의점 우선' : '', wet ? `${wxName}: 편도 5분 안` : '',
     morning ? '아침: 테이크아웃 커피·포장 식사 우선' : '', RT.alpha[s[C.id]] ? `지하주차장 출구 ${RT.alpha[s[C.id]]}분 포함` : ''].filter(Boolean).join(' · ');
   const html = `<div class="reco"><h4>지금 다녀올 곳 추천</h4>
@@ -1083,7 +1095,7 @@ function recoBuild(){
     <p class="rq">지금 뭐 하고 싶으세요?</p>
     <div class="rrow" role="group" aria-label="하고 싶은 것">${kws}</div>
     ${trash}
-    ${cards || `<p class="hint">남은 ${RS.remain}분 안에 다녀올 곳 없음${RS.kw ? ' (키워드: ' + RS.kw + ')' : ''}</p>`}
+    ${cards || (noWalk ? '<p class="hint">비·심야에는 산책을 추천하지 않아요</p>' : `<p class="hint">남은 ${RS.remain}분 안에 다녀올 곳 없음${RS.kw ? ' (키워드: ' + RS.kw + ')' : ''}</p>`)}
     ${why ? `<p class="rnote">${why}</p>` : ''}
     <p class="rfoot">시간 판정: 남은 시간 − 왕복 도보 − 여유 5분 안에 들면 가능, 짧게만 되면 빠듯 · 추천 가중치는 충전 후기(VOC) 비율 기반 가정값임</p></div>`;
   return {html, r};
@@ -1196,7 +1208,7 @@ function renderBody(){
   el.innerHTML = srecoPanel() + `<div class="sort" role="group" aria-label="정렬 기준">
       <button type="button" data-s="near" aria-pressed="${sortBy === 'near'}">가까운 순</button>
       <button type="button" data-s="occ" aria-pressed="${sortBy === 'occ'}">이용률 낮은 순</button></div>
-    <p class="hint">${F.demo ? `도보 범위가 있는 충전소만 보는 중 (위쪽 "${walkLabel()}"을 끄면 전체) · ` : ''}${sortBy === 'near' ? '지도 가운데에서 가까운 30곳' : '지도 가운데에서 가까운 30곳 안에서 이용률 낮은 순'} · ${hour}시 이용률 (${D.meta.days_by_hour[hour]}일치 평균) · 조건에 맞는 ${shown.length.toLocaleString('ko-KR')}곳</p>` +
+    <p class="hint">${F.demo ? `도보 범위가 있는 충전소만 보는 중 (위쪽 "${walkLabel()}"을 끄면 전체) · ` : ''}${sortBy === 'near' ? '지도 가운데에서 가까운 30곳' : '지도 가운데에서 가까운 30곳 안에서 이용률 낮은 순'} · ${hour}시 이용률 (${D.meta.days_by_hour[hour]}일치 평균${D.meta.busy ? ', ' + D.meta.busy.label : ''}) · 조건에 맞는 ${shown.length.toLocaleString('ko-KR')}곳</p>` +
     (list.map(([d, s]) => `<div class="row" data-id="${s[C.id]}"><span class="dot" style="background:${RAMP[bin(s[C.occ][hour])]}"></span>
       <div class="nm"><b>${s[C.name]}${s[C.stay] ? ' <span class="badge">스테이</span>' : ''}${isDemo(s) ? ' <span class="badge walk9">도보 시연</span>' : isWalk(s) ? ' <span class="badge walk9">도보</span>' : ''}</b><span>${kmTxt(d)} · 충전기 ${s[C.n]}대(급속 ${s[C.nfast]}) · 최대 ${s[C.kw]}kW</span></div>
       <div class="oc"><b>${occTxt(s[C.occ][hour])}</b><span>이용률</span></div></div>`).join('') || '<p class="hint">조건에 맞는 충전소 없음</p>');

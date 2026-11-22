@@ -1,4 +1,4 @@
-/* 충전소 추천(기본 지도 화면, MVP 3단계 v1, 2026-11-22)
+/* 충전소 추천(기본 지도 화면, MVP 3단계 v1, 2026-11-22. 표 v1.2 = 붐빔 v2 + 공원 반영 fit, 카드 가로 넘김)
    - 표 = data/reco/station_reco.json (분석 담당 score_reference_station.py 출력, 기준 README §2). 가중치·반경·문구 경계는 모두 이 JSON에서 읽음
      → 규칙을 바꿀 때는 JSON만 다시 만들면 됨(이 파일은 그대로)
    - 점수 = w.fit x fit + w.busy x (1 - 이용률[지금 시]) + w.dist x (1 - 직선거리 / 반경)
@@ -69,13 +69,16 @@
     if (!T) return P ? '' : '';
     const S = T.score, all = rank(o.lat, o.lng, o.persona, o.remain, o.hour), top = all.slice(0, S.top_n), rk = remainKey(o.remain);
     const sub = `${esc(o.personaName || o.persona)} · 남은 ${o.remain}분${rk !== o.remain ? `(${rk}분 표)` : ''} · ${o.hour}시 · ${o.from === 'me' ? '내 위치' : '지도 가운데'}에서 ${S.radius_km}km`;
-    const cards = top.map((r, i) => `<div class="srcard" data-id="${esc(r.id)}" role="button" tabindex="0">
-      <span class="srno">${i + 1}</span>
-      <div class="srnm"><b>${esc(r.name)}</b><span class="srk">${r.stay ? '<span class="badge">채비스테이</span> ' : ''}${esc(r.kind)}${T.reason.template.includes('{dist}') ? '' : ' · ' + kmTxt(r.dist_km)}</span>
-      <span class="srwhy">${esc(r.reason)}</span></div></div>`).join('');
+    /* 카드 = 가로로 넘기는 한 줄(서랍 기본 높이에서 첫 카드의 이름·이유가 보이게). 점수 설명 줄은 카드 아래(서랍을 올리면 보임) */
+    const cards = top.map((r, i) => `<div class="srcard" data-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${i + 1}위 ${esc(r.name)}">
+      <div class="srtop"><span class="srno">${i + 1}</span><b>${esc(r.name)}</b></div>
+      <span class="srwhy">${esc(r.reason)}</span>
+      <span class="srk">${r.stay ? '<span class="badge">채비스테이</span> ' : ''}${esc(r.kind)}${T.reason.template.includes('{dist}') ? '' : ' · ' + kmTxt(r.dist_km)}</span></div>`).join('');
+    const bm = T.busy_meta, bd = `${bm.first.slice(5, 10).replace('-', '/')}~${bm.last.slice(5, 10).replace('-', '/')}`;
     return `<div class="sreco" id="sreco"><h4>지금 충전하기 좋은 곳 <small>${sub}</small></h4>` +
-      (cards || `<p class="srnote">반경 ${S.radius_km}km 안에 도보 자료가 있는 충전소 없음 (서울 충전소만 계산됨)</p>`) +
-      `<p class="srnote">점수 = 주변 맞춤 ${S.weights.fit} + 덜 붐빔 ${S.weights.busy} + 가까움 ${S.weights.dist} (가정값) · 붐빔은 ${T.busy_meta.first.slice(5, 10).replace('-', '/')}~${T.busy_meta.last.slice(5, 10).replace('-', '/')} 수집 평균이라 참고용 · 반경 안 후보 ${all.length}곳</p></div>`;
+      (cards ? `<div class="srstrip" role="list">${cards}</div>`
+        : `<p class="srnote">반경 ${S.radius_km}km 안에 도보 자료가 있는 충전소 없음 (서울 충전소만 계산됨)</p>`) +
+      `<p class="srnote">점수 = 주변 맞춤 ${S.weights.fit} + 덜 붐빔 ${S.weights.busy} + 가까움 ${S.weights.dist} (가정값) · 붐빔은 ${bd} 수집, 최신 기록 기준 평균이라 참고용 · 반경 안 후보 ${all.length}곳</p></div>`;
   }
   function bind(el, onPick){
     el.querySelectorAll('.srcard').forEach(c => { const go = () => onPick(c.dataset.id);
