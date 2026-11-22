@@ -206,7 +206,7 @@ body.infra.placeon .listbtn{display:none}
 .srcard:hover,.srcard:focus-visible{border-color:var(--mint2);outline:none}
 .srtop{display:flex;align-items:flex-start;gap:7px;min-width:0}
 .srno{flex:none;margin-top:-1px;width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.srtop b{flex:1;min-width:0;font-size:15px;line-height:1.25;color:var(--ink);word-break:keep-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}      /* 긴 이름은 두 줄까지(11/23) */
+.srtop b{flex:1;min-width:0;font-size:15px;line-height:1.25;color:var(--ink);word-break:keep-all;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}      /* 긴 이름은 두 줄까지(11/23) */
 .srkm{flex:none;margin-top:1px;font-size:13px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
 .srmeta{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;font-size:11px;color:var(--ink2);padding-left:29px}
 .srmeta .badge{margin:0}
@@ -219,6 +219,10 @@ body.infra.placeon .listbtn{display:none}
 .srbusy.na{background:var(--grid);color:var(--ink2)}
 .srcard .srwhy{font-size:12px;font-weight:600;color:var(--ink);line-height:1.35;padding-left:29px;display:flex;align-items:center;flex-wrap:wrap;gap:2px 5px}
 .srwhy b{color:var(--mint2);font-size:13px}
+.srrich{font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 6px;white-space:nowrap}      /* 주변 풍부도 3단(v1.3): 상 진한 민트 / 중 옅은 민트 / 하 회색 */
+.srrich.r3{background:var(--mint2);color:#fff}
+.srrich.r2{background:var(--q1);color:#0f6f66}
+.srrich.r1{background:var(--grid);color:var(--ink2)}
 .srwhy em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--ink2);background:var(--grid);border-radius:6px;padding:1px 6px}
 .srplace{font-size:11.5px;color:var(--ink2);line-height:1.35;padding-left:29px;margin-top:-3px;word-break:keep-all}
 .srtie{margin:6px 14px 0 !important;font-size:11px !important;color:var(--ink) !important;line-height:1.4;background:var(--mintbg);border-radius:8px;padding:5px 8px}
@@ -232,8 +236,11 @@ body.infra.placeon .listbtn{display:none}
 .srsat .satbar{position:absolute;left:5px;bottom:21px;box-sizing:border-box;padding-bottom:5px;font-size:9px;font-weight:700;line-height:1;color:#fff;text-shadow:0 0 2px #000,0 0 2px #000;white-space:nowrap}
 .srsat .satbar::after{content:'';position:absolute;left:0;right:0;bottom:0;height:4px;box-sizing:border-box;border:1.5px solid #fff;border-top:0;filter:drop-shadow(0 0 1px #000)}
 .srsat .srkm{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:11px;font-weight:700;color:#fff;background:rgba(20,58,82,.78);padding:1px 0}
-.srcard.sat .srtop,.srcard.sat .srmeta{padding-right:110px}
-.srcard.sat .srmeta{min-height:80px;align-content:flex-start}      /* 이름 한 줄이어도 사진(104px) 아래에서 맞춤 줄이 시작되게 */
+.srcard.sat{display:grid;grid-template-columns:minmax(0,1fr) 104px;grid-template-rows:auto 1fr;column-gap:8px;row-gap:5px}      /* 사진 칸 = 오른쪽 열(이름·충전기·붐빔 줄 옆), 맞춤·도보 줄은 두 열 전체 */
+.srcard.sat .srtop{grid-column:1;grid-row:1}
+.srcard.sat .srmeta{grid-column:1;grid-row:2;align-content:flex-start}
+.srcard.sat .srsat{position:relative;top:auto;right:auto;grid-column:2;grid-row:1 / 3}
+.srcard.sat .srwhy,.srcard.sat .srplace{grid-column:1 / 3}
 .srcard.sat .srtop b{-webkit-line-clamp:3}      /* 사진 때문에 글 폭이 좁아져 긴 이름은 세 줄까지 */
 .srnote{font-size:10px !important;color:var(--muted) !important;margin:5px 14px 0 !important;line-height:1.45}
 /* 주변 인프라 추천(충전소 상세 안, 도보 충전소만) */
