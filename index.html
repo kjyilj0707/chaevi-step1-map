@@ -1306,7 +1306,7 @@ function drawPoi(){
 }
 function loadPoi(s){
   /* 채비스테이(11/23 준엽): 라운지에서 쉬는 곳이라 주변 장소 추천·지도 표시를 하지 않음. 주변 탭에 안내 한 줄 + '지금 충전소' 탭 버튼 */
-  if (s[C.stay]){ if (poi.s !== s){ poi = {s, data:null, cat:-1, state:'stay', show:POI_FIRST}; drawPoi(); } return; }
+  if (s[C.stay]){ if (poi.s !== s){ poi = {s, data:null, cat:-1, state:'stay', show:POI_FIRST}; drawPoi(); flyTo(s[C.lat], s[C.lng], 16); } return; }      // 주변 맞춤(poiFit)이 없으니 충전소로 이동
   if (!D.meta.poi){ poi = {s, data:null, cat:-1, state:'none', show:POI_FIRST}; return; }
   if (poi.s === s) return;
   const walk = isWalk(s);
