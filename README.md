@@ -149,3 +149,11 @@
 - 가게 사진 대신 대표 그림: 대분류 13개 + 쓰레기통·공원 15종. 지금 지도 아이콘(`PICON`, `BIG_SHAPE`)을 키워 업종 색(`POI_COL`) 옅은 바탕 타일(둥근 네모, 장식 원 2개)에 올림(`illo`). 외부 이미지·로고 없음. 슬롯 카드 54px, 리스트 42px
 - '카카오맵에서 보기': `https://map.kakao.com/link/map/{이름},{위도},{경도}`(이름의 쉼표는 공백으로, 좌표 소수 6자리) 새 탭. API 호출 없음, 키 없음. 링크를 눌러도 카드 고르기(지도 이동·말풍선)는 일어나지 않음
 
+## 주변 카드 미달 이유 (2026-11-23, 추천 표 v5e)
+- 표: `build_reco.py`로 `data/reco/tables.json` 다시 만듦(분석 `analysis/reco_tables/reco_tables.json` v5e). 이전 표는 `data/reco/tables_v5d.json`. 바뀐 칸 = version·built·params(fallback_rule 설명, fallback_tail)·slotDef(대체 목록 끝에 식품·편의·화장실)·shortfall_reasons(새 칸). `reco.js`는 그대로. 화장실·쓰레기통·공원 파일은 바뀌지 않음
+- `build_reco.py`: `shortfall_reasons`(order, codes[{code, text, when}], short_remain_min 20)를 tables.json으로 옮김
+- 화면(`index.html` `shortfallReason`): 슬롯 카드(키워드 꺼짐)가 그 페르소나 슬롯 수(5장)보다 적으면 카드 줄 **아래**에 이유 한 줄. order 순서로 처음 맞는 것: nowalk → time(실제 남은 분 < 20) → night → rain(비·눈) → weather(cold·hot·wind) → few. 문구 = codes text. 0장도 같은 규칙(쓰레기통 줄이 있으면 "· 가까운 쓰레기통은 아래에")
+  - 예전 D37 안내("남은 N분: 시간이 부족해 다녀올 곳이 없어요"·"다녀올 곳이 적어요 · 가까운 화장실·쓰레기통만 보여요")는 이 문구로 대체(함께 나오지 않음)
+  - nowalk는 화면에서 나오지 않음: 도보 자료 없는 충전소는 슬롯 카드 화면 자체가 없음(직선 반경 목록)
+- 대조(node, 지도 tables.json·reco.js 그대로): 도보 충전소 254곳 × 페르소나 5 × 남은 10·15·20·30·45·60 × 낮·비·심야 = 22,860 상황 카드 place_id가 분석 `js_cards_v5e.jsonl`과 모두 같음. 이유 코드는 `situations_v5e.csv` `rule_text_code`와 22,860 모두 같음(time 5,743·night 2,028·rain 719·few 220·없음 14,150). 분석의 도보 없는 1,260줄은 모두 nowalk
+

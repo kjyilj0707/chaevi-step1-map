@@ -1351,6 +1351,18 @@ function recoItem(c, k, cls){      // 카드(가로)·리스트 줄 공통 내�
 /* 추천 기준 줄(11/22 점검 3: 타이머가 돌면 매 분 갱신, chgSync 'tick'에서 글자만 다시 씀) */
 let basisWx = '';
 const basisTxt = () => `추천 기준(자동): ${window.ONB ? ONB.name(RS.persona) : RS.persona}(MY) · ${remainNote()} · ${basisWx} · ${recoHour()}시`;
+/* 미달 이유: order 순서로 처음 맞는 코드 하나(nowalk → time(실제 남은 분 < short_remain_min) → night → rain(비·눈) → weather(cold·hot·wind) → few).
+   카드 수 기준 = 그 페르소나 슬롯 수 합(지금 모두 5). 표에 칸이 없으면(v5d) null */
+function shortfallReason(r){
+  const SR = RT && RT.shortfall_reasons; if (!SR || !r) return null;
+  const need = ((RT.slotDef || {})[RS.persona] || []).reduce((a, x) => a + x.count, 0) || 5;
+  if (r.cards.length >= need) return null;
+  const has = c => r.conds.includes(c), codes = {}; SR.codes.forEach(x => { codes[x.code] = x; });
+  const test = {nowalk:() => !(poi.data && poi.data.walk), time:() => r.rem < SR.short_remain_min, night:() => has('night'),
+    rain:() => has('rain') || has('snow'), weather:() => ['cold', 'hot', 'wind'].some(has), few:() => true};
+  for (const k of SR.order) if (test[k] && test[k]() && codes[k]) return codes[k];
+  return null;
+}
 function recoBuild(){
   const r = recoRun(); if (!r) return null;
   const s = poi.s, h = recoHour(), night = r.conds.includes('night'), morning = r.conds.includes('morning');
@@ -1361,11 +1373,10 @@ function recoBuild(){
   const trash = tb ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 14)}</span><span class="tx">가까운 쓰레기통 <b>${walkMinOf(tb[0])}분</b> (${tb[1]}) · 10분 안 ${tb[2]}곳</span><button type="button" id="trashBtn" aria-pressed="${RS.trashMap}">지도에 보기</button></p>`
       : tcov ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 14)}</span><span class="tx">10분 안 가로쓰레기통 없음(서울시 목록 기준)</span></p>` : '';
   const cards = r.cards.map((c, k) => recoItem(c, k, 'h')).join('');
-  /* 남은 시간이 부족할 때 안내(11/22 D37): 카드 0장 = 부족, 화장실·쓰레기통만 남거나 타이머 15분 미만 = 적음 */
-  const onlyShort = r.cards.length && r.cards.every(c => c.p.kind === 'toilet' || c.p.kind === 'trash');
-  const short = !r.cards.length ? `<p class="hint rshort">남은 ${remainLab()}: 시간이 부족해 다녀올 곳이 없어요${tb ? ' · 가까운 쓰레기통은 아래에' : ''}</p>`
-      : onlyShort ? `<p class="hint rshort">남은 ${remainLab()}: 다녀올 곳이 적어요 · 가까운 화장실·쓰레기통만 보여요</p>`
-      : RS.remainFrom === 'timer' && RS.remain < REMAINS[0] ? `<p class="hint rshort">남은 ${remainLab()}: 다녀올 곳이 적어요</p>` : '';
+  /* 카드가 슬롯 수(5장)보다 적을 때 이유 한 줄(11/23 v5e, tables.json shortfall_reasons). 예전 D37 안내('시간이 부족해 다녀올 곳이 없어요'·'다녀올 곳이 적어요')를 대체.
+     0장도 같은 규칙. 카드 줄 아래에 둠 */
+  const sf = shortfallReason(r);
+  const short = sf ? `<p class="hint rshort" data-code="${sf.code}">${sf.text}${!r.cards.length && tb ? ' · 가까운 쓰레기통은 아래에' : ''}</p>` : '';
   const noWalk = r.kw && RT.kw[r.kw].big.includes('공원') && r.eff.mult['산책'] === 0;     // '산책하고 싶어요' + 비·심야(산책 ×0)
   const lst = r.list.slice(0, rlistShow), rest = r.list.length - lst.length;
   const why = [night ? '심야: 편도 5분 안, 화장실은 24시간 개방(상시)만, 편의점 우선' : '', wet ? `${wxName}: 편도 5분 안` : '',
@@ -1374,7 +1385,7 @@ function recoBuild(){
   basisWx = wxName + (RS.wx ? '(가정)' : '(지금)');
   const basis = basisTxt();
   const html = `<div class="reco2">
-    ${short}${cards ? `<div class="rstrip" role="list">${cards}</div>` : ''}
+    ${cards ? `<div class="rstrip" role="list">${cards}</div>` : ''}${short}
     <p class="rq">지금 뭐 하고 싶으세요?</p>
     <div class="rrow" role="group" aria-label="하고 싶은 것">${kws}</div>
     <h4 class="rlh">${r.kw ? `'${r.kw}'` : '전체 후보(아무거나!)'} <small>점수순 ${r.list.length}곳</small></h4>

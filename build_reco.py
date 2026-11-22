@@ -1,6 +1,6 @@
 """주변 인프라 추천 화면용 자료 만들기 (2026-11-22, 프론트엔드)
 입력(읽기만 함)
-  ../analysis/reco_tables/reco_tables.json                        추천 표 v5d(페르소나별 고정 슬롯 틀 + 동권 11/22 시간·제외 표 + 공원 슬롯, 분석 담당)
+  ../analysis/reco_tables/reco_tables.json                        추천 표 v5e(11/23, 대체 끝에 식품·편의·화장실 + 미달 이유 shortfall_reasons. 이전 v5d, 페르소나별 고정 슬롯 틀 + 동권 11/22 시간·제외 표 + 공원 슬롯, 분석 담당)
   ../analysis/walk_seoul_all/walk_routes_seoul_park_v2.csv        공원 도보(v5d: 재이 11/22 공원, 출입구 최소, 10분 안). 표 params.park_status 가 ready·active 일 때만 씀
   ../analysis/walk_seoul_all/walk_routes_seoul_toilet_v2.csv      공중화장실 도보(10분 안)
   ../analysis/walk_seoul_all/walk_routes_seoul_trashbin_v2.csv    쓰레기통 도보(10분 안) + 옆의 summary_seoul_trashbin_v2.csv
@@ -85,6 +85,9 @@ def main():
         sd.setdefault(r["persona_id"], []).append({"n": int(r["slot_no"]), "big": str(r["big_categories"]).split("|"), "count": int(r["count"]),
             "fb": [o.split("+") for o in str(r["fallback"] or "").split("|") if o], "distinct": int(r["distinct_subcat"])})
     out["slotDef"] = sd
+    # v5e(11/23): 슬롯 카드가 5장 미만일 때 이유 한 줄(order 순서로 처음 맞는 code의 text). 화면 index.html shortfallReason
+    if T.get("shortfall_reasons"):
+        out["shortfall_reasons"] = T["shortfall_reasons"]
     # 페르소나 칩: VOC 글 비율(기존 자료·새 카페·디시) 순서와 기본 선택
     out["share"] = [{k: r[k] for k in ("persona_id", "label", "share_base", "share_new", "order", "default")} for r in sorted(T.get("persona_share_reference") or [], key=lambda r: r["order"])]
 
