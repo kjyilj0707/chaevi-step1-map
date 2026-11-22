@@ -5,7 +5,8 @@
      붐빔 표시가 no_data·insufficient 이면 이용률 대신 busy_neutral(0.5), 문구 "붐빔 자료 부족"
    - 후보 = 반경 안 + walk_ok(도보 자료 있음). no_walk_policy = 'exclude'면 도보 자료 없는 충전소는 뺌, 'neutral'이면 fit 0.5
    - 순서 = 점수(소수 4자리) 큰 순 → 거리(km, 소수 2자리) 짧은 순 → id. 화면 = 상위 top_n곳
-   - 남은 시간: 표에 있는 값(remains, 지금 30·45분) 중 가장 가까운 값으로 계산(15분 → 30분, 60분 → 45분)
+   - 남은 시간: 표에 있는 값(remains, 지금 30·45분) 중 남은 시간 이하인 가장 큰 값으로 계산(내림, 11/22 점검 1·D37: 44분 → 30분, 60분 → 45분).
+     남은 시간이 표의 가장 작은 값보다 적으면 가장 작은 값(15분 → 30분 표) + 제목에 '(30분 표 기준)' 표시
    - 브라우저에서는 window.STRECO, node에서는 module.exports (확인용) */
 (function (g) {
   let T = null, P = null;
@@ -44,8 +45,7 @@
     else amen = R.amen_none;
     return R.template.replace('{amen}', amen).replace('{busy}', busyText(o, flag)).replace('{dist}', d.toFixed(1) + 'km');
   }
-  const remainKey = rm => { const rs = T.remains; let best = rs[0];
-    rs.forEach(v => { if (Math.abs(v - rm) < Math.abs(best - rm)) best = v; }); return best; };
+  const remainKey = rm => { const ok = T.remains.filter(v => v <= rm + 1e-9); return ok.length ? Math.max(...ok) : Math.min(...T.remains); };
   /* lat·lng 기준 반경 안 후보 전체를 점수 순으로. 각 항목: id, name, kind, stay, dist_km, fit, occupancy, busy_flag, n_obs, score, reason */
   function rank(lat, lng, persona, remain, hour){
     if (!T) return [];
@@ -72,7 +72,7 @@
     /* o.keep(id) = 지도 위쪽 칩(급속·완속만·채비스테이·한가한 곳·붐비는 곳) 거름. 점수·순서는 그대로, 거른 뒤 상위 top_n곳 */
     const S = T.score, ranked = rank(o.lat, o.lng, o.persona, o.remain, o.hour), all = o.keep ? ranked.filter(r => o.keep(r.id)) : ranked;
     const top = all.slice(0, S.top_n), rk = remainKey(o.remain);
-    const sub = `${esc(o.personaName || o.persona)} · 남은 ${o.remain}분${rk !== o.remain ? `(${rk}분 표)` : ''} · ${o.hour}시 · ${o.from === 'me' ? '내 위치' : '지도 가운데'}에서 ${S.radius_km}km${o.keepLabel ? ' · ' + esc(o.keepLabel) : ''}`;
+    const sub = `${esc(o.personaName || o.persona)} · 남은 ${o.remain}분${rk !== o.remain ? `(${rk}분 표 기준)` : ''} · ${o.hour}시 · ${o.from === 'me' ? '내 위치' : '지도 가운데'}에서 ${S.radius_km}km${o.keepLabel ? ' · ' + esc(o.keepLabel) : ''}`;
     /* 카드 = 가로로 넘기는 한 줄(서랍 기본 높이에서 첫 카드의 이름·이유가 보이게). 점수 설명 줄은 카드 아래(서랍을 올리면 보임) */
     const cards = top.map((r, i) => `<div class="srcard" data-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${i + 1}위 ${esc(r.name)}">
       <div class="srtop"><span class="srno">${i + 1}</span><b>${esc(r.name)}</b></div>
@@ -95,6 +95,14 @@
       .then(t => { T = t && t.stations && t.score ? t : null; if (after) after(T); return T; }).catch(() => null);
     return P;
   }
-  const api = {load, rank, panel, bind, havKm, reasonOf, setTable:t => { T = t; }, ready:() => !!T};
+  /* '지금 충전소' 탭용 붐빔 문구(패널과 같은 기준, 11/22 점검 2). 표에 없는 충전소면 null.
+     돌려줌 {text:'보통 한산(참고)' 등, none:자료 부족 여부, occ, flag, n, basis:'관측 N회·2일 이상' 등} */
+  function busyOf(id, hour){
+    if (!T) return null; const s = T.stations.find(x => x.id === id); if (!s) return null;
+    const flag = s.busy_flag24[hour], o = s.occ24[hour], n = s.nobs24[hour], none = neutralFlag(flag) || o == null;
+    const basis = flag === 'ok' ? `관측 ${n}회·2일 이상` : flag === 'one_day' ? `관측 ${n}회·하루치` : flag === 'insufficient' ? `관측 ${n}회(${T.score.n_obs_min || 3}회 미만)` : '관측 없음';
+    return {text:busyText(o, flag).replace(/^이 시간대 /, ''), none, occ:o, flag, n, basis};
+  }
+  const api = {load, rank, panel, bind, havKm, reasonOf, busyOf, remainKey:rm => T ? remainKey(rm) : null, setTable:t => { T = t; }, ready:() => !!T};
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else g.STRECO = api;
 })(typeof window !== 'undefined' ? window : this);

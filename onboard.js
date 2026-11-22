@@ -282,8 +282,13 @@
   ONB.card = (big, T) => {      // 추천 카드·목록을 누름 → 그 대분류가 슬롯 틀에 든 페르소나들에 +1/n
     if (!prof || !big || !T || !T.slots) return;
     const hit = IDS.filter(id => (T.slots[id] || []).includes(big)); if (!hit.length) return;
+    const before = top(prof);
     hit.forEach(id => prof.learn[id] = (+prof.learn[id] || 0) + 1 / hit.length); sumUp(prof);
     prof.updated_at = new Date().toISOString(); save(prof);
+    /* 11/22 점검 5: 합계 1위가 바뀌면 그 자리에서 RS.persona를 다시 정함(부른 쪽이 바로 다시 그림). 바뀌었으면 true */
+    apply(); const now = top(prof);
+    if (now !== before && typeof g.toast === 'function') g.toast(`카드 선택이 쌓여 현재 페르소나가 ${NAME[now]}(으)로 바뀜`);
+    return now !== before;
   };
   ONB.battery = () => { const b = prof && prof.basic; return b && !b.batUnknown && +b.bat > 0 ? +b.bat : null; };
   ONB.name = id => NAME[id] || id;
