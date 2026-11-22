@@ -241,7 +241,7 @@ body.infra.placeon .listbtn{display:none}
 .rcard.l .oc{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .rlh{margin:10px 0 6px !important}
 .rlh small{font-size:11px;font-weight:500;color:var(--ink2);margin-left:4px}
-.sreco h4 small{display:none}
+.sreco h4 small{display:block;margin:1px 0 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} /* 제목 아래 한 줄: 페르소나·남은 시간·(N분 표 기준), 넘치면 말줄임 */
 /* '지금 충전소' 탭: 기본 정보·충전 시작·타이머(charge.js) */
 .sinfo{list-style:none;margin:8px 0;padding:0;border-top:1px solid var(--grid)}
 .sinfo li{display:flex;gap:10px;padding:6px 2px;border-bottom:1px solid var(--grid);font-size:12.5px}
@@ -307,6 +307,7 @@ h3{margin:0;font-size:17px;color:var(--navy)}
 .facts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}
 .facts div{font-size:11px;color:var(--ink2);background:var(--mintbg);border-radius:10px;padding:7px 8px}
 .facts b{display:block;font-size:15px;color:var(--navy)}
+.facts b.fsm{font-size:12.5px;line-height:1.35;word-break:keep-all}
 h4{font-size:13px;margin:14px 0 6px;color:var(--navy)}
 .lg{display:flex;gap:12px;font-size:11px;color:var(--ink2);margin-bottom:4px}
 .lg i{display:inline-block;height:2px;width:14px;vertical-align:3px;margin-right:4px}
@@ -1469,8 +1470,10 @@ function renderNow(el, s){
   const sb = window.STRECO && STRECO.busyOf ? STRECO.busyOf(s[C.id], hNow) : null;
   const busyNow = sb ? (sb.none ? sb.text : `${oNow < 0 ? Math.round(sb.occ * 100) : oNow}% · ${sb.text}`) : oNow < 0 ? '기록 없음' : `${oNow}%(참고)`;
   const busyWhy = sb ? sb.basis : '충전소 추천 표에 없는 충전소';
-  const facts = I ? `<div><b>급속 ${I.nFast} · 완속 ${I.nSlow}</b>충전기 ${I.chargers.length}대</div><div><b>${I.maxKw}kW</b>최대 출력</div><div><b>${oNow < 0 ? '-' : oNow + '%'}</b>${hNow}시 이용률(참고)</div>`
-    : `<div><b>${s[C.n]}대</b>충전기 (급속 ${s[C.nfast]})</div><div><b>${s[C.kw]}kW</b>최대 출력</div><div><b>${oNow < 0 ? '-' : oNow + '%'}</b>${hNow}시 이용률(참고)</div>`;
+  /* 사실 칸 이용률: 붐빔 줄과 같은 기준. 관측 부족·없음(sb.none)이면 % 대신 '붐빔 자료 부족' 등 같은 문구 */
+  const occCell = sb && sb.none ? `<div><b class="fsm">${sb.text}</b>${hNow}시 이용률</div>` : `<div><b>${oNow < 0 ? '-' : oNow + '%'}</b>${hNow}시 이용률(참고)</div>`;
+  const facts = I ? `<div><b>급속 ${I.nFast} · 완속 ${I.nSlow}</b>충전기 ${I.chargers.length}대</div><div><b>${I.maxKw}kW</b>최대 출력</div>${occCell}`
+    : `<div><b>${s[C.n]}대</b>충전기 (급속 ${s[C.nfast]})</div><div><b>${s[C.kw]}kW</b>최대 출력</div>${occCell}`;
   const info = `<ul class="sinfo">
       <li><span>운영시간</span><b>${I ? (I.uses.length ? I.uses.map(u => esc(u)).join('<br>') : '정보 없음') : '정보 없음'}</b></li>
       <li><span>주차 무료</span><b>${I ? yn(I.pf) : '정보 없음'}</b></li>
