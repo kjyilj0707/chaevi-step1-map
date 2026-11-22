@@ -354,12 +354,12 @@ a.kmap{font-size:10.5px;font-weight:700;color:var(--mint2);text-decoration:none;
 .tmr-n{margin:8px 0 0 !important;font-size:10.5px !important;color:var(--muted) !important}
 .chgbadge{position:fixed;z-index:1090;left:50%;transform:translateX(-50%);top:calc(124px + env(safe-area-inset-top));border:0;background:var(--navy);color:#fff;border-radius:99px;padding:6px 12px;font-size:12px;font-weight:600;box-shadow:var(--shadow);display:flex;align-items:center;gap:6px;white-space:nowrap;max-width:calc(100vw - 170px)}
 .chgbadge[hidden]{display:none}
-/* 카카오맵 길찾기(11/23): 충전소를 고르면 서랍 탭 줄 오른쪽. 새 탭 link/to = 출발지는 카카오맵이 정하는 현재 위치, API·키 없음 */
+/* 길찾기(11/23): 충전소를 고르면 서랍 탭 줄 오른쪽. 누르면 화면 안 경로 안내(startRoute, Worker /route). 카카오맵은 실패했을 때만 보조 링크. 새 탭 link/to = 출발지는 카카오맵이 정하는 현재 위치, API·키 없음 */
 /* 11/23 준엽: 서랍 위쪽 탭 줄 오른쪽(서랍 안이라 높이가 바뀌어도 함께 움직이고 카드·지도 버튼 줄을 가리지 않음) */
 .tabrow{flex:none;display:flex;align-items:center;gap:8px}
 body.selon .tabrow{margin:0 12px 8px}
 body.selon .tabrow .tabs{flex:1;min-width:0;margin:0}
-.kgo{display:none;flex:none;align-items:center;gap:5px;background:var(--navy);color:#fff;text-decoration:none;font-size:13px;font-weight:700;border-radius:12px;padding:0 12px 0 10px;height:42px;box-sizing:border-box}
+.kgo{display:none;flex:none;align-items:center;gap:5px;border:0;background:var(--navy);color:#fff;text-decoration:none;font-size:13px;font-weight:700;border-radius:12px;padding:0 12px 0 10px;height:42px;box-sizing:border-box}
 body.selon .kgo{display:flex}
 body.nav .kgo,body.onb-on .kgo{display:none !important}
 .staynote{margin:10px 0;padding:12px;border-radius:14px;background:#fff1ec;border:1.5px solid #ffcfbf;display:flex;flex-direction:column;gap:4px}
@@ -462,6 +462,8 @@ body.nav .navcard{display:flex}
 .navmid div{display:flex;justify-content:center;align-items:baseline;gap:16px}
 .navmid b{font-size:30px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}
 .navmid b small{font-size:17px;font-weight:700;margin-left:2px}
+.navmid em.navsub{display:block;font-style:normal;font-size:12px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.navdetail a.kfall{display:inline-block;margin:4px 0 6px;font-size:12px;font-weight:700;color:var(--mint2)}
 body.nav .navdetail.on{display:block}
 .navdetail{position:fixed;z-index:1150;left:12px;right:12px;max-width:520px;bottom:calc(122px + env(safe-area-inset-bottom));background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:14px}
 .navdetail p{margin:2px 0;font-size:13px;color:var(--ink2)}
@@ -576,7 +578,7 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
 </div>
 <div class="navcard" id="navCard">
   <button id="navRe" type="button" aria-label="다시 계산"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-14 5.3"/><path d="M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4"/><path d="M6 21v-4h4"/></svg></button>
-  <div class="navmid"><span id="navName"></span><div><b id="navEta"></b><b id="navRem"></b></div></div>
+  <div class="navmid"><span id="navName"></span><div><b id="navEta"></b><b id="navRem"></b></div><em class="navsub" id="navSub"></em></div>
   <button class="navend" id="navEnd" type="button" aria-label="안내 종료"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>종료</button>
   <button id="navMenu" type="button" aria-label="자세히"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 </div>
@@ -597,7 +599,7 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
       <button id="tabNear" role="tab" aria-selected="true" type="button">주변</button>
       <button id="tabNow" role="tab" aria-selected="false" type="button">지금 충전소</button>
     </div>
-    <a class="kgo" id="kakaoGo" href="https://map.kakao.com/" target="_blank" rel="noopener noreferrer" aria-label="카카오맵에서 내 위치부터 이 충전소까지 길찾기"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 21.2 12 12 21.2 2.8 12z"/><path d="M9.5 13.5v-2a1.5 1.5 0 0 1 1.5-1.5h4M13.5 8l2 2-2 2"/></svg>길찾기</a>
+    <button class="kgo" id="kakaoGo" type="button" aria-label="내 위치에서 이 충전소까지 화면 안 경로 안내"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 21.2 12 12 21.2 2.8 12z"/><path d="M9.5 13.5v-2a1.5 1.5 0 0 1 1.5-1.5h4M13.5 8l2 2-2 2"/></svg>길찾기</button>
   </div>
   <div class="body" id="body"></div>
 </section>
@@ -934,7 +936,19 @@ async function fetchRoute(from, dest, mode){     // 결과를 같은 모양으�
     return {distance:rt.distance, duration:rt.duration, path:rt.geometry.coordinates.map(c => [c[1], c[0]]),
       guides:rt.legs[0].steps.map(s => ({lat:s.maneuver.location[1], lng:s.maneuver.location[0], text:walkText(s.maneuver)}))};
   }
-  return fetch(`${ROUTE_API}/route?origin=${from[1]},${from[0]}&destination=${dest.lng},${dest.lat}`).then(x => x.json());
+  const res = await fetch(`${ROUTE_API}/route?origin=${from[1]},${from[0]}&destination=${dest.lng},${dest.lat}`);
+  let j = null; try { j = await res.json(); } catch (e) {}
+  return j && (j.error || j.path) ? j : {error:'http', status:res.status};      // Worker가 JSON이 아닌 응답(503 등)을 주면 상태 번호만
+}
+/* 경로 실패 원인 한 줄(11/23). Worker 응답: no_route(200) · upstream(502, status = 카카오 응답 번호, 429 = 호출 한도) · forbidden(403) · bad_coords(400) */
+function routeErrText(r){
+  if (r.error === 'no_route') return '경로를 찾지 못함' + (r.message ? ' (' + r.message + ')' : '');
+  if (r.error === 'upstream' && (r.status === 429 || r.status === 403)) return '길찾기 호출 한도를 넘었거나 막힘 (잠시 뒤 다시)';
+  if (r.error === 'upstream') return '카카오 길찾기 응답 오류' + (r.status ? ' (' + r.status + ')' : '');
+  if (r.error === 'forbidden') return '이 주소에서는 경로 서버를 쓸 수 없음';
+  if (r.error === 'bad_coords') return '출발·도착 좌표가 국내 범위를 벗어남';
+  if (r.error === 'http') return '경로 서버 오류 (HTTP ' + r.status + ')';
+  return '경로 서버 오류 (' + r.error + ')';
 }
 async function requestRoute(why){
   if (!route) return; const from = route.track ? me : route.from; if (!from) return;
@@ -943,7 +957,7 @@ async function requestRoute(why){
   try {
     const r = await fetchRoute(from, route.dest, route.mode);
     if (route !== cur) return;
-    if (r.error){ route.err = r.error === 'no_route' ? '경로를 찾지 못함' + (r.message ? ' (' + r.message + ')' : '') : '경로 서버 오류 (' + r.error + ')'; }
+    if (r.error){ route.err = routeErrText(r); }
     else {
       Object.assign(route, {path:r.path, cum:prepPath(r.path), dist:r.distance, rem:r.distance, dur:r.duration, guides:r.guides || [], gi:1, pos:0, at:new Date(), why, n:(route.n || 0) + 1, err:null, off:0});
       route.guides.forEach(g => { g.s = progress([g.lat, g.lng], route.path, route.cum).s; });   // 각 안내 지점이 경로의 몇 m 지점인지
@@ -974,14 +988,15 @@ function beginRoute(r){
   carEl.src = r.mode === 'walk' ? WALKER : 'car.png';
   hideTip(); hidePlace(); renderBody(); updateMap(); showNote(r);
 }
-function startRoute(s){        // 자동차: 내 위치 → 충전소
-  if (!navigator.geolocation){ toast('이 브라우저는 위치 기능이 없어 경로를 계산하지 못함'); return; }
+function startRoute(s){        // 자동차: 내 위치 → 충전소. 실패하면 안내 화면에 원인 한 줄 + '카카오맵에서 열기'(보조)
   initCompass(); selected = s;
   beginRoute({mode:'car', track:true, s, dest:{name:s[C.name], lat:s[C.lat], lng:s[C.lng], sub:s[C.addr]}});
+  const fail = t => { if (!route) return; route.err = t; renderBody(); };
+  if (!navigator.geolocation){ fail('이 브라우저는 위치 기능이 없어 경로를 계산하지 못함'); return; }
   const go = () => { if (!route) return; startWatch(); requestRoute('처음 계산');
     routeTimer = setInterval(() => requestRoute('2분 경과'), REROUTE_MS); };
   if (me) go(); else navigator.geolocation.getCurrentPosition(p => { setMe(p); go(); },
-    () => { toast('내 위치를 알 수 없어 경로를 계산하지 못함'); stopRoute(); }, GEO);
+    e => fail(e && e.code === 1 ? '위치 권한이 꺼져 있어 경로를 계산하지 못함 (브라우저 설정에서 위치 허용)' : '내 위치를 알 수 없어 경로를 계산하지 못함'), GEO);
 }
 function startWalk(place, origin){     // 도보: 출발지를 고름 ('me' = 내 위치에서, 따라가며 안내 / 'station' = 충전소에서, 경로만 보여 줌)
   const s = (route && route.s) || selected; if (!s) return;
@@ -1583,7 +1598,6 @@ map.on('zoom', () => top3.ms.forEach(m => { const im = m.getElement().querySelec
 function renderBody(){
   const el = $('#body');
   document.body.classList.toggle('selon', !!selected && !route);
-  if (selected) $('#kakaoGo').href = `https://map.kakao.com/link/to/${encodeURIComponent(String(selected[C.name]).replace(/,/g, ' '))},${(+selected[C.lat]).toFixed(6)},${(+selected[C.lng]).toFixed(6)}`;
   if (window.CHG) chgBadge();
   $('#tabNear').setAttribute('aria-selected', stab === 'near'); $('#tabNow').setAttribute('aria-selected', stab === 'now');
   if (route || selected) setTop3([]);
@@ -1621,8 +1635,9 @@ function renderNav(){
   if (!route) return; const walk = route.mode === 'walk';
   $('#navName').textContent = (walk ? '도보 · ' : '') + route.dest.name;
   if (!route.path){
-    $('#navArrow').innerHTML = ARROW.straight; $('#navDist').textContent = ''; $('#navText').textContent = route.err || '경로 계산 중…';
-    $('#navEta').textContent = '--:--'; $('#navRem').textContent = ''; $('#navDetail').innerHTML = detailHTML(); bindDetail();
+    $('#navArrow').innerHTML = route.err ? '' : ARROW.straight; $('#navDist').textContent = ''; $('#navText').textContent = route.err || '경로 계산 중…';
+    $('#navEta').textContent = '--:--'; $('#navRem').textContent = ''; $('#navSub').textContent = route.err ? '' : '경로 계산 중…'; $('#navDetail').innerHTML = detailHTML(); bindDetail();
+    $('#navDetail').classList.toggle('on', !!route.err);      // 실패하면 원인·'안내 끝'·카카오맵 링크가 바로 보이게
     $('#wMin').textContent = '--'; $('#wDist').textContent = ''; $('#wEta').textContent = route.err || '경로 계산 중…'; return;
   }
   const g = route.guides, last = route.gi >= g.length - 1, cur = g[Math.min(route.gi, g.length - 1)];
@@ -1631,6 +1646,9 @@ function renderNav(){
   $('#navArrow').innerHTML = arrowFor(text); $('#navDist').textContent = mTxt(d); $('#navText').textContent = text;
   const eta = new Date(route.at.getTime() + route.dur * 1000), rem = route.rem / 1000;
   $('#navEta').textContent = hm(eta);
+  const leftMin = Math.max(1, Math.round(route.dur * (route.rem / (route.dist || 1)) / 60));      // 남은 예상 시간 = 계산 시간 × 남은 거리 비율
+  $('#navSub').textContent = `${hm(eta)} 도착 예정 · 남은 약 ${leftMin >= 60 ? Math.floor(leftMin / 60) + '시간 ' + (leftMin % 60) + '분' : leftMin + '분'}${route.err ? ' · ' + route.err : ''}`;
+  if (route.err) $('#navDetail').classList.add('on');
   $('#navRem').innerHTML = (rem < 1 ? Math.round(rem * 1000) + '<small>m</small>' : rem.toFixed(1) + '<small>km</small>');
   $('#navDetail').innerHTML = detailHTML(); bindDetail();
   if (walk){      // 도보: 남은 시간 | 남은 거리 | 도착 시각 + 진행 막대
@@ -1650,14 +1668,16 @@ function detailHTML(){
       : `<p>예상 시간 <b>${mins}분</b> (마지막 계산 시점 기준) · 도착 시각(${eta.getHours()}시)의 이용률 <b>${occTxt(occAt(route.s, eta.getHours()))}</b></p>
          <p>마지막 계산 ${hm(route.at)}:${String(route.at.getSeconds()).padStart(2,'0')} · ${route.why} · 계산 ${route.n}회${route.busy ? ' · 다시 계산 중…' : ''}${route.err ? ' · ' + route.err : ''}</p>
          <p>2분마다, 또는 경로에서 50m 넘게 벗어나면 다시 계산함</p>`; }
-  return `<p>${d.sub || ''}</p>${info}<div class="acts" style="margin-bottom:0">
-    <a class="act" href="https://map.kakao.com/link/to/${encodeURIComponent(d.name)},${d.lat},${d.lng}" target="_blank" rel="noopener">카카오맵으로 길안내</a>
+  /* 카카오맵은 실패했을 때만 보조 링크(11/23 준엽: 기본은 화면 안 안내) */
+  const kk = route.err ? `<a class="kfall" href="https://map.kakao.com/link/to/${encodeURIComponent(String(d.name).replace(/,/g, ' '))},${(+d.lat).toFixed(6)},${(+d.lng).toFixed(6)}" target="_blank" rel="noopener noreferrer">카카오맵에서 열기</a>` : '';
+  return `<p>${d.sub || ''}</p>${info}${kk}<div class="acts" style="margin-bottom:0">
     ${walk ? `<button class="act ghost" id="swapOrigin" type="button">${route.track ? '충전소에서 출발로 바꾸기' : '내 위치에서 출발로 바꾸기'}</button>` : ''}
     <button class="act ghost" id="stopRoute" type="button">안내 끝</button></div>`;
 }
 function bindDetail(){ const b = $('#stopRoute'); if (b) b.onclick = () => stopRoute();
   const w = $('#swapOrigin'); if (w) w.onclick = () => { const d = route.dest, o = route.track ? 'station' : 'me'; selected = route.s; startWalk(d, o); }; }
 $('#navRe').onclick = () => requestRoute('직접 다시 계산');
+$('#kakaoGo').onclick = () => { if (selected) startRoute(selected); };      // 탭 줄 '길찾기' = 화면 안 경로 안내(예전 '지금 충전소' 탭 버튼과 같은 함수, 그 버튼은 지움)
 $('#navMenu').onclick = () => $('#navDetail').classList.toggle('on');
 $('#walkMenu').onclick = () => $('#navDetail').classList.toggle('on');
 $('#walkRe').onclick = () => requestRoute('직접 다시 계산');
@@ -1714,7 +1734,6 @@ function renderNow(el, s){
     <div class="facts">${facts}</div>
     ${info}
     <div id="chgBox" class="chg"></div>
-    <div class="acts"><button class="act ghost" id="goRoute" type="button">여기까지 경로 안내</button></div>
     <h4>시간대별 이용률 (%) · 남색 막대 = ${hour}시</h4>
     <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="시간대별 이용률 막대 그래프">${grid}${bars}${xl}</svg>
     <p>최대 출력 ${s[C.kw]}kW${s[C.bad] > 0 ? ' · 통신이상 ' + s[C.bad] + '%' : ''}</p></div>`;
@@ -1722,7 +1741,6 @@ function renderNow(el, s){
   if (window.CHG){ if (!I) CHG.load().then(j => { if (j && selected === s && stab === 'now' && CHG.info(s[C.id])) renderBody(); });
     CHG.render($('#chgBox'), {id:s[C.id], name:s[C.name]}, {battery:window.ONB ? ONB.battery() : null, onGoto:id => { const t = byId(id); if (t){ select(t, true); setStab('now'); } }}); }
   $('#back').onclick = () => { selected = null; renderBody(); draw(); };
-  $('#goRoute').onclick = () => startRoute(s);
   el.querySelectorAll('rect[data-t]').forEach(r => { r.onmousemove = e => showTip(e, r.dataset.t); r.onmouseleave = hideTip; });
   el.scrollTop = 0;
 }
