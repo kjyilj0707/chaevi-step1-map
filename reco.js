@@ -13,7 +13,7 @@
    가용 = 남은 − 왕복 도보 − α − 복합시설 왕복(2 × 재이 편도 분) − 여유 5
    시간 계수: 가용 ≥ 상한 → 1(가능) / 하한 ≤ 가용 < 상한 → 0.5(빠듯) / 가용 < 하한 → 0(불가). 쇼핑은 하한만
    가게 점수 = 가게 활동 중 최댓값(같으면 앞 활동). 순서 = 점수 큰 순 → 편도 짧은 순 → place_id
-   후보 = 편도 ≤ 상한(기본 10분, 비·심야 5분), 재이 × 제외, 점수 0 제외. 심야 화장실은 개방시간 '상시'만
+   후보 = 편도 ≤ 상한(기본 10분, 비·심야 5분, 화면 슬라이더 o.walkCap가 있으면 그것과 작은 쪽), 재이 × 제외, 점수 0 제외. 심야 화장실은 개방시간 '상시'만
    키워드(필터) = 재이가 붙인 소분류만. 허용 대분류(P4a·P4b)와 키워드가 같이 켜지면 대분류 교집합, 비면 키워드 대분류만 + 가게 활동 제한 풂
    보여 주기: score = 순서대로 max_cards / per_big = 대분류마다 대표 1곳 / per_store_activity(P4b) = card_units 단위마다 대표 1곳
    (단위 점수 = 그 단위 활동 점수 최댓값, 카드 순서 = 점수순·가까운 순). 키워드 필터가 켜지면 필터 안 점수순
@@ -28,9 +28,11 @@
     if (wx === 'rain' || wx === 'snow') c.push(wx);
     return c;
   };
-  R.effects = (T, conds) => {
+  /* userCap = 화면 도보 슬라이더 편도 상한(분, 5~10, 11/23). 없으면(undefined·null) 기준 코드와 같음. 실제 상한 = min(표 기본, 날씨·심야 규칙, userCap) */
+  R.effects = (T, conds, userCap) => {
     const P = T.params, mult = {}, openf = {};
     let cap = P.walk_cap_min, speed = P.walk_speed_mps;
+    if (userCap != null) cap = Math.min(cap, Number(userCap));
     T.ctx.forEach(r => {
       if (!conds.includes(r.condition)) return;
       if (r.rule_type === 'weight') mult[r.activity] = (r.activity in mult ? mult[r.activity] : 1.0) * Number(r.multiplier);
@@ -60,7 +62,7 @@
   /* places: [{pid, wm(도보 m), sub(소분류), big(대분류), acts:[가게 활동], open(개방시간), x(재이 ×), mall(복합시설 편도 분), ...}]
      돌려줌: 점수 > 0 인 후보 [{p, ow, avail, score, act, time, group(대분류), per:{활동: [점수, 시간]}}] (순서대로) */
   R.score = (T, places, o) => {
-    const P = T.params, e = R.effects(T, o.conds || []), sc = R.scope(T, o.persona, o.keyword), pw = T.pw[o.persona];
+    const P = T.params, e = R.effects(T, o.conds || [], o.walkCap), sc = R.scope(T, o.persona, o.keyword), pw = T.pw[o.persona];
     const out = [];
     for (const p of places){
       if (sc.big && !sc.big.has(p.big)) continue;
@@ -174,7 +176,7 @@
   const RANK = {'가능': 0, '빠듯': 1};
   /* 슬롯 후보(점수순): [{p, ow, avail, act, time, tr(시간 순위), mult(상황 곱), group}] */
   R.slotCandidates = (T, places, o) => {
-    const P = T.params, e = R.effects(T, o.conds || []), out = [];
+    const P = T.params, e = R.effects(T, o.conds || [], o.walkCap), out = [];
     for (const p of places){
       if (closedNow(p, o)) continue;
       const ow = p.wm / (e.speed * 60);

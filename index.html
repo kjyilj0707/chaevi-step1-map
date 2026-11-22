@@ -7,10 +7,10 @@
 <title>충전소 지도 (MVP)</title>
 <meta property="og:title" content="충전소 지도 (MVP)">
 <meta property="og:site_name" content="충전소 지도 (MVP)">
-<meta property="og:description" content="채비 충전소에서 도보 5분·10분 안에 다녀올 곳을 보여 주는 지도 (학술제 MVP)">
+<meta property="og:description" content="채비 충전소에서 도보 5~10분 안에 다녀올 곳을 보여 주는 지도 (학술제 MVP)">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://kjyilj0707.github.io/chaevi-step1-map/icon-512.png">
-<meta name="description" content="채비 충전소에서 도보 5분·10분 안에 다녀올 곳을 보여 주는 지도 (학술제 MVP)">
+<meta name="description" content="채비 충전소에서 도보 5~10분 안에 다녀올 곳을 보여 주는 지도 (학술제 MVP)">
 <script>
 /* 컴퓨터처럼 넓은 화면에서 직접 열면 휴대폰 비율 틀(frame.html) 안에서 보여 줌 */
 if (window.top === window.self && matchMedia('(min-width: 821px)').matches) location.replace('frame.html' + location.hash);
@@ -134,6 +134,25 @@ body.infra #infraChips{display:flex}
 .infrabar .rseg{flex:none;display:flex;gap:2px;background:rgba(255,255,255,.12);border-radius:16px;padding:2px}
 .infrabar .rseg button{width:auto;height:30px;padding:0 9px;border-radius:14px;font-size:12px;font-weight:700;color:#b9cfda}
 .infrabar .rseg button[aria-pressed="true"]{background:#fff;color:var(--navy)}
+/* 도보 편도 슬라이더(11/23 Q5·Q6): 도보 자료 충전소를 고르면 위쪽 띠 아래에 보임. 5~10분, 0.5분 단위 */
+.walkbox{display:none;margin-top:8px;background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:7px 10px 6px}
+body.infra.wbox .walkbox{display:block}
+body.infra.wbox .fabs,body.infra.wbox .hourpill{top:calc(204px + env(safe-area-inset-top))}
+body.infra.wbox .legendbox{top:calc(204px + env(safe-area-inset-top))}
+.wbrow{display:flex;align-items:center;gap:8px}
+.wbrow .wbl{flex:none;font-size:11px;font-weight:700;color:var(--ink2)}
+.wbrow input[type=range]{flex:1;min-width:0;accent-color:var(--mint2);height:22px;margin:0}
+.wbrow output{flex:none;min-width:104px;text-align:right;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.wbrow output b{font-size:14px;color:var(--navy)}
+.wbrow button{flex:none;border:1px solid var(--axis);background:var(--surface);border-radius:99px;padding:3px 9px;font-size:11px;font-weight:700;color:var(--ink2)}
+.wbrow button[aria-pressed="true"]{background:var(--mint2);border-color:var(--mint2);color:#fff}
+.walkwhy{margin:2px 0 0;font-size:10.5px;color:var(--ink2);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.walkwhy .lim{color:#a2620a;font-weight:700}
+/* 지도 바탕 '일반 | 위성'(11/23 Q3, 위성 = 국토교통부 브이월드) */
+.baseseg{display:flex;flex-direction:column;width:50px;border-radius:16px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.baseseg button{border:0;background:transparent;height:30px;font-size:11px;font-weight:700;color:var(--ink2)}
+.baseseg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.baseseg button:disabled{color:var(--muted);font-size:9.5px}
 .chip .ic{display:flex;align-items:center}
 .chip b{font-variant-numeric:tabular-nums;color:var(--ink2);font-weight:600}
 .chip[aria-pressed="true"] b{color:#cfe0e8}
@@ -203,6 +222,15 @@ body.infra.placeon .listbtn{display:none}
 .srwhy em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--ink2);background:var(--grid);border-radius:6px;padding:1px 6px}
 .srplace{font-size:11.5px;color:var(--ink2);line-height:1.35;padding-left:29px;margin-top:-3px;word-break:keep-all}
 .srtie{margin:6px 14px 0 !important;font-size:11px !important;color:var(--ink) !important;line-height:1.4;background:var(--mintbg);border-radius:8px;padding:5px 8px}
+.srcard{position:relative}
+/* 카드 오른쪽 위 위성 작은 그림(z17 타일 1~4장 조합, 충전소 = 가운데 점). 그림이 있으면 이름·충전기 줄은 오른쪽을 비움 */
+.srsat{position:absolute;top:9px;right:10px;width:64px;height:64px;border-radius:10px;overflow:hidden;background:var(--grid)}
+.srsat img{position:absolute;width:128px;height:128px;max-width:none}
+.srsat i{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.srsat.fail img{display:none}
+.srsat .srkm{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:10.5px;color:#fff;background:rgba(20,58,82,.72);padding:1px 0}
+.srcard.sat .srtop,.srcard.sat .srmeta{padding-right:70px}
+.srcard.sat .srmeta{min-height:34px;align-content:flex-start}
 .srnote{font-size:10px !important;color:var(--muted) !important;margin:5px 14px 0 !important;line-height:1.45}
 /* 주변 인프라 추천(충전소 상세 안, 도보 충전소만) */
 .reco{margin:12px 0 4px;padding:12px 10px 8px;background:var(--mintbg);border-radius:14px}
@@ -443,6 +471,10 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
     <div class="rseg" id="infraR" role="group" aria-label="주변 범위"><button type="button" data-r="50">50m</button><button type="button" data-r="100">100m</button></div>
     <button id="infraClear" type="button" aria-label="전체 종류 보기"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
+  <div class="walkbox" id="walkBox" role="group" aria-label="도보 편도 상한">
+    <div class="wbrow"><span class="wbl">도보 편도</span><input type="range" id="walkRange" min="5" max="10" step="0.5" value="10" aria-label="도보 편도 상한(분)"><output id="walkVal" for="walkRange"></output><button type="button" id="walkAuto" aria-pressed="true">자동</button></div>
+    <p class="walkwhy" id="walkWhy"></p>
+  </div>
   <div class="chips" id="infraChips"></div>
   <div class="chips" id="chips">
     <button class="chip" data-f="demo" aria-pressed="true"><i style="background:var(--mint2)"></i><span id="demoLabel">시연 9곳</span></button>
@@ -460,6 +492,7 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
 
 <div class="fabs">
   <button class="fab" id="legendBtn" type="button" aria-pressed="false">범례</button>
+  <div class="baseseg" id="baseSeg" role="group" aria-label="지도 바탕"><button type="button" data-b="osm" aria-pressed="true">일반</button><button type="button" data-b="sat" aria-pressed="false">위성</button></div>
   <button class="fab" id="compass" type="button" aria-label="북쪽을 위로"><svg viewBox="0 0 24 24"><path d="M12 2.5 L16 12 H8 Z" fill="#ff7a59"/><path d="M12 21.5 L8 12 H16 Z" fill="#c9d1d6"/></svg></button>
 </div>
 <div class="legendbox" id="legendbox">
@@ -618,14 +651,45 @@ const isDemo = s => !!(s && DEMO[s[C.id]]);
 const SEOUL = [37.5665, 126.978];
 const EMPTY = {type:'FeatureCollection', features:[]};
 
-/* 지도: OSM 바탕. 확대·회전·기울이기가 끊김 없이 이어짐 */
+/* 지도: OSM 바탕(또는 브이월드 위성). 확대·회전·기울이기가 끊김 없이 이어짐 */
+const SAT_URL = 'https://xdworld.vworld.kr/2d/Satellite/service/{z}/{x}/{y}.jpeg';
 const map = new maplibregl.Map({container:'map', center:[SEOUL[1], SEOUL[0]], zoom:11.5, minZoom:8.5, maxZoom:19, maxPitch:60, attributionControl:false,
   style:{version:8, sources:{osm:{type:'raster', tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize:256, maxzoom:19,
-      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자'}},
+      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자'},
+      /* 위성 = 국토교통부 브이월드 위성영상(키 없는 XYZ, HTTPS·CORS * 확인 11/23). 처음엔 숨김, '위성'을 누르면 보임 */
+      sat:{type:'raster', tiles:[SAT_URL], tileSize:256, minzoom:6, maxzoom:19, attribution:'&copy; 국토교통부 브이월드'}},
     layers:[{id:'bg', type:'background', paint:{'background-color':'#f1e9dc'}},
       {id:'osm', type:'raster', source:'osm', paint:{'raster-saturation':-0.15, 'raster-contrast':-0.06, 'raster-brightness-max':1}},
+      {id:'sat', type:'raster', source:'sat', layout:{visibility:'none'}},
       {id:'warm', type:'background', paint:{'background-color':'#f0c078', 'background-opacity':0.13}}]}});
 map.addControl(new maplibregl.AttributionControl({compact:true}), 'bottom-left');
+/* 지도 바탕 '일반 | 위성'(11/23 Q3). 위성 타일이 계속 실패하면(6번, 한 장도 못 받음) 일반으로 돌아가고 위성 버튼을 끔. 고른 바탕은 이 기기에만 기억 */
+let baseMode = 'osm', satErr = 0, satOk = false;
+function setBase(b){
+  const sb = document.querySelector('#baseSeg [data-b="sat"]'); if (b === 'sat' && sb.disabled) return;
+  baseMode = b; const sat = b === 'sat';
+  const go = () => { map.setLayoutProperty('sat', 'visibility', sat ? 'visible' : 'none'); map.setLayoutProperty('osm', 'visibility', sat ? 'none' : 'visible');
+    map.setPaintProperty('warm', 'background-opacity', sat ? 0 : 0.13); };
+  if (map.isStyleLoaded()) go(); else map.once('load', go);
+  document.querySelectorAll('#baseSeg button').forEach(x => x.setAttribute('aria-pressed', x.dataset.b === b));
+  try { localStorage.setItem('mapBase', b); } catch (e) {}
+}
+document.getElementById('baseSeg').onclick = e => { const x = e.target.closest('button'); if (x) setBase(x.dataset.b); };
+map.on('sourcedata', e => { if (e.sourceId === 'sat' && e.tile) satOk = true; });
+map.on('error', e => { if (e.sourceId !== 'sat' || baseMode !== 'sat' || satOk || ++satErr < 6) return;
+  setBase('osm'); const sb = document.querySelector('#baseSeg [data-b="sat"]'); sb.disabled = true; sb.textContent = '위성 불가';
+  if (typeof toast === 'function') toast('위성 사진을 불러오지 못해 일반 지도로 돌아왔어요'); });
+try { if (localStorage.getItem('mapBase') === 'sat') setBase('sat'); } catch (e) {}
+/* 충전소 추천 카드의 위성 작은 그림: z17 타일(한 장 128px로 줄여 보임, 2배 화면에서 원래 해상도) 중 충전소가 가운데인 64px 칸에 걸치는 1~4장 */
+const SAT_Z = 17, SAT_T = 128, SAT_BOX = 64;
+function satThumb(lat, lng){
+  const n = 2 ** SAT_Z, cx = (lng + 180) / 360 * n * SAT_T, cy = (1 - Math.asinh(Math.tan(lat * Math.PI / 180)) / Math.PI) / 2 * n * SAT_T;
+  const x0 = cx - SAT_BOX / 2, y0 = cy - SAT_BOX / 2; let h = '';
+  for (let tx = Math.floor(x0 / SAT_T); tx <= Math.floor((x0 + SAT_BOX - 1e-6) / SAT_T); tx++)
+    for (let ty = Math.floor(y0 / SAT_T); ty <= Math.floor((y0 + SAT_BOX - 1e-6) / SAT_T); ty++)
+      h += `<img alt="" decoding="async" src="${SAT_URL.replace('{z}', SAT_Z).replace('{x}', tx).replace('{y}', ty)}" style="left:${(tx * SAT_T - x0).toFixed(1)}px;top:${(ty * SAT_T - y0).toFixed(1)}px" onerror="this.parentNode.classList.add('fail')">`;
+  return h;
+}
 map.touchZoomRotate.enableRotation(); map.dragRotate.enable(); map.keyboard.enable();
 const zoomSize = (z, lo, hi) => lo + (hi - lo) * Math.max(0, Math.min(1, (z - 7) / 9));
 const sizeExpr = (lo, hi) => ['interpolate', ['linear'], ['zoom'], 7, ['*', ['get', 'k'], lo / 48], 16, ['*', ['get', 'k'], hi / 48]];
@@ -1046,10 +1110,36 @@ Promise.all([fetch('data/stations.json').then(r => r.json()), loadSprites().then
    도보 자료가 있는 충전소(WK, data/walk_seoul 또는 data/walk9)는 대신 <WDIR>/<id>.json(도보 10분 = 780m 안 가게, 도보 거리 순)을 읽고 도보 5분·10분으로 걸러 보여 줌.
    걸러 쓰기 쉽게 가게 한 줄을 [이름, 종류, 업종, 위도, 경도, 도보 m, 도보 분, 5분 안, 카카오 도보 경로값]으로 바꿔 둠(직선 파일과 같은 자리 5 = m).
    업종 = 세원 중분류 · 소분류(도보 파일 10번째 칸에 세원 중분류가 있을 때. 세원 소진공 전처리판 77개 소분류, 11/21) */
-const POI_RS = [50, 100], WALK_MS = [5, 10];
-let poiR = 100, walkMin = 5;
+const POI_RS = [50, 100];
+let poiR = 100;
 try { const v = +localStorage.getItem('poiR'); if (POI_RS.includes(v)) poiR = v; } catch (e) {}
-try { const v = +localStorage.getItem('walkMin'); if (WALK_MS.includes(v)) walkMin = v; } catch (e) {}
+/* 도보 편도 상한 슬라이더(11/23 Q5·Q6, 예전 '도보 5분 | 10분' 버튼 대신). 5~10분, 0.5분 단위. 10분 밖은 도보 자료가 없어 최대 10분
+   - 자동(기본): 편도 = (남은 시간 − 가장 짧은 활동 시간 하한 − 여유) ÷ 2, 0.5분 단위로 올림, 5~10분으로 자름.
+     남은 시간 = 추천과 같은 값(타이머 실제 남은 분, 없으면 MY 머무는 시간), 하한 = tables.json time 하한 최솟값(쓰레기 버리기 1분), 여유 = params.buffer_min(5분).
+     이 값보다 먼 곳은 어떤 활동도 '불가'라 자동 상태에서는 추천 카드가 바뀌지 않음(올림이라 경계도 안전)
+   - 직접 움직이면 그 값(이번 방문 동안, 저장 안 함). '자동'을 누르면 되돌림. 타이머 분이 바뀌면 자동 상태일 때만 따라감
+   - 실제 상한 = min(슬라이더, 날씨·심야 규칙(reco.js effects, 비·눈·심야 5분)). 지도 핀·도보 칩 개수·목록·추천 후보(reco.js walkCap) 모두 이 값
+   - m 환산 = 분 × 보행 속도 × 60(1.3 m/s → 78 m/분, 5분 390m·10분 780m = 예전 m5·m10과 같음) */
+const WALK_LO = 5, WALK_HI = 10, WALK = {manual:null};
+const fmtMin = v => String(Math.round(v * 2) / 2);
+const walkMpm = () => (WKM ? WKM.speed : 1.3) * 60;
+const walkActLo = () => RT && RT.time ? Math.min(...Object.values(RT.time).map(t => +t[0])) : 1;
+const walkBuf = () => RT && RT.params ? +RT.params.buffer_min : 5;
+function walkAuto(){ syncRemain(); const raw = (RS.remain - walkActLo() - walkBuf()) / 2;
+  return Math.min(WALK_HI, Math.max(WALK_LO, Math.ceil(raw * 2 - 1e-9) / 2)); }
+const walkSlider = () => WALK.manual != null ? WALK.manual : walkAuto();
+/* 추천과 같은 조건(시각·지금 날씨·MY 조건) */
+function walkConds(s){ const wx = recoWx(s); return RECO.conditions(recoHour(), wx === 'clear' ? null : wx).concat(window.ONB ? ONB.conds() : []); }
+/* 날씨·심야 상한과 그 이름(예: [5, '비']). 표가 없으면 심야만 5분 */
+const COND_NAME = {night:'심야', rain:'비', snow:'눈', cold:'추위', hot:'더위', wind:'강풍'};
+function walkEnv(s){
+  if (!s) return [WALK_HI, ''];
+  if (!RT || typeof RECO === 'undefined') return isNight() ? [5, '심야'] : [WALK_HI, ''];
+  const conds = walkConds(s), cap = RECO.effects(RT, conds).cap;
+  const by = RT.ctx.filter(r => r.rule_type === 'walk_cap' && conds.includes(r.condition) && +r.value === cap).map(r => COND_NAME[r.condition] || r.condition);
+  return [cap, [...new Set(by)].join('·')];
+}
+const walkEff = () => Math.min(walkSlider(), walkEnv(poi.s)[0]);
 /* 목록은 처음 가까운 5곳만 보이고 '더보기'를 누를 때마다 20곳씩 늘어남(상한: 도보 100 · 직선 60). 종류·범위·충전소를 바꾸면 다시 5곳 */
 const POI_FIRST = 5, POI_STEP = 20;
 let poi = {s:null, data:null, cat:-1, state:'', show:POI_FIRST};
@@ -1101,10 +1191,10 @@ function sk(c){               // 칩 번호 → 모양 번호(POI_COL·PICON·�
   const k = BIG_SHAPE[wcats()[c]]; return k != null ? k : 7 + c % 7;
 }
 const shownCat = x => poi.cat >= 0 ? poi.cat : x[1];     // 칩을 골랐으면 그 칩 모양으로 보임(카페를 '카페 착석'으로 고르면 착석 색)
-const walkLim = () => walkMin === 5 ? (WKM ? WKM.m5 : 390) : (WKM ? WKM.m10 : 780);
+const walkLim = () => walkEff() * walkMpm();      // 고른 편도 분 → m (11/23 슬라이더)
 function poiView(){            // 고른 범위 안의 가게와 종류별 개수. 직선 파일이 상한(400곳)에 걸렸고 그 400곳이 다 반경 안이면 실제는 더 많음(more)
   const d = poi.data; if (!d) return null;
-  const night = d.walk && isNight(), key = d.walk ? 'w' + walkMin + (night ? 'n' : '') : poiR;
+  const night = d.walk && isNight(), key = d.walk ? 'w' + walkEff() + (night ? 'n' : '') : poiR;
   if (d.v && d.v.r === key) return d.v;
   const lim = d.walk ? walkLim() : poiR;
   const p = d.p.filter(x => x[5] <= lim && !(night && x[12] != null && !x[12].startsWith('상시'))), n = d.n.map(() => 0); p.forEach(x => (x[9] || [x[1]]).forEach(c => n[c]++));
@@ -1118,17 +1208,33 @@ function poiFit(s){              // 반경 원이 화면에 들어오도록 맞�
 }
 function setPoiR(r){
   const walk = poi.data && poi.data.walk;
-  if (walk){ if (r === walkMin) return; walkMin = r; try { localStorage.setItem('walkMin', r); } catch (e) {} }
-  else { if (r === poiR) return; poiR = r; try { localStorage.setItem('poiR', r); } catch (e) {} }
+  if (walk) return;      // 도보는 슬라이더(walkSet)
+  if (r === poiR) return; poiR = r; try { localStorage.setItem('poiR', r); } catch (e) {}
   poi.cat = -1; poi.show = POI_FIRST; hidePlace(); if (poi.s && poi.s[C.poi]) poiFit(poi.s); drawPoi(); renderPoi();
 }
 $('#infraR').onclick = e => { const b = e.target.closest('button'); if (b) setPoiR(+b.dataset.r); };
+/* 슬라이더: v = 분(직접) 또는 null(자동) */
+function walkSet(v){
+  WALK.manual = v; poi.cat = -1; poi.show = POI_FIRST; hidePlace(); drawPoi(); renderPoi();
+}
+$('#walkRange').addEventListener('input', e => walkSet(+e.target.value));
+$('#walkAuto').onclick = () => walkSet(null);
+/* 슬라이더 글자: '편도 7.5분 · 약 585m', 근거 줄 '자동: 남은 32분(충전 타이머) 기준 편도 10분 · 비: 5분까지' */
+function walkUI(){
+  const sl = walkSlider(), au = walkAuto(), [ec, en] = walkEnv(poi.s), eff = Math.min(sl, ec);
+  const r = $('#walkRange'); if (document.activeElement !== r || WALK.manual == null) r.value = sl;
+  $('#walkVal').innerHTML = `편도 <b>${fmtMin(eff)}분</b> · 약 ${Math.round(eff * walkMpm())}m`;
+  $('#walkAuto').setAttribute('aria-pressed', WALK.manual == null);
+  const why = WALK.manual == null ? `자동: ${remainNote()} 기준 편도 ${fmtMin(au)}분` : `직접 고름 · 자동이면 편도 ${fmtMin(au)}분(${remainNote()})`;
+  $('#walkWhy').innerHTML = why + (ec < sl ? ` · <span class="lim">${en || '날씨'}: ${fmtMin(ec)}분까지</span>` : '');
+}
 function clearPoi(){ if (!poi.s && !poi.data) return; poi = {s:null, data:null, cat:-1, state:'', show:POI_FIRST};
   document.body.classList.remove('infra'); hidePlace();
   if (ready){ map.getSource('poi').setData(EMPTY); map.getSource('ring').setData(EMPTY); map.getSource('trash').setData(EMPTY); } }
 function drawPoi(){
   if (!ready || !poi.s) return; const s = poi.s, v = poiView(), walk = poi.data && poi.data.walk;
-  map.getSource('ring').setData(walk || poi.walk ? EMPTY : circlePoly([s[C.lat], s[C.lng]], poiR));     // 도보 범위는 원으로 그리지 않음(길 따라 잰 거리라 모양이 원이 아님)
+  map.getSource('ring').setData(walk || poi.walk ? EMPTY : circlePoly([s[C.lat], s[C.lng]], poiR));
+  poi.drawn = v ? v.r : null;     // 도보 범위는 원으로 그리지 않음(길 따라 잰 거리라 모양이 원이 아님)
   const items = v ? v.p.filter(x => inCat(x, poi.cat)) : [];
   map.getSource('poi').setData({type:'FeatureCollection', features:items.map(x => ({type:'Feature', geometry:{type:'Point', coordinates:[x[4], x[3]]},
     properties:walk ? {n:x[0], c:sk(shownCat(x)), s:x[2], d:x[5], w:x[6]} : {n:x[0], c:sk(shownCat(x)), s:x[2], d:x[5]}}))});
@@ -1166,18 +1272,18 @@ let recoMemo = null;
 function recoRun(){
   const s = poi.s, d = poi.data; if (!RT || !s || !d || !d.walk || !d.raw || !d.raw.pid) return null;
   syncRemain();
-  const wx = recoWx(s), conds = RECO.conditions(recoHour(), wx === 'clear' ? null : wx).concat(window.ONB ? ONB.conds() : []);
+  const wx = recoWx(s), conds = walkConds(s), wcap = walkSlider();      // wcap = 도보 슬라이더 편도 상한(11/23, 날씨·심야 상한은 reco.js가 따로 min)
   const kw = RS.kw && RT.kw[RS.kw] ? RS.kw : null;
   const now = recoNow(), rkey = RS.remainFrom === 'timer' ? 't' + Math.floor(RS.remain) : RS.remain;     // 타이머는 분이 바뀔 때만 다시 계산(값은 그때의 실제 분)
-  const key = [s[C.id], RS.persona, rkey, kw, conds.join('+'), now.dow, now.min].join('|');
+  const key = [s[C.id], RS.persona, rkey, kw, conds.join('+'), now.dow, now.min, wcap].join('|');
   if (recoMemo && recoMemo.key === key && recoMemo.d === d) return recoMemo;
   if (!d.places){ d.places = RECO.places(RT, s[C.id], d.raw, d.toilets); d.extra = RECO.extras(d.trash, d.parks); }
   /* 11/22 v2 화면: 위 가로 카드 = 페르소나 슬롯 틀(키워드 없이, reco.js 결과 그대로) / 아래 리스트 = 고른 키워드의 v3e 점수순 전체(RECO.recommend 키워드 res),
      키워드가 없거나 '아무거나!'면 키워드 없는 v3e 점수순 전체(RECO.score). 점수 계산은 reco.js 그대로 */
-  const o = {persona:RS.persona, remain:RS.remain, conds, now, alpha:RT.alpha[s[C.id]] != null ? RT.alpha[s[C.id]] : (RT.alphaDefault || 0)};
+  const o = {persona:RS.persona, remain:RS.remain, conds, now, walkCap:wcap, alpha:RT.alpha[s[C.id]] != null ? RT.alpha[s[C.id]] : (RT.alphaDefault || 0)};
   const out = RECO.recommend(RT, d.places, d.extra, Object.assign({keyword:null}, o));
   const list = kw ? RECO.recommend(RT, d.places, d.extra, Object.assign({keyword:kw}, o)).res : RECO.score(RT, d.places, Object.assign({keyword:null}, o));
-  return recoMemo = {key, rem:o.remain, d, wx, conds, now, kw, cards:out.cards, mode:out.mode, list, eff:RECO.effects(RT, conds)};
+  return recoMemo = {key, rem:o.remain, d, wx, conds, now, kw, cards:out.cards, mode:out.mode, list, eff:RECO.effects(RT, conds, wcap)};
 }
 function recoCardRow(r){          // 카드 한 장 → 목록 가게 줄(지도에 보이기·도보 안내에 그대로 씀). 쓰레기통·공원 카드는 그 파일 줄로 같은 모양을 만듦
   const k = r.p.kind;
@@ -1257,8 +1363,11 @@ function recoBind(el, rc){
 }
 function renderPoi(){
   const m = D.meta.poi, on = !!selected && poi.s === selected && poi.state === 'ok', walk = !!(poi.data && poi.data.walk);
-  const cats = walk ? wcats() : m.cats, rng = walk ? `도보 ${walkMin}분` : `주변 ${poiR}m`;
+  const cats = walk ? wcats() : m.cats, rng = walk ? `도보 편도 ${fmtMin(walkEff())}분` : `주변 ${poiR}m`;
   document.body.classList.toggle('infra', on && !route);
+  document.body.classList.toggle('wbox', on && !route && walk);
+  $('#infraR').style.display = walk ? 'none' : '';
+  if (on && walk){ walkUI(); const v0 = poiView(); if (v0 && poi.drawn !== v0.r) drawPoi(); }      // 타이머·날씨로 상한이 바뀌면 지도 핀도 다시
   if (on){      // 위쪽 띠와 종류 단추
     const d = poiView(), plus = d.more ? '+' : '';
     $('#infraTitle').textContent = selected[C.name];
@@ -1266,15 +1375,15 @@ function renderPoi(){
     $('#infraSub').textContent = !d.sum ? (wk0 ? '도보 10분 안 가게 없음' : `${rng} 안 상가 없음`) : `${rng} · ${poi.cat < 0 ? '전체 ' + d.sum.toLocaleString('ko-KR') + plus + '곳' : cats[poi.cat] + ' ' + d.n[poi.cat] + '곳'}`;
     const R = $('#infraR'), want = walk ? 'w' : 'r';
     if (R.dataset.mode !== want){ R.dataset.mode = want; R.setAttribute('aria-label', walk ? '도보 시간' : '주변 반경');
-      R.innerHTML = (walk ? WALK_MS.map(v => `<button type="button" data-r="${v}">${v}분</button>`) : POI_RS.map(v => `<button type="button" data-r="${v}">${v}m</button>`)).join(''); }
-    R.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.r === (walk ? walkMin : poiR)));
+      R.innerHTML = POI_RS.map(v => `<button type="button" data-r="${v}">${v}m</button>`).join(''); }
+    R.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.r === poiR));
     $('#infraClear').style.visibility = poi.cat < 0 ? 'hidden' : 'visible';
     $('#infraChips').innerHTML = cats.map((c, i) => `<button class="chip" type="button" data-c="${i}" aria-pressed="${poi.cat === i}"><span class="ic" style="color:${POI_COL[sk(i)]}">${picon(sk(i), 18)}</span>${c} <b>${d.n[i]}</b></button>`).join('');
     $('#infraChips').querySelectorAll('.chip').forEach(b => b.onclick = () => { const c = +b.dataset.c; poi.cat = poi.cat === c ? -1 : c; poi.show = POI_FIRST; hidePlace(); drawPoi(); renderPoi(); });
     $('#listBtnTxt').textContent = sheetH > baseH() ? '지도 보기' : '목록 보기';
   }
   const el = $('#poiBox'); if (!el || !selected || poi.s !== selected) return;
-  const head = poi.walk ? `주변 인프라 (도보 ${walkMin}분)` : `주변 인프라 (반경 ${poiR}m)`;
+  const head = poi.walk ? `주변 인프라 (도보 편도 ${fmtMin(walkEff())}분)` : `주변 인프라 (반경 ${poiR}m)`;
   if (poi.state === 'none'){ el.innerHTML = ''; return; }
   if (poi.state === 'uncovered'){ el.innerHTML = `<h4>주변 인프라</h4><p>${selected[C.sido]}은(는) 상권 자료가 아직 없음 (현재 ${m.covered.length}개 시·도만 있음)</p>`; return; }
   if (poi.state === 'loading'){ el.innerHTML = `<h4>${head}</h4><p class="hint">${selected[C.name]} · 불러오는 중…</p>`; return; }
@@ -1287,13 +1396,13 @@ function renderPoi(){
   const lowTxt = !low ? '' : wk.pending ? `<b>${wk.lowWhy}</b> (주변 길 정보로 계산했으나 카카오 표본이 없어 확인 못 함) · `
       : '<b>도보 시간 추정 정확도 낮음</b>' + (wk.lowWhy ? ` (${wk.lowWhy})` : '') + ' · ';
   const excl = !walk && WKM && WKM.excluded && WKM.excluded[selected[C.id]];
-  const note = walk ? `<p class="w9note">${lowTxt}${(wk && wk.note) || WKM.note}${poi.data.fail ? ` · 경로 미확인 ${poi.data.fail}곳은 뺌` : ''}${walkMin === 5 && !empty ? ' · 10분으로 넓혀 볼 수 있음' : ''}</p>`
+  const note = walk ? `<p class="w9note">${lowTxt}${(wk && wk.note) || WKM.note}${poi.data.fail ? ` · 경로 미확인 ${poi.data.fail}곳은 뺌` : ''}${walkEff() < WALK_HI && walkEnv(poi.s)[0] > walkEff() && !empty ? ' · 위쪽 슬라이더로 넓혀 볼 수 있음' : ''}</p>`
       : excl ? `<p class="w9note"><b>${excl}</b> · 직선 반경으로 보여 줌</p>` : '';
   const rc = walk ? recoBuild() : null, rh = rc ? rc.html : '';
   /* 11/22 v2: 도보 충전소 + 추천 표가 있으면 '주변' 탭 = 가로 카드 → 키워드 → 리스트(기존 도보 5분·10분 전체 목록은 뺌, 지도 칩·핀은 그대로) */
   if (rc){ el.innerHTML = rh + note; recoBind(el, rc); return; }
   if (!d.sum){ el.innerHTML = `${rh}<h4>${head}</h4>${note}<p class="hint">${empty ? '도보 10분 안 가게 없음' : rng + ' 안 상가 없음'}${!walk && poiR < 100 ? ' · 위쪽에서 100m로 넓혀 볼 수 있음' : ''}</p>`; return; }
-  el.innerHTML = rh + (walk ? `<h4>${rc && rc.r.cards.length ? '그 밖의 곳' : '주변 인프라'} 도보 ${walkMin}분 · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳${d.sum > full.length && poi.cat < 0 ? ' / ' + d.sum.toLocaleString('ko-KR') + '곳' : ''})</h4>${note}`
+  el.innerHTML = rh + (walk ? `<h4>${rc && rc.r.cards.length ? '그 밖의 곳' : '주변 인프라'} 도보 편도 ${fmtMin(walkEff())}분 · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳${d.sum > full.length && poi.cat < 0 ? ' / ' + d.sum.toLocaleString('ko-KR') + '곳' : ''})</h4>${note}`
       : `<h4>주변 인프라 ${poiR}m · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳)</h4>${note}
     ${d.more ? `<p class="hint">가게가 많아 가까운 ${d.sum}곳까지만 셈 (실제는 더 많음)</p>` : ''}`) +
     (list.map((x, k) => `<div class="prow" data-k="${k}"><span class="pin" style="background:${POI_COL[sk(shownCat(x))]}">${picon(sk(shownCat(x)), 17)}</span><div class="nm"><b>${x[0]}</b><span>${x[2]}${walk && x[8] ? ' · 카카오 도보 경로값' : ''}</span></div>` +
@@ -1336,8 +1445,8 @@ function srecoPanel(){
   const keep = on.length ? id => { const s = byId(id); if (!s) return false; const o = s[C.occ][hour];
     return !(F.stay && !s[C.stay]) && !(F.free && !(o >= 0 && o < 25)) && !(F.busy && !(o >= 50)); } : null;
   /* only = 화면 범위(서울·급속만, D.stations에 있는 곳). 칩과 달리 늘 적용 */
-  const only = id => !!byId(id), meta = id => { const s = byId(id); return s ? `급속 ${s[C.nfast]}대 · ${s[C.kw]}kW` : ''; };
-  return STRECO.panel(Object.assign(ref, {persona:RS.persona, personaName:pn, remain:RS.stRemain, hour:recoHour(), only, meta, keep, keepLabel:on.map(k => lab[k]).join('·')}));
+  const thumb = id => { const s = byId(id); return s ? satThumb(s[C.lat], s[C.lng]) : ''; }, only = id => !!byId(id), meta = id => { const s = byId(id); return s ? `급속 ${s[C.nfast]}대 · ${s[C.kw]}kW` : ''; };
+  return STRECO.panel(Object.assign(ref, {persona:RS.persona, personaName:pn, remain:RS.stRemain, hour:recoHour(), only, meta, thumb, keep, keepLabel:on.map(k => lab[k]).join('·')}));
 }
 if (window.STRECO) STRECO.load('data/reco/station_reco.json', () => { if (D && !route && ((tab === 'near' && !selected) || (selected && stab === 'now'))) renderBody(); });      // '지금 충전소' 탭의 붐빔 문구도 이 표를 씀
 /* 충전 타이머(charge.js): 지도 위 작은 배지 + 주변 추천은 실제 남은 분(내림)이 바뀔 때, 충전소 추천 패널은 15/30/45/60 내림 값이 바뀔 때 다시 그림 */
