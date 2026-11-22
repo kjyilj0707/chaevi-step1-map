@@ -199,7 +199,7 @@ body.infra.placeon .listbtn{display:none}
 .srper{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:700;color:var(--mint2);background:#e3f7f4;border:1px solid #bfeee8;border-radius:99px;padding:2px 8px}
 .srsub{margin:2px 14px 6px !important;font-size:11px !important;color:var(--ink2) !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 가로로 넘기는 카드 한 줄: 한 장 = 너비 84%(다음 카드가 옆에 살짝 보임). 줄 위계 = 순위·이름·거리 / 충전기·붐빔 / 왜 추천 */
-.srstrip{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding:0 14px;padding:0 14px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.srstrip{display:flex;align-items:flex-start;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding:0 14px;padding:0 14px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .srstrip::-webkit-scrollbar{display:none}
 .srcard{flex:0 0 84%;max-width:330px;scroll-snap-align:start;box-sizing:border-box;background:var(--surface);border:1.5px solid var(--grid);border-radius:14px;padding:8px 11px 8px;cursor:pointer;display:flex;flex-direction:column;gap:5px}
 .srcard:first-child{border-color:var(--mint)}
@@ -224,13 +224,17 @@ body.infra.placeon .listbtn{display:none}
 .srtie{margin:6px 14px 0 !important;font-size:11px !important;color:var(--ink) !important;line-height:1.4;background:var(--mintbg);border-radius:8px;padding:5px 8px}
 .srcard{position:relative}
 /* 카드 오른쪽 위 위성 작은 그림(z17 타일 1~4장 조합, 충전소 = 가운데 점). 그림이 있으면 이름·충전기 줄은 오른쪽을 비움 */
-.srsat{position:absolute;top:9px;right:10px;width:64px;height:64px;border-radius:10px;overflow:hidden;background:var(--grid)}
-.srsat img{position:absolute;width:128px;height:128px;max-width:none}
-.srsat i{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.srsat{position:absolute;top:9px;right:10px;width:104px;height:104px;border-radius:10px;overflow:hidden;background:#cfd5d8}
+.srsat img{position:absolute;width:104px;height:104px;max-width:none}
+.srsat .satna{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--ink2);text-align:center}
 .srsat.fail img{display:none}
-.srsat .srkm{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:10.5px;color:#fff;background:rgba(20,58,82,.72);padding:1px 0}
-.srcard.sat .srtop,.srcard.sat .srmeta{padding-right:70px}
-.srcard.sat .srmeta{min-height:34px;align-content:flex-start}
+.srsat .satring{position:absolute;left:50%;top:50%;box-sizing:border-box;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.35),inset 0 0 0 1px rgba(0,0,0,.25)}
+.srsat .satbar{position:absolute;left:5px;bottom:21px;box-sizing:border-box;padding-bottom:5px;font-size:9px;font-weight:700;line-height:1;color:#fff;text-shadow:0 0 2px #000,0 0 2px #000;white-space:nowrap}
+.srsat .satbar::after{content:'';position:absolute;left:0;right:0;bottom:0;height:4px;box-sizing:border-box;border:1.5px solid #fff;border-top:0;filter:drop-shadow(0 0 1px #000)}
+.srsat .srkm{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:11px;font-weight:700;color:#fff;background:rgba(20,58,82,.78);padding:1px 0}
+.srcard.sat .srtop,.srcard.sat .srmeta{padding-right:110px}
+.srcard.sat .srmeta{min-height:80px;align-content:flex-start}      /* 이름 한 줄이어도 사진(104px) 아래에서 맞춤 줄이 시작되게 */
+.srcard.sat .srtop b{-webkit-line-clamp:3}      /* 사진 때문에 글 폭이 좁아져 긴 이름은 세 줄까지 */
 .srnote{font-size:10px !important;color:var(--muted) !important;margin:5px 14px 0 !important;line-height:1.45}
 /* 주변 인프라 추천(충전소 상세 안, 도보 충전소만) */
 .reco{margin:12px 0 4px;padding:12px 10px 8px;background:var(--mintbg);border-radius:14px}
@@ -680,15 +684,21 @@ map.on('error', e => { if (e.sourceId !== 'sat' || baseMode !== 'sat' || satOk |
   setBase('osm'); const sb = document.querySelector('#baseSeg [data-b="sat"]'); sb.disabled = true; sb.textContent = '위성 불가';
   if (typeof toast === 'function') toast('위성 사진을 불러오지 못해 일반 지도로 돌아왔어요'); });
 try { if (localStorage.getItem('mapBase') === 'sat') setBase('sat'); } catch (e) {}
-/* 충전소 추천 카드의 위성 작은 그림: z17 타일(한 장 128px로 줄여 보임, 2배 화면에서 원래 해상도) 중 충전소가 가운데인 64px 칸에 걸치는 1~4장 */
-const SAT_Z = 17, SAT_T = 128, SAT_BOX = 64;
+/* 충전소 추천 카드의 위성 사진(11/23 준엽 정정: 충전소 자체가 보이게 확대). z19 타일(브이월드, 서울 급속 186곳 모두 z19 응답 확인)을
+   한 장 104px로 줄여(2배 화면에서 208px, 원래 256px보다 약간 작게 = 선명) 충전소가 가운데인 104px 칸에 걸치는 1~4장을 붙임(칸 = 타일 한 장 크기라 많아야 2×2).
+   m/px(화면 1px) = 156543.03392 × cos(위도) ÷ 2^19 × 256 ÷ 104 → 서울(37.57°) 약 0.583 m/px, 칸 폭 약 61m.
+   흰 원 = 반지름 SAT_RING_M(10m)을 같은 m/px로 환산, 축척 막대 = SAT_BAR_M(20m) ÷ m/px. 타일을 못 받으면 회색 칸 + '위성사진 불가' */
+const SAT_Z = 19, SAT_T = 104, SAT_BOX = 104, SAT_RING_M = 10, SAT_BAR_M = 20;
+const satMpp = lat => 156543.03392 * Math.cos(lat * Math.PI / 180) / 2 ** SAT_Z * 256 / SAT_T;
 function satThumb(lat, lng){
   const n = 2 ** SAT_Z, cx = (lng + 180) / 360 * n * SAT_T, cy = (1 - Math.asinh(Math.tan(lat * Math.PI / 180)) / Math.PI) / 2 * n * SAT_T;
-  const x0 = cx - SAT_BOX / 2, y0 = cy - SAT_BOX / 2; let h = '';
+  const x0 = cx - SAT_BOX / 2, y0 = cy - SAT_BOX / 2, mpp = satMpp(lat), ring = 2 * SAT_RING_M / mpp, bar = SAT_BAR_M / mpp;
+  let h = '<span class="satna">위성사진 불가</span>';
   for (let tx = Math.floor(x0 / SAT_T); tx <= Math.floor((x0 + SAT_BOX - 1e-6) / SAT_T); tx++)
     for (let ty = Math.floor(y0 / SAT_T); ty <= Math.floor((y0 + SAT_BOX - 1e-6) / SAT_T); ty++)
       h += `<img alt="" decoding="async" src="${SAT_URL.replace('{z}', SAT_Z).replace('{x}', tx).replace('{y}', ty)}" style="left:${(tx * SAT_T - x0).toFixed(1)}px;top:${(ty * SAT_T - y0).toFixed(1)}px" onerror="this.parentNode.classList.add('fail')">`;
-  return h;
+  return h + `<b class="satring" style="width:${ring.toFixed(1)}px;height:${ring.toFixed(1)}px;margin:-${(ring / 2).toFixed(1)}px 0 0 -${(ring / 2).toFixed(1)}px"></b>`
+    + `<span class="satbar" data-m="${SAT_BAR_M}" style="width:${bar.toFixed(1)}px">${SAT_BAR_M} m</span>`;
 }
 map.touchZoomRotate.enableRotation(); map.dragRotate.enable(); map.keyboard.enable();
 const zoomSize = (z, lo, hi) => lo + (hi - lo) * Math.max(0, Math.min(1, (z - 7) / 9));

@@ -82,7 +82,7 @@
   /* 지도 화면 패널 HTML. o = {lat, lng, from:'me'|'center', persona, personaName, remain, hour, only, keep, keepLabel, meta}
      - o.only(id) = 화면 범위 거름(11/23 준엽: 급속 충전기가 1대 이상인 곳만, 완속만 있는 곳 제외). 칩이 아니라 늘 적용, 점수·순서는 그대로
      - o.keep(id) = 지도 위쪽 칩(채비스테이·한가한 곳·붐비는 곳) 거름. 점수·순서는 그대로, 거른 뒤 상위 top_n곳
-     - o.thumb(id) = 카드 오른쪽 위 위성 작은 그림 HTML(11/23 Q3), 없으면 생략
+     - o.thumb(id) = 카드 오른쪽 위 위성 사진 HTML(11/23, z19 확대·흰 원·축척 막대), 없으면 생략
      - o.meta(id) = 카드 둘째 줄 충전기 요약(예: '급속 2대 · 100kW'), 없으면 생략
      카드(11/23 가독성): 순위·이름 / 거리·충전기 / 붐빔 알약 / 왜 추천(페르소나 맞춤 n/5 + 주변 장소) 순.
      맞춤이 같은 카드끼리는 '맞춤 같음'을 적고, 위 3곳이 모두 같으면 '순서는 덜 붐빔·가까움으로 정함'을 한 줄로 알림(점수식 그대로, 사실만 표시) */
@@ -105,7 +105,7 @@
         : `<div class="srplace">주변 정보 없음</div>`;
       const meta = o.meta ? o.meta(r.id) : '', sat = o.thumb ? o.thumb(r.id) : '';      // sat = 위성 작은 그림 HTML(index.html satThumb), 있으면 거리는 그림 아래 띠로
       return `<div class="srcard${sat ? ' sat' : ''}" data-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${i + 1}순위 ${esc(r.name)}, ${kmTxt(r.dist_km)}, ${esc(bp.txt)}, ${pname} 맞춤 ${n}/${nSlot}">
-      <div class="srtop"><span class="srno">${i + 1}</span><b title="${esc(r.name)}">${esc(r.name)}</b>${sat ? '' : `<span class="srkm">${kmTxt(r.dist_km)}</span>`}</div>${sat ? `<div class="srsat" aria-hidden="true">${sat}<i></i><span class="srkm">${kmTxt(r.dist_km)}</span></div>` : ''}
+      <div class="srtop"><span class="srno">${i + 1}</span><b title="${esc(r.name)}">${esc(r.name)}</b>${sat ? '' : `<span class="srkm">${kmTxt(r.dist_km)}</span>`}</div>${sat ? `<div class="srsat" aria-hidden="true">${sat}<span class="srkm">${kmTxt(r.dist_km)}</span></div>` : ''}
       <div class="srmeta">${r.stay ? '<span class="badge">채비스테이</span>' : ''}${meta ? `<span>${esc(meta)}</span>` : ''}<span class="srbusy ${bp.lv == null ? 'na' : BUSY_CLS[bp.lv]}"><i></i>${esc(bp.txt)}${bp.note ? `<small>${bp.note}</small>` : ''}</span></div>
       ${why}</div>`; }).join('');
     const tie = allSame ? `<p class="srtie">${top.length}곳 모두 ${pname} 맞춤 ${slots(fits[0])}/${nSlot}로 같음 → 순서는 덜 붐빔·가까움으로 정함</p>` : '';
