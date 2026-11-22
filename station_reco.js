@@ -29,7 +29,9 @@
   function busyText(o, flag){
     const R = T.reason;
     if (neutralFlag(flag) || o == null) return R.busy_none;
-    for (const [lim, t] of R.busy_text) if (o < lim) return `이 시간대 ${t}(참고)`;
+    /* 하루치(one_day)는 '보통 ~'을 쓰지 않음: '이 시간대 한산했음(하루 관측·참고)'. 2일 이상(ok)만 '보통 한산(참고)' 등 */
+    const day1 = flag === 'one_day' && R.busy_text_one_day;
+    for (const [lim, t] of day1 ? R.busy_text_one_day : R.busy_text) if (o < lim) return `이 시간대 ${t}(${day1 ? R.busy_one_day_note || '하루 관측·참고' : '참고'})`;
     return R.busy_none;
   }
   function reasonOf(filled, fit, o, flag, d){
@@ -67,8 +69,10 @@
   /* 지도 화면 패널 HTML. o = {lat, lng, from:'me'|'center', persona, personaName, remain, hour} */
   function panel(o){
     if (!T) return P ? '' : '';
-    const S = T.score, all = rank(o.lat, o.lng, o.persona, o.remain, o.hour), top = all.slice(0, S.top_n), rk = remainKey(o.remain);
-    const sub = `${esc(o.personaName || o.persona)} · 남은 ${o.remain}분${rk !== o.remain ? `(${rk}분 표)` : ''} · ${o.hour}시 · ${o.from === 'me' ? '내 위치' : '지도 가운데'}에서 ${S.radius_km}km`;
+    /* o.keep(id) = 지도 위쪽 칩(급속·완속만·채비스테이·한가한 곳·붐비는 곳) 거름. 점수·순서는 그대로, 거른 뒤 상위 top_n곳 */
+    const S = T.score, ranked = rank(o.lat, o.lng, o.persona, o.remain, o.hour), all = o.keep ? ranked.filter(r => o.keep(r.id)) : ranked;
+    const top = all.slice(0, S.top_n), rk = remainKey(o.remain);
+    const sub = `${esc(o.personaName || o.persona)} · 남은 ${o.remain}분${rk !== o.remain ? `(${rk}분 표)` : ''} · ${o.hour}시 · ${o.from === 'me' ? '내 위치' : '지도 가운데'}에서 ${S.radius_km}km${o.keepLabel ? ' · ' + esc(o.keepLabel) : ''}`;
     /* 카드 = 가로로 넘기는 한 줄(서랍 기본 높이에서 첫 카드의 이름·이유가 보이게). 점수 설명 줄은 카드 아래(서랍을 올리면 보임) */
     const cards = top.map((r, i) => `<div class="srcard" data-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${i + 1}위 ${esc(r.name)}">
       <div class="srtop"><span class="srno">${i + 1}</span><b>${esc(r.name)}</b></div>
@@ -77,8 +81,9 @@
     const bm = T.busy_meta, bd = `${bm.first.slice(5, 10).replace('-', '/')}~${bm.last.slice(5, 10).replace('-', '/')}`;
     return `<div class="sreco" id="sreco"><h4>지금 충전하기 좋은 곳 <small>${sub}</small></h4>` +
       (cards ? `<div class="srstrip" role="list">${cards}</div>`
-        : `<p class="srnote">반경 ${S.radius_km}km 안에 도보 자료가 있는 충전소 없음 (서울 충전소만 계산됨)</p>`) +
-      `<p class="srnote">점수 = 주변 맞춤 ${S.weights.fit} + 덜 붐빔 ${S.weights.busy} + 가까움 ${S.weights.dist} (가정값) · 붐빔은 ${bd} 수집, 최신 기록 기준 평균이라 참고용 · 반경 안 후보 ${all.length}곳</p></div>`;
+        : `<p class="srnote">반경 ${S.radius_km}km 안에 도보 자료가 있는 충전소 없음${o.keep && ranked.length ? '(위쪽 칩 조건)' : ''} (서울 충전소만 계산됨)</p>`) +
+      (o.keep && top.length && top.length < S.top_n ? `<p class="srnote">조건에 맞는 충전소가 적어요 (${esc(o.keepLabel || '위쪽 칩')})</p>` : '') +
+      `<p class="srnote">점수 = 주변 맞춤 ${S.weights.fit} + 덜 붐빔 ${S.weights.busy} + 가까움 ${S.weights.dist} (가정값) · 붐빔은 ${bd} 수집, 최신 기록 기준 평균이라 참고용 · 반경 안 후보 ${all.length}곳${o.keep ? ` (칩 거르기 전 ${ranked.length}곳)` : ''}</p></div>`;
   }
   function bind(el, onPick){
     el.querySelectorAll('.srcard').forEach(c => { const go = () => onPick(c.dataset.id);
