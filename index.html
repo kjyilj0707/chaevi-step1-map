@@ -354,6 +354,10 @@ a.kmap{font-size:10.5px;font-weight:700;color:var(--mint2);text-decoration:none;
 .tmr-n{margin:8px 0 0 !important;font-size:10.5px !important;color:var(--muted) !important}
 .chgbadge{position:fixed;z-index:1090;left:50%;transform:translateX(-50%);top:calc(124px + env(safe-area-inset-top));border:0;background:var(--navy);color:#fff;border-radius:99px;padding:6px 12px;font-size:12px;font-weight:600;box-shadow:var(--shadow);display:flex;align-items:center;gap:6px;white-space:nowrap;max-width:calc(100vw - 170px)}
 .chgbadge[hidden]{display:none}
+/* 카카오맵 길찾기(11/23): 충전소를 고르면 화면 오른쪽 아래(서랍 위에 뜸). 새 탭 link/to = 출발지는 카카오맵이 정하는 현재 위치, API·키 없음 */
+.kgo{display:none;position:fixed;z-index:1150;right:14px;bottom:calc(16px + env(safe-area-inset-bottom));align-items:center;gap:6px;background:var(--navy);color:#fff;text-decoration:none;font-size:14px;font-weight:700;border-radius:99px;padding:11px 16px 11px 13px;box-shadow:var(--shadow)}
+body.selon .kgo{display:flex}
+body.nav .kgo,body.onb-on .kgo{display:none !important}
 body.infra.wbox .chgbadge{top:calc(186px + env(safe-area-inset-top))}      /* 도보 슬라이더가 있으면 업종 칩 줄(약 136~179px) 아래로(11/23) */
 .chgbadge b{font-variant-numeric:tabular-nums}
 .chgbadge i{width:8px;height:8px;border-radius:50%;background:var(--mint);flex:none}
@@ -587,6 +591,7 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
   <div class="body" id="body"></div>
 </section>
 <button class="chgbadge" id="chgBadge" type="button" hidden></button>
+<a class="kgo" id="kakaoGo" href="https://map.kakao.com/" target="_blank" rel="noopener noreferrer" aria-label="카카오맵에서 내 위치부터 이 충전소까지 길찾기"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 21.2 12 12 21.2 2.8 12z"/><path d="M9.5 13.5v-2a1.5 1.5 0 0 1 1.5-1.5h4M13.5 8l2 2-2 2"/></svg>길찾기</a>
 <div id="tip"></div><div id="toast"></div>
 
 <script>
@@ -1564,6 +1569,7 @@ map.on('zoom', () => top3.ms.forEach(m => { const im = m.getElement().querySelec
 function renderBody(){
   const el = $('#body');
   document.body.classList.toggle('selon', !!selected && !route);
+  if (selected) $('#kakaoGo').href = `https://map.kakao.com/link/to/${encodeURIComponent(String(selected[C.name]).replace(/,/g, ' '))},${(+selected[C.lat]).toFixed(6)},${(+selected[C.lng]).toFixed(6)}`;
   if (window.CHG) chgBadge();
   $('#tabNear').setAttribute('aria-selected', stab === 'near'); $('#tabNow').setAttribute('aria-selected', stab === 'now');
   if (route || selected) setTop3([]);
