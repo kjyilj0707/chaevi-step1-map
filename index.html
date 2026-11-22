@@ -26,6 +26,7 @@ if (window.top === window.self && matchMedia('(min-width: 821px)').matches) loca
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="reco.js"></script>
 <script src="station_reco.js"></script>
+<script src="charge.js"></script>
 <link rel="stylesheet" href="onboard.css">
 <script src="onboard.js"></script>
 <style>
@@ -241,6 +242,63 @@ body.infra.placeon .listbtn{display:none}
 .rlh{margin:10px 0 6px !important}
 .rlh small{font-size:11px;font-weight:500;color:var(--ink2);margin-left:4px}
 .sreco h4 small{display:none}
+/* '지금 충전소' 탭: 기본 정보·충전 시작·타이머(charge.js) */
+.sinfo{list-style:none;margin:8px 0;padding:0;border-top:1px solid var(--grid)}
+.sinfo li{display:flex;gap:10px;padding:6px 2px;border-bottom:1px solid var(--grid);font-size:12.5px}
+.sinfo span{flex:none;width:84px;color:var(--ink2)}
+.sinfo b{flex:1;min-width:0;font-weight:600;color:var(--ink);word-break:keep-all}
+.sinfo small{font-weight:500;color:var(--muted);font-size:10.5px}
+.chg{margin:12px 0 4px;padding:12px 10px 10px;background:var(--mintbg);border-radius:14px}
+.chg h4{margin:0 0 6px}
+.clab{margin:4px 0 6px !important;font-size:12px !important;font-weight:700;color:var(--ink) !important}
+.clab small{font-weight:500;color:var(--ink2)}
+.cgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-height:212px;overflow-y:auto}
+.cbtn{border:1.5px solid var(--axis);background:var(--surface);border-radius:12px;padding:7px 9px;text-align:left;display:flex;flex-direction:column;gap:1px;min-width:0}
+.cbtn b{font-size:15px;color:var(--navy)}
+.cbtn span{font-size:11.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cbtn small{font-size:10px;color:var(--muted)}
+.cbtn[aria-pressed="true"]{border-color:var(--navy);background:var(--navy)}
+.cbtn[aria-pressed="true"] b,.cbtn[aria-pressed="true"] span,.cbtn[aria-pressed="true"] small{color:#fff}
+.crow{display:flex;align-items:center;gap:10px;margin:8px 0}
+.crow label{flex:none;width:44px;font-size:12.5px;font-weight:700;color:var(--ink)}
+.crow input[type=range]{flex:1;min-width:0;accent-color:var(--navy)}
+.crow b{flex:none;width:42px;text-align:right;font-size:14px;color:var(--navy);font-variant-numeric:tabular-nums}
+.crow input[type=number]{flex:1;min-width:0;border:1.5px solid var(--axis);border-radius:10px;padding:7px 9px;font:inherit;font-size:16px;background:var(--surface)}
+.crow .cu{flex:none;font-size:12px;color:var(--ink2)}
+.crow .cu em{font-style:normal;font-size:10px;font-weight:700;color:#a2620a;background:#fff4dc;border-radius:99px;padding:1px 6px}
+.crow .cu em.my{color:#fff;background:var(--mint2)}
+.cest{display:flex;align-items:baseline;justify-content:space-between;margin:10px 2px 2px}
+.cest span{font-size:12.5px;font-weight:700;color:var(--ink)}
+.cest b{font-size:22px;color:var(--navy);font-variant-numeric:tabular-nums}
+.cnote{font-size:10.5px !important;color:var(--muted) !important;margin:2px 0 8px !important;line-height:1.45}
+.cgo{width:100%;padding:12px 0;font-size:15px}
+.cgo:disabled{opacity:.45}
+.tmr{background:var(--surface);border:1.5px solid var(--navy);border-radius:14px;padding:10px 12px;margin:0 0 10px;text-align:center}
+.tmr.other{border-color:var(--axis);text-align:left}
+.tmr-l{margin:0 !important;font-size:11.5px !important;color:var(--ink2) !important}
+.tmr-big{display:block;font-size:44px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums;line-height:1.15;margin:4px 0}
+#tmrDone .tmr-big{font-size:26px}
+.tmr-bar{height:6px;border-radius:3px;background:var(--grid);overflow:hidden;margin:2px 0 6px}
+.tmr-bar i{display:block;height:100%;background:var(--mint2)}
+.tmr-s{margin:0 0 8px !important;font-size:12px !important;color:var(--ink) !important}
+.tmr-acts{display:flex;gap:8px;justify-content:center}
+.tmr.other .tmr-acts{justify-content:flex-start}
+.tmr-n{margin:8px 0 0 !important;font-size:10.5px !important;color:var(--muted) !important}
+.chgbadge{position:fixed;z-index:1090;left:50%;transform:translateX(-50%);top:calc(124px + env(safe-area-inset-top));border:0;background:var(--navy);color:#fff;border-radius:99px;padding:6px 12px;font-size:12px;font-weight:600;box-shadow:var(--shadow);display:flex;align-items:center;gap:6px;white-space:nowrap;max-width:calc(100vw - 170px)}
+.chgbadge[hidden]{display:none}
+.chgbadge b{font-variant-numeric:tabular-nums}
+.chgbadge i{width:8px;height:8px;border-radius:50%;background:var(--mint);flex:none}
+.chgbadge i.done{background:var(--accent)}
+body.nav .chgbadge,body.onb-on .chgbadge{display:none}
+@media (min-width:821px){ .chgbadge{top:24px} }
+/* 추천 1~3순위 지도 표시 */
+.top3{cursor:pointer;z-index:2}
+.t3in{position:relative;display:flex;flex-direction:column;align-items:center;animation:t3bounce 1.6s ease-in-out infinite}
+.t3in img{display:block;filter:drop-shadow(0 3px 3px rgba(20,58,82,.35))}
+.t3b{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;font-size:11px;font-weight:700;border-radius:99px;padding:2px 7px;white-space:nowrap;box-shadow:0 2px 6px rgba(20,58,82,.3)}
+.t3b::after{content:"";position:absolute;left:50%;top:100%;margin-left:-4px;border:4px solid transparent;border-top-color:var(--navy)}
+@keyframes t3bounce{0%,55%,100%{transform:translateY(0)}25%{transform:translateY(-7px)}40%{transform:translateY(0)}47%{transform:translateY(-2px)}}
+@media (prefers-reduced-motion: reduce){ .t3in{animation:none} }
 .rnote{font-size:11px !important;color:var(--ink2) !important;margin:2px 0 6px !important}
 .rfoot{font-size:10px !important;color:var(--muted) !important;margin:6px 0 0 !important}
 .back{border:0;background:var(--mintbg);color:var(--navy);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;margin-bottom:8px}
@@ -454,6 +512,7 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
   </div>
   <div class="body" id="body"></div>
 </section>
+<button class="chgbadge" id="chgBadge" type="button" hidden></button>
 <div id="tip"></div><div id="toast"></div>
 
 <script>
@@ -522,6 +581,7 @@ const loadSprites = () => Promise.all([loadPins(), loadChev(), loadW9()].concat(
   im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(markSVG(col, st, i < 4));
   sprites['m' + st + '_' + i] = im; })))));
 
+const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
 const tip = $('#tip');
 function showTip(e, html){ tip.innerHTML = html; tip.style.display = 'block';
   const x = Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8); tip.style.left = x + 'px'; tip.style.top = (e.clientY - 34) + 'px'; }
@@ -940,7 +1000,7 @@ $('#q').addEventListener('input', () => { selected = null; refresh();
 /* 충전소를 고른 뒤 서랍 위쪽 탭: '주변'(주변 인프라 추천) | '지금 충전소'(충전기·충전 시작·타이머). 기본 지도 화면에는 탭이 없음(서울만, 전국 추세 탭 삭제 11/22) */
 let stab = 'near';
 $('#tabNear').onclick = () => setStab('near'); $('#tabNow').onclick = () => setStab('now');
-function setStab(t){ if (!selected) return; stab = t; renderBody(); }
+function setStab(t){ if (!selected) return; stab = t; if (t === 'now' && !sheetOpen) setSheet(true); renderBody(); }      // '지금 충전소'는 내용이 길어 서랍을 중간 높이로 올림
 
 /* 처음 화면: 9곳 목록과 충전소 자료가 둘 다 오면 9곳이 다 들어오게 맞춤. 9곳 목록을 못 읽으면 시연 칩을 끄고 전체 충전소를 보여 줌 */
 let demoFitted = false;
@@ -1238,10 +1298,54 @@ function srecoPanel(){
   return STRECO.panel(Object.assign(ref, {persona:RS.persona, personaName:pn, remain:RS.remain, hour:recoHour(), keep, keepLabel:on.map(k => lab[k]).join('·')}));
 }
 if (window.STRECO) STRECO.load('data/reco/station_reco.json', () => { if (D && tab === 'near' && !selected && !route) renderBody(); });
+/* 충전 타이머(charge.js): 지도 위 작은 배지 + 남은 시간이 15/30/45/60 중 다른 값으로 넘어가면 추천을 다시 계산 */
+let lastSnap = null;
+function chgBadge(){
+  const b = $('#chgBadge'), m = timerLeftMin(), st = window.CHG ? CHG.state() : null;
+  const hereNow = st && selected && selected[C.id] === st.sid && stab === 'now';
+  if (!st || hereNow || route){ b.hidden = true; return; }
+  b.hidden = false;
+  b.innerHTML = m != null ? `<i></i>충전 ${CHG.state().paused != null ? '일시정지' : '중'} · 남은 <b>${CHG.clock(CHG.left())}</b>` : '<i class="done"></i>충전 완료 예상 · 확인';
+}
+$('#chgBadge').onclick = () => { const st = window.CHG && CHG.state(); if (!st || !D) return; const s = byId(st.sid); if (!s) return; if (route) stopRoute(true); select(s, true); setStab('now'); };
+function chgSync(why){
+  chgBadge();
+  const m = timerLeftMin(), snap = m != null ? snapRemain(m) : null;
+  if (why === 'done') toast('충전 예상 시간이 끝났어요 · 차에서 충전량을 확인해 주세요');
+  if (snap === lastSnap && why === 'tick') return;
+  lastSnap = snap;
+  if (!D || route) return;
+  if (!selected) renderBody();
+  else if (stab === 'near' && poi.s === selected && poi.data) renderPoi();
+  else if (stab === 'now' && why !== 'tick') renderBody();
+}
+if (window.CHG){ CHG.load(); CHG.on(chgSync); lastSnap = timerLeftMin() != null ? snapRemain(timerLeftMin()) : null; }
+/* 지도: '지금 충전하기 좋은 곳' 상위 3곳 = 충전소 아이콘이 살짝 통통 튀고 위에 '1순위' 말풍선(HTML 표시, 원래 아이콘은 그동안 숨김).
+   기본 지도 화면에서만, 패널을 다시 그릴 때(지도 이동·칩·시각·타이머) 갱신. prefers-reduced-motion 이면 튀지 않음(CSS) */
+let top3 = {key:'', ms:[]};
+const top3Px = s => (s[C.stay] ? 1.7 : markKind(s) === 2 ? 0.85 : 1) * zoomSize(map.getZoom(), 9, 30);
+function setTop3(ids){
+  if (!ready || !D) return;
+  const key = ids.join(',') + '|' + hour;
+  if (key === top3.key) return;
+  top3.ms.forEach(m => m.remove()); top3 = {key, ms:[]};
+  const filt = ids.length ? ['!', ['in', ['get', 'id'], ['literal', ids]]] : null;
+  ['st', 'stay'].forEach(l => map.setFilter(l, filt));
+  ids.forEach((id, i) => { const s = byId(id); if (!s) return;
+    const el = document.createElement('div'); el.className = 'top3'; el.setAttribute('role', 'button'); el.setAttribute('aria-label', `${i + 1}순위 ${s[C.name]}`);
+    el.innerHTML = `<div class="t3in" style="animation-delay:${i * 0.18}s"><span class="t3b">${i + 1}순위</span><img alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(markSVG(RAMP[bin(s[C.occ][hour])], markKind(s), bin(s[C.occ][hour]) < 4))}"></div>`;
+    const px = top3Px(s), im = el.querySelector('img'); im.style.width = im.style.height = px + 'px';
+    el.addEventListener('click', e => { e.stopPropagation(); select(s, true); });
+    const mk = new maplibregl.Marker({element:el, anchor:'center'}).setLngLat([s[C.lng], s[C.lat]]).addTo(map); mk._s = s; top3.ms.push(mk);
+    el.setAttribute('aria-label', `${i + 1}순위 ${s[C.name]}`); });      // maplibre가 붙이는 'Map marker' 대신
+}
+map.on('zoom', () => top3.ms.forEach(m => { const im = m.getElement().querySelector('img'), px = top3Px(m._s); im.style.width = im.style.height = px + 'px'; }));
 function renderBody(){
   const el = $('#body');
   document.body.classList.toggle('selon', !!selected && !route);
+  if (window.CHG) chgBadge();
   $('#tabNear').setAttribute('aria-selected', stab === 'near'); $('#tabNow').setAttribute('aria-selected', stab === 'now');
+  if (route || selected) setTop3([]);
   if (route) return renderNav();
   if (selected) return renderDetail(el);
   const c = map.getCenter(), ref = [c.lat, c.lng];
@@ -1257,6 +1361,7 @@ function renderBody(){
       <div class="nm"><b>${s[C.name]}${s[C.stay] ? ' <span class="badge">스테이</span>' : ''}${isDemo(s) ? ' <span class="badge walk9">도보 시연</span>' : isWalk(s) ? ' <span class="badge walk9">도보</span>' : ''}</b><span>${kmTxt(d)} · 충전기 ${s[C.n]}대(급속 ${s[C.nfast]}) · 최대 ${s[C.kw]}kW</span></div>
       <div class="oc"><b>${occTxt(s[C.occ][hour])}</b><span>이용률</span></div></div>`).join('') || '<p class="hint">조건에 맞는 충전소 없음</p>');
   if (window.STRECO) STRECO.bind(el, id => { const s = byId(id); if (s) select(s, true); });
+  setTop3([...el.querySelectorAll('.srcard')].slice(0, 3).map(c => c.dataset.id));
   el.querySelectorAll('.sort button').forEach(b => b.onclick = () => { sortBy = b.dataset.s; renderBody(); });
   el.querySelectorAll('.row').forEach(r => r.onclick = () => select(D.stations.find(x => x[C.id] === r.dataset.id), true));
   el.scrollTop = 0;
@@ -1343,17 +1448,32 @@ function renderNow(el, s){
   const grid = [0,50,100].map(v => `<line x1="${L0}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${L0 - 4}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join('');
   const xl = [0,6,12,18,23].map(h => `<text x="${L0 + h * bw + bw / 2}" y="${H - 4}" text-anchor="middle">${h}시</text>`).join('');
   const dist = me ? ` · 내 위치에서 ${kmTxt(km(me, [s[C.lat], s[C.lng]]))}` : '';
+  /* 기본 정보: 충전기 파일(charge.js, data/chargers_seoul.json)이 있으면 급속/완속 대수·최대 kW·운영시간·주차 무료·이용 제한, 없으면 stations.json 값 */
+  const I = window.CHG ? CHG.info(s[C.id]) : null, hNow = new Date().getHours(), oNow = o[hNow];
+  const yn = v => v === 'Y' ? '예' : v === 'N' ? '아니요' : v === '일부' ? '일부 충전기만' : '정보 없음';
+  const busyNow = oNow < 0 ? '기록 없음' : `${oNow}% ${oNow < 10 ? '(한산했음)' : oNow < 25 ? '(여유 있었음)' : oNow < 50 ? '(보통)' : '(붐볐음)'}`;
+  const facts = I ? `<div><b>급속 ${I.nFast} · 완속 ${I.nSlow}</b>충전기 ${I.chargers.length}대</div><div><b>${I.maxKw}kW</b>최대 출력</div><div><b>${oNow < 0 ? '-' : oNow + '%'}</b>${hNow}시 이용률(참고)</div>`
+    : `<div><b>${s[C.n]}대</b>충전기 (급속 ${s[C.nfast]})</div><div><b>${s[C.kw]}kW</b>최대 출력</div><div><b>${oNow < 0 ? '-' : oNow + '%'}</b>${hNow}시 이용률(참고)</div>`;
+  const info = `<ul class="sinfo">
+      <li><span>운영시간</span><b>${I ? (I.uses.length ? I.uses.map(u => esc(u)).join('<br>') : '정보 없음') : '정보 없음'}</b></li>
+      <li><span>주차 무료</span><b>${I ? yn(I.pf) : '정보 없음'}</b></li>
+      <li><span>이용 제한</span><b>${I ? (I.lim === 'N' ? '없음' : I.lim === 'Y' ? '있음(외부인 제한 등)' : '일부 충전기 제한') : '정보 없음'}</b></li>
+      <li><span>이 시간대 붐빔</span><b>${busyNow} <small>${D.meta.busy ? D.meta.busy.label : ''} · ${D.meta.days_by_hour[hNow]}일치 평균·참고</small></b></li>
+      <li><span>채비스테이</span><b>${s[C.stay] ? '예' : '아니요'}</b></li></ul>`;
   el.innerHTML = `<div class="det"><button class="back" id="back" type="button">← 목록</button>
     <h3>${s[C.name]}${s[C.stay] ? ' <span class="badge">채비스테이</span>' : ''}${isDemo(s) ? ' <span class="badge walk9">도보 시연</span>' : isWalk(s) ? ' <span class="badge walk9">도보</span>' : ''}</h3>
     <p class="wxline" id="wxSt"></p>
     <p>${s[C.addr]}</p><p>${s[C.kind]}${dist}</p>
-    <div class="facts"><div><b>${occTxt(o[hour])}</b>${hour}시 이용률</div><div><b>${s[C.n]}대</b>충전기 (급속 ${s[C.nfast]})</div>
-    <div><b>${s[C.med] < 0 ? '-' : s[C.med] + '분'}</b>급속 1회 중앙값</div></div>
-    <div class="acts"><button class="act" id="goRoute" type="button">여기까지 경로 안내</button></div>
+    <div class="facts">${facts}</div>
+    ${info}
+    <div id="chgBox" class="chg"></div>
+    <div class="acts"><button class="act ghost" id="goRoute" type="button">여기까지 경로 안내</button></div>
     <h4>시간대별 이용률 (%) · 남색 막대 = ${hour}시</h4>
     <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="시간대별 이용률 막대 그래프">${grid}${bars}${xl}</svg>
     <p>최대 출력 ${s[C.kw]}kW${s[C.bad] > 0 ? ' · 통신이상 ' + s[C.bad] + '%' : ''}</p></div>`;
   wxStation(s);
+  if (window.CHG){ if (!I) CHG.load().then(j => { if (j && selected === s && stab === 'now' && CHG.info(s[C.id])) renderBody(); });
+    CHG.render($('#chgBox'), {id:s[C.id], name:s[C.name]}, {battery:window.ONB ? ONB.battery() : null, onGoto:id => { const t = byId(id); if (t){ select(t, true); setStab('now'); } }}); }
   $('#back').onclick = () => { selected = null; renderBody(); draw(); };
   $('#goRoute').onclick = () => startRoute(s);
   el.querySelectorAll('rect[data-t]').forEach(r => { r.onmousemove = e => showTip(e, r.dataset.t); r.onmouseleave = hideTip; });
