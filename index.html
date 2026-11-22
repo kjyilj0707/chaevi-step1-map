@@ -358,6 +358,10 @@ a.kmap{font-size:10.5px;font-weight:700;color:var(--mint2);text-decoration:none;
 .kgo{display:none;position:fixed;z-index:1150;right:14px;bottom:calc(16px + env(safe-area-inset-bottom));align-items:center;gap:6px;background:var(--navy);color:#fff;text-decoration:none;font-size:14px;font-weight:700;border-radius:99px;padding:11px 16px 11px 13px;box-shadow:var(--shadow)}
 body.selon .kgo{display:flex}
 body.nav .kgo,body.onb-on .kgo{display:none !important}
+.staynote{margin:10px 0;padding:12px;border-radius:14px;background:#fff1ec;border:1.5px solid #ffcfbf;display:flex;flex-direction:column;gap:4px}
+.staynote b{font-size:14px;color:#b4482b}
+.staynote span{font-size:12px;color:var(--ink2)}
+.staynote button{align-self:flex-start;margin-top:4px;border:0;background:var(--accent);color:#fff;font-weight:700;font-size:12px;border-radius:99px;padding:6px 12px}
 body.infra.wbox .chgbadge{top:calc(186px + env(safe-area-inset-top))}      /* 도보 슬라이더가 있으면 업종 칩 줄(약 136~179px) 아래로(11/23) */
 .chgbadge b{font-variant-numeric:tabular-nums}
 .chgbadge i{width:8px;height:8px;border-radius:50%;background:var(--mint);flex:none}
@@ -1301,6 +1305,8 @@ function drawPoi(){
   map.getSource('trash').setData({type:'FeatureCollection', features:tr.map(t => ({type:'Feature', geometry:{type:'Point', coordinates:[t[3], t[2]]}, properties:{n:t[1]}}))});
 }
 function loadPoi(s){
+  /* 채비스테이(11/23 준엽): 라운지에서 쉬는 곳이라 주변 장소 추천·지도 표시를 하지 않음. 주변 탭에 안내 한 줄 + '지금 충전소' 탭 버튼 */
+  if (s[C.stay]){ if (poi.s !== s){ poi = {s, data:null, cat:-1, state:'stay', show:POI_FIRST}; drawPoi(); } return; }
   if (!D.meta.poi){ poi = {s, data:null, cat:-1, state:'none', show:POI_FIRST}; return; }
   if (poi.s === s) return;
   const walk = isWalk(s);
@@ -1459,6 +1465,8 @@ function renderPoi(){
   const el = $('#poiBox'); if (!el || !selected || poi.s !== selected) return;
   const head = poi.walk ? `주변 인프라 (도보 편도 ${fmtMin(walkEff())}분)` : `주변 인프라 (반경 ${poiR}m)`;
   if (poi.state === 'none'){ el.innerHTML = ''; return; }
+  if (poi.state === 'stay'){ el.innerHTML = `<div class="staynote"><b>채비스테이 라운지에서 쉬어 가세요</b><span>이 충전소는 주변 장소를 추천하지 않아요</span>
+    <button type="button" id="stayNow">지금 충전소 보기</button></div>`; $('#stayNow').onclick = () => setStab('now'); return; }
   if (poi.state === 'uncovered'){ el.innerHTML = `<h4>주변 인프라</h4><p>${selected[C.sido]}은(는) 상권 자료가 아직 없음 (현재 ${m.covered.length}개 시·도만 있음)</p>`; return; }
   if (poi.state === 'loading'){ el.innerHTML = `<h4>${head}</h4><p class="hint">${selected[C.name]} · 불러오는 중…</p>`; return; }
   if (poi.state === 'error'){ el.innerHTML = `<h4>주변 인프라</h4><p>상권 자료를 불러오지 못함</p>`; return; }
