@@ -342,6 +342,7 @@ body.infra.placeon .listbtn{display:none}
 .tmr-n{margin:8px 0 0 !important;font-size:10.5px !important;color:var(--muted) !important}
 .chgbadge{position:fixed;z-index:1090;left:50%;transform:translateX(-50%);top:calc(124px + env(safe-area-inset-top));border:0;background:var(--navy);color:#fff;border-radius:99px;padding:6px 12px;font-size:12px;font-weight:600;box-shadow:var(--shadow);display:flex;align-items:center;gap:6px;white-space:nowrap;max-width:calc(100vw - 170px)}
 .chgbadge[hidden]{display:none}
+body.infra.wbox .chgbadge{top:calc(186px + env(safe-area-inset-top))}      /* 도보 슬라이더가 있으면 업종 칩 줄(약 136~179px) 아래로(11/23) */
 .chgbadge b{font-variant-numeric:tabular-nums}
 .chgbadge i{width:8px;height:8px;border-radius:50%;background:var(--mint);flex:none}
 .chgbadge i.done{background:var(--accent)}
