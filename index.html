@@ -961,11 +961,15 @@ const RTP = fetch('data/reco/tables.json').then(r => r.ok ? r.json() : null).the
 const wcats = () => WKM.cats.concat(RT ? ['화장실'] : [], RT && RT.park && Object.keys(RT.park).length ? ['공원'] : []);     // 끝에 화장실·공원(v5d) 칩
 const PERSONAS = [['P1', '휴게소형'], ['P2', '외출·산책'], ['P3', '마트 장보기'], ['P4a', '차 안 머묾'], ['P4b', '대기·잠깐']];
 const REMAINS = [15, 30, 45, 60];
-const RS = {persona:'P2', remain:30, kw:null, wx:null, hour:null, dow:null, trashMap:false};     // wx: null = 지금 날씨, 'rain'·'clear' = 직접 고름. hour·dow(0=일~6=토): null = 지금(시험용으로 바꿀 수 있음)
-try { const v = localStorage.getItem('recoP'); if (PERSONAS.some(x => x[0] === v)) RS.persona = v; } catch (e) {}
-try { const v = +localStorage.getItem('recoR'); if (REMAINS.includes(v)) RS.remain = v; } catch (e) {}
+/* 추천 기준값(11/22 v2: 화면의 페르소나·남은 시간·날씨 조건 줄은 숨김, 값은 자동)
+   persona = MY 페르소나(onboard.js), base = MY '보통 머무는 시간'(없으면 30), remain = 충전 타이머가 돌면 타이머 남은 시간을 15/30/45/60 중 가장 가까운 값으로, 아니면 base.
+   wx: null = 지금 날씨(충전소 좌표). hour·dow(0=일~6=토): null = 지금(시험용으로 바꿀 수 있음) */
+const RS = {persona:'P2', base:30, remain:30, kw:null, wx:null, hour:null, dow:null, trashMap:false};
+const snapRemain = m => { let best = REMAINS[0]; REMAINS.forEach(v => { if (Math.abs(v - m) < Math.abs(best - m)) best = v; }); return best; };      // 같은 거리면 짧은 쪽(station_reco.js remainKey와 같은 규칙)
+const timerLeftMin = () => window.CHG && CHG.leftMin ? CHG.leftMin() : null;
+function syncRemain(){ const t = timerLeftMin(); RS.remain = t != null ? snapRemain(t) : RS.base; RS.remainFrom = t != null ? 'timer' : 'my'; return RS.remain; }
 if (window.ONB) ONB.init(RS, REMAINS, () => { recoMemo = null; if (selected && poi.s === selected && poi.data){ poi.show = POI_FIRST; renderPoi(); }
-  else if (D && tab === 'near' && !selected && !route) renderBody(); });     // 기본 화면이면 충전소 추천 패널을 새 페르소나·남은 시간으로 다시 그림     // 정보 입력 화면: 페르소나·남은 시간 기본값(동승 없음)
+  else if (D && !selected && !route) renderBody(); }, {about:() => aboutHTML()});     // MY 저장·초기화 뒤 화면을 새 페르소나·남은 시간으로 다시 그림
 const recoHour = () => RS.hour == null ? new Date().getHours() : RS.hour;
 /* 화장실 '지금 열림' 판정용 요일·분(화면 단계 추가 필터, reco.js R.openState). 시각을 직접 고르면 그 시 정각 */
 const recoNow = () => { const t = new Date(); return {dow:RS.dow == null ? t.getDay() : RS.dow, min:RS.hour == null ? t.getHours() * 60 + t.getMinutes() : RS.hour * 60}; };
@@ -1048,6 +1052,7 @@ function loadPoi(s){
 let recoMemo = null;
 function recoRun(){
   const s = poi.s, d = poi.data; if (!RT || !s || !d || !d.walk || !d.raw || !d.raw.pid) return null;
+  syncRemain();
   const wx = recoWx(s), conds = RECO.conditions(recoHour(), wx === 'clear' ? null : wx).concat(window.ONB ? ONB.conds() : []);
   const now = recoNow(), key = [s[C.id], RS.persona, RS.remain, RS.kw, conds.join('+'), now.dow, now.min].join('|');
   if (recoMemo && recoMemo.key === key && recoMemo.d === d) return recoMemo;
@@ -1196,6 +1201,7 @@ function select(s, pan){ hideTip(); if (selected !== s) stab = 'near'; selected 
 /* 충전소 추천 패널: 기준 = 내 위치(권한 있을 때) 또는 지도 가운데, 페르소나·남은 시간 = 추천 설정(RS, 정보 입력 화면 기본값), 시각 = 지금(recoHour) */
 function srecoPanel(){
   if (!window.STRECO || !STRECO.ready()) return '';
+  syncRemain();
   const c = map.getCenter(), ref = me ? {lat:me[0], lng:me[1], from:'me'} : {lat:c.lat, lng:c.lng, from:'center'};
   const pn = (PERSONAS.find(x => x[0] === RS.persona) || [, RS.persona])[1];
   /* 위쪽 칩 = 지도 목록과 같은 기준(passes와 같음, '한가한 곳·붐비는 곳'도 지도에서 고른 시각의 이용률). 시연·서울 도보 칩과 검색어는 추천 후보에 쓰지 않음(후보는 이미 도보 자료 있는 곳) */

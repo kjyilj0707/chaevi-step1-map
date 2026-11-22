@@ -1,43 +1,44 @@
-/* 정보 입력(첫 실행) 화면과 '내 습관' 메뉴 — 색·글꼴은 index.html :root 값을 씀 */
-.onb{position:fixed;inset:0;z-index:6000;background:var(--surface);display:flex;justify-content:center;overflow-y:auto}
+/* MY(내 정보 입력·수정 폼)와 오른쪽 'MY' 버튼 — 색·글꼴은 index.html :root 값을 씀 */
+.onb{position:fixed;inset:0;z-index:6000;background:var(--surface);display:flex;justify-content:center}
 .onb[hidden]{display:none}
-.onb-in{width:100%;max-width:480px;min-height:100%;display:flex;flex-direction:column;padding:calc(12px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom))}
-.onb-top{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:10px;height:44px}
-.onb-back{border:0;background:var(--mintbg);color:var(--navy);width:36px;height:36px;border-radius:50%;font-size:22px;line-height:1;font-weight:700}
-.onb-bar{height:6px;background:var(--grid);border-radius:3px;overflow:hidden}
-.onb-bar i{display:block;height:100%;background:var(--mint2);border-radius:3px;transition:width .25s}
-.onb-skip{border:0;background:transparent;color:var(--ink2);font-size:13px;font-weight:600;padding:8px 4px}
-.onb-body{flex:1;display:flex;flex-direction:column;padding-top:18px}
-.onb-body h2{margin:0 0 14px;font-size:22px;line-height:1.35;color:var(--navy);letter-spacing:-.01em}
-.onb-body h2 em{font-style:normal;color:var(--mint2)}
-.onb-hero{flex:1}
-.onb-hero img{display:block;border-radius:14px;margin:18px 0 18px}
-.onb-hero > p{margin:0 0 14px;color:var(--ink2);font-size:15px}
-.onb-note{list-style:none;margin:0;padding:12px 14px;background:var(--mintbg);border-radius:14px;font-size:13px;color:var(--ink)}
-.onb-note li{padding-left:14px;position:relative;line-height:1.8}
-.onb-note li::before{content:"";position:absolute;left:0;top:.75em;width:6px;height:6px;border-radius:50%;background:var(--mint2)}
-.onb-step{margin:0 0 6px !important;font-size:12px !important;font-weight:700;color:var(--mint2) !important;font-variant-numeric:tabular-nums}
-.onb-opts{display:flex;flex-direction:column;gap:10px}
-.onb-opt{border:1.5px solid var(--axis);background:var(--surface);border-radius:14px;padding:15px 16px;text-align:left;font-size:16px;font-weight:600;color:var(--ink);box-shadow:0 2px 8px rgba(74,52,28,.08)}
-.onb-opt:active{background:var(--mintbg)}
-.onb-opt[aria-pressed="true"]{border-color:var(--navy);background:var(--navy);color:#fff}
-.onb-desc{font-size:15px !important;color:var(--ink) !important;background:var(--mintbg);border-radius:14px;padding:12px 14px}
-.onb-tags{display:flex;gap:6px;flex-wrap:wrap}
-.onb-tags span{border:1px solid var(--axis);border-radius:99px;padding:5px 11px;font-size:12px;font-weight:600;color:var(--navy);background:var(--surface)}
-.onb-small{font-size:12px !important;color:var(--muted) !important}
-.onb-foot{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:22px}
+.onb-in{width:100%;max-width:480px;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(10px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))}
 .onb-go{width:100%;border:0;background:var(--navy);color:#fff;border-radius:99px;padding:15px;font-size:16px;font-weight:700;box-shadow:var(--shadow)}
 .onb-link{border:0;background:transparent;color:var(--ink2);font-size:13px;font-weight:600;padding:10px;text-decoration:underline;text-underline-offset:3px}
+.onb-link.arm{color:#c0392b}
 body.onb-on .maplibregl-ctrl,body.onb-on #toast{visibility:hidden}
+body.onb-on #toast{visibility:visible;z-index:6500}
+.my-top{display:flex;align-items:center;justify-content:space-between;height:44px}
+.my-top h2{margin:0;font-size:24px;color:var(--navy);letter-spacing:.02em}
+.my-x{border:0;background:var(--mintbg);color:var(--navy);width:38px;height:38px;border-radius:50%;font-size:24px;line-height:1;font-weight:600}
+.my-lead{margin:2px 0 12px;font-size:13px;color:var(--ink2);line-height:1.55}
+.my-card{background:var(--surface);border:1.5px solid var(--grid);border-radius:16px;padding:12px 12px 10px;margin:0 0 12px}
+.my-persona{background:var(--mintbg);border-color:var(--mintbg)}
+.my-card h3{margin:0 0 4px;font-size:20px;color:var(--navy)}
+.my-card h3 em{font-style:normal;color:var(--mint2)}
+.my-card h3 small{font-size:11px;font-weight:600;color:var(--ink2);margin-left:4px}
+.my-card h4{margin:0 0 4px;font-size:15px;color:var(--navy)}
+.my-card h4 small{font-size:11px;font-weight:600;color:#fff;background:var(--mint2);border-radius:99px;padding:1px 7px;margin-left:4px;vertical-align:1px}
+.my-sub{margin:0;font-size:12px;font-weight:700;color:var(--mint2)}
+.my-desc{margin:0 0 6px;font-size:13px;color:var(--ink)}
+.my-lab{margin:10px 0 5px;font-size:12.5px;font-weight:700;color:var(--ink)}
+.my-lab small{font-weight:500;color:var(--muted)}
+.my-opts{display:flex;flex-wrap:wrap;gap:6px}
+.my-opt{border:1.5px solid var(--axis);background:var(--surface);border-radius:99px;padding:7px 12px;font-size:13px;font-weight:600;color:var(--ink)}
+.my-opt[aria-pressed="true"]{border-color:var(--navy);background:var(--navy);color:#fff}
+.my-note{margin:7px 0 0;font-size:11px;color:var(--muted);line-height:1.45}
+.my-note.warn{margin:0 0 2px;color:#a2620a;background:#fff4dc;border-radius:8px;padding:5px 8px}
+.my-in{width:100%;box-sizing:border-box;border:1.5px solid var(--axis);background:var(--surface);border-radius:10px;padding:9px 10px;font:inherit;font-size:16px;color:var(--ink)}
+.my-in:disabled{background:var(--grid);color:var(--muted)}
+.my-bat{display:flex;align-items:center;gap:10px}
+.my-bat .my-in{flex:1;min-width:0}
+.my-chk{flex:none;display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--ink)}
+.my-chk input{width:18px;height:18px}
+.my-foot{display:flex;flex-direction:column;align-items:center;gap:4px;margin:6px 0 10px;position:sticky;bottom:0;background:linear-gradient(rgba(255,253,248,0), var(--surface) 30%);padding-top:14px}
+.my-about{font-size:12px;color:var(--ink2);margin:6px 0 0}
+.my-about summary{cursor:pointer;font-weight:700;color:var(--navy);padding:6px 0}
+.my-about .limits{padding-left:16px;margin:4px 0}
 
-/* 오른쪽 버튼 줄의 '내 습관' 버튼과 작은 메뉴 */
-#onbFab{flex-direction:column;gap:0;font-size:9px;line-height:1.1}
+/* 오른쪽 버튼 줄의 'MY' 버튼 */
+#onbFab{flex-direction:column;gap:0;font-size:10px;line-height:1.1}
 #onbFab svg{width:20px;height:20px}
-body.nav #onbFab,body.nav .onb-menu{display:none}
-.onb-menu{position:fixed;z-index:1150;right:72px;top:calc(132px + env(safe-area-inset-top));width:220px;background:var(--surface);border-radius:14px;box-shadow:var(--shadow);padding:12px}
-.onb-menu[hidden]{display:none}
-.onb-menu b{display:block;color:var(--navy);font-size:13px;margin-bottom:4px}
-.onb-menu p{margin:0 0 10px;font-size:12px;color:var(--ink)}
-.onb-menu p span{color:var(--muted);font-size:11px}
-.onb-menu button{display:block;width:100%;border:0;background:var(--navy);color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:600;margin-top:6px}
-.onb-menu button.ghost{background:var(--mintbg);color:var(--navy)}
+body.nav #onbFab{display:none}
