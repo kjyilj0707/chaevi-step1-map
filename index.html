@@ -296,6 +296,17 @@ body.infra.placeon .listbtn{display:none}
 .rcard.h .kbadge{color:#fff;background:#2f8f4e}
 .rcard.h .obadge{color:#d07a00;border:1px solid #d07a00}
 .rcard.l .oc{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+/* 가게 사진 대신 대표 그림(11/23 Q4-A): 대분류 13개 + 쓰레기통·공원 아이콘을 키워 업종 색 바탕 타일에 올림(외부 이미지·로고 없음) */
+.illo{position:relative;flex:none;width:var(--s,52px);height:var(--s,52px);border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--c);
+  background:linear-gradient(145deg, color-mix(in srgb, var(--c) 14%, #fff) 0%, color-mix(in srgb, var(--c) 34%, #fff) 100%)}
+.illo::before{content:'';position:absolute;width:70%;height:70%;right:-22%;top:-24%;border-radius:50%;background:color-mix(in srgb, var(--c) 22%, transparent)}
+.illo::after{content:'';position:absolute;width:46%;height:46%;left:-12%;bottom:-14%;border-radius:50%;background:rgba(255,255,255,.55)}
+.illo svg{position:relative;z-index:1;filter:drop-shadow(0 1px 0 rgba(255,255,255,.7))}
+.rcard.h{flex-direction:row !important;align-items:center !important;gap:9px !important}
+.rhc{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+a.kmap{font-size:10.5px;font-weight:700;color:var(--mint2);text-decoration:none;white-space:nowrap;border-bottom:1px solid currentColor;line-height:1.2}
+.rh3 a.kmap{margin-left:auto}
+.rcard .nm a.kmap{display:inline-block;margin-top:3px}
 .rlh{margin:10px 0 6px !important}
 .rlh small{font-size:11px;font-weight:500;color:var(--ink2);margin-left:4px}
 .sreco h4 small{display:block;margin:1px 0 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} /* 제목 아래 한 줄: 페르소나·남은 시간·(N분 표 기준), 넘치면 말줄임 */
@@ -1318,6 +1329,9 @@ function recoCardRow(r){          // 카드 한 장 → 목록 가게 줄(지도
 }
 const RLIST_FIRST = 10, RLIST_STEP = 20;
 let rlistShow = RLIST_FIRST;
+/* 카카오맵 장소 링크(API 호출 없음, 새 탭): https://map.kakao.com/link/map/이름,위도,경도 */
+const kakaoLink = row => row ? `<a class="kmap" href="https://map.kakao.com/link/map/${encodeURIComponent(String(row[0]).replace(/,/g, ' '))},${(+row[3]).toFixed(6)},${(+row[4]).toFixed(6)}" target="_blank" rel="noopener noreferrer" aria-label="${String(row[0]).replace(/"/g, '')} 카카오맵에서 보기">카카오맵에서 보기</a>` : '';
+const illo = (ic, px) => `<span class="illo" style="--c:${POI_COL[ic]};--s:${px}px" aria-hidden="true">${picon(ic, Math.round(px * 0.58))}</span>`;
 function recoItem(c, k, cls){      // 카드(가로)·리스트 줄 공통 내용: ★·복합시설·화장실 개방·어린이공원·대체 표시
   const p = c.p, ic = BIG_SHAPE[c.group] != null ? BIG_SHAPE[c.group] : 7, row = recoCardRow(c), r = recoMemo;
   const kid = p.kind === 'park' && p.child ? '<span class="kbadge">어린이공원</span>' : '';
@@ -1326,12 +1340,12 @@ function recoItem(c, k, cls){      // 카드(가로)·리스트 줄 공통 내�
   const fb = c.fb ? `<span class="fbadge" title="원래 자리(${c.slotBig.replace(/\|/g, '·')})에 다녀올 곳이 없어 대신 넣음">대체</span>` : '';
   const star = p.star ? `<span class="sbadge">★${p.brand ? ' ' + p.brand : ''}</span>` : '';
   const tb = `<span class="tbadge${/빠듯|불가/.test(c.time) ? ' tight' : ''}">${c.time}</span>`;
-  if (cls === 'h') return `<div class="rcard h${p.star ? ' star' : ''}" data-k="${k}" role="button" tabindex="0">
-      <div class="rh1"><span class="pin" style="background:${POI_COL[ic]}">${picon(ic, 16)}</span><b>${star}${row ? row[0] : ''}</b></div>
+  if (cls === 'h') return `<div class="rcard h${p.star ? ' star' : ''}" data-k="${k}" role="button" tabindex="0">${illo(ic, 54)}<div class="rhc">
+      <div class="rh1"><b>${star}${row ? row[0] : ''}</b></div>
       <span class="rh2">${fb}${kid}${ochk}${tags}</span>
-      <span class="rh3"><b>도보 ${walkMinOf(p.wm)}분</b>${tb}</span></div>`;
-  return `<div class="rcard l${p.star ? ' star' : ''}" data-l="${k}"><span class="pin" style="background:${POI_COL[ic]}">${picon(ic, 17)}</span>
-      <div class="nm"><b>${star}${row ? row[0] : ''}</b><span>${fb}${kid}${ochk}${tags}</span></div>
+      <span class="rh3"><b>도보 ${walkMinOf(p.wm)}분</b>${tb}${kakaoLink(row)}</span></div></div>`;
+  return `<div class="rcard l${p.star ? ' star' : ''}" data-l="${k}">${illo(ic, 42)}
+      <div class="nm"><b>${star}${row ? row[0] : ''}</b><span>${fb}${kid}${ochk}${tags}</span>${kakaoLink(row)}</div>
       <div class="oc"><b>도보 ${walkMinOf(p.wm)}분</b>${tb}</div></div>`;
 }
 /* 추천 기준 줄(11/22 점검 3: 타이머가 돌면 매 분 갱신, chgSync 'tick'에서 글자만 다시 씀) */
@@ -1385,6 +1399,7 @@ function recoBind(el, rc){
   el.querySelectorAll('.rcard.h').forEach(c => { const go = () => pick(rc.r.cards[+c.dataset.k]); c.onclick = go;
     c.onkeydown = e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); go(); } }; });
   el.querySelectorAll('.rcard.l').forEach(c => c.onclick = () => pick(rc.lst[+c.dataset.l]));
+  el.querySelectorAll('a.kmap').forEach(a => { a.onclick = e => e.stopPropagation(); a.onkeydown = e => e.stopPropagation(); });      // 링크는 카드 고르기와 따로
 }
 function renderPoi(){
   const m = D.meta.poi, on = !!selected && poi.s === selected && poi.state === 'ok', walk = !!(poi.data && poi.data.walk);
