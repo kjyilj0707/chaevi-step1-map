@@ -35,10 +35,23 @@
     for (const [lim, t] of day1 ? R.busy_text_one_day : R.busy_text) if (o < lim) return `이 시간대 ${t}(${day1 ? R.busy_one_day_note || '하루 관측·참고' : '참고'})`;
     return R.busy_none;
   }
-  function reasonOf(filled, fit, o, flag, d){
+  /* 카드 화면용 붐빔 조각(문구 경계·하루치 구분은 busyText와 같음): lv 0 한산 / 1 보통 / 2 붐빔 / null 자료 부족 */
+  function busyParts(o, flag){
+    const R = T.reason;
+    if (neutralFlag(flag) || o == null) return {lv:null, txt:R.busy_none, note:''};
+    const day1 = flag === 'one_day' && R.busy_text_one_day, L = day1 ? R.busy_text_one_day : R.busy_text;
+    for (let i = 0; i < L.length; i++) if (o < L[i][0]) return {lv:Math.min(i, 2), txt:L[i][1], note:day1 ? '하루 관측' : '참고'};
+    return {lv:null, txt:R.busy_none, note:''};
+  }
+  /* 채운 슬롯 대분류 → 짧은 이름, show_order 순 */
+  function amenNames(filled){
     const R = T.reason, so = R.show_order;
-    const names = filled.map(b => R.short_names[b] || b)
+    return filled.map(b => R.short_names[b] || b)
       .map((x, i) => [so.includes(x) ? so.indexOf(x) : 99, i, x]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]);
+  }
+  function reasonOf(filled, fit, o, flag, d){
+    const R = T.reason;
+    const names = amenNames(filled);
     let amen;
     if (names.length){ const lst = names.slice(0, 3).join('·') + (names.length > 3 ? ' 등' : '');
       amen = `도보 10분 안에 ${lst}${josa(lst)} ` + (fit >= 1 ? '다 있어요' : '있어요'); }
@@ -58,7 +71,7 @@
       const flag = s.busy_flag24[hour], o = s.occ24[hour], n = s.nobs24[hour];
       const useO = neutralFlag(flag) || o == null ? S.busy_neutral : o;
       const sc = w.fit * f.fit + w.busy * (1 - useO) + w.dist * (1 - d / R);
-      out.push({id:s.id, name:s.name, kind:s.kind, stay:s.stay, dist_km:round(d, 2), fit:f.fit, occupancy:o, busy_flag:flag, n_obs:n,
+      out.push({id:s.id, name:s.name, kind:s.kind, stay:s.stay, dist_km:round(d, 2), fit:f.fit, occupancy:o, busy_flag:flag, n_obs:n, filled:f.filled, walk_ok:s.walk_ok,
         score:round(sc, 4), reason:f.filled.length || s.walk_ok ? reasonOf(f.filled, f.fit, o, flag, d) : `주변 정보 없음 · ${busyText(o, flag)} · ${d.toFixed(1)}km`});
     }
     out.sort((a, b) => b.score - a.score || a.dist_km - b.dist_km || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
@@ -66,24 +79,41 @@
   }
   const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
   const kmTxt = d => d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(1) + 'km';
-  /* 지도 화면 패널 HTML. o = {lat, lng, from:'me'|'center', persona, personaName, remain, hour} */
+  /* 지도 화면 패널 HTML. o = {lat, lng, from:'me'|'center', persona, personaName, remain, hour, only, keep, keepLabel, meta}
+     - o.only(id) = 화면 범위 거름(11/23 준엽: 급속 충전기가 1대 이상인 곳만, 완속만 있는 곳 제외). 칩이 아니라 늘 적용, 점수·순서는 그대로
+     - o.keep(id) = 지도 위쪽 칩(채비스테이·한가한 곳·붐비는 곳) 거름. 점수·순서는 그대로, 거른 뒤 상위 top_n곳
+     - o.meta(id) = 카드 둘째 줄 충전기 요약(예: '급속 2대 · 100kW'), 없으면 생략
+     카드(11/23 가독성): 순위·이름 / 거리·충전기 / 붐빔 알약 / 왜 추천(페르소나 맞춤 n/5 + 주변 장소) 순.
+     맞춤이 같은 카드끼리는 '맞춤 같음'을 적고, 위 3곳이 모두 같으면 '순서는 덜 붐빔·가까움으로 정함'을 한 줄로 알림(점수식 그대로, 사실만 표시) */
   function panel(o){
-    if (!T) return P ? '' : '';
-    /* o.keep(id) = 지도 위쪽 칩(급속·완속만·채비스테이·한가한 곳·붐비는 곳) 거름. 점수·순서는 그대로, 거른 뒤 상위 top_n곳 */
-    const S = T.score, ranked = rank(o.lat, o.lng, o.persona, o.remain, o.hour), all = o.keep ? ranked.filter(r => o.keep(r.id)) : ranked;
-    const top = all.slice(0, S.top_n), rk = remainKey(o.remain);
-    const sub = `${esc(o.personaName || o.persona)} · 남은 ${o.remain}분${rk !== o.remain ? `(${rk}분 표 기준)` : ''} · ${o.hour}시 · ${o.from === 'me' ? '내 위치' : '지도 가운데'}에서 ${S.radius_km}km${o.keepLabel ? ' · ' + esc(o.keepLabel) : ''}`;
-    /* 카드 = 가로로 넘기는 한 줄(서랍 기본 높이에서 첫 카드의 이름·이유가 보이게). 점수 설명 줄은 카드 아래(서랍을 올리면 보임) */
-    const cards = top.map((r, i) => `<div class="srcard" data-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${i + 1}위 ${esc(r.name)}">
-      <div class="srtop"><span class="srno">${i + 1}</span><b>${esc(r.name)}</b></div>
-      <span class="srwhy">${esc(r.reason)}</span>
-      <span class="srk">${r.stay ? '<span class="badge">채비스테이</span> ' : ''}${esc(r.kind)}${T.reason.template.includes('{dist}') ? '' : ' · ' + kmTxt(r.dist_km)}</span></div>`).join('');
+    if (!T) return '';
+    const S = T.score, ranked = rank(o.lat, o.lng, o.persona, o.remain, o.hour);
+    const pool = o.only ? ranked.filter(r => o.only(r.id)) : ranked, all = o.keep ? pool.filter(r => o.keep(r.id)) : pool;
+    const top = all.slice(0, S.top_n), rk = remainKey(o.remain), pname = esc(o.personaName || o.persona);
+    const sub = `남은 ${o.remain}분${rk !== o.remain ? `(${rk}분 표 기준)` : ''} · ${o.hour}시 · ${o.from === 'me' ? '내 위치' : '지도 가운데'}에서 ${S.radius_km}km${o.keepLabel ? ' · ' + esc(o.keepLabel) : ''}`;
+    const nSlot = 5, slots = f => Math.round(f * nSlot);
+    const fits = top.map(r => r.fit), allSame = top.length > 1 && fits.every(f => f === fits[0]);
+    const BUSY_CLS = ['lo', 'mid', 'hi'];
+    const cards = top.map((r, i) => {
+      const bp = busyParts(r.occupancy, r.busy_flag), names = amenNames(r.filled), n = slots(r.fit);
+      /* 맞춤이 같은 다른 카드 순위(예: '2·3위와 같음'). 근거 없는 차이를 만들지 않으려고 같으면 같다고만 적음 */
+      const mates = top.map((x, j) => j !== i && x.fit === r.fit ? j + 1 : 0).filter(Boolean);
+      const lst = names.length ? names.slice(0, 3).join('·') + (names.length > 3 ? ' 등' : '') : '';
+      const why = r.walk_ok ? `<div class="srwhy">${pname} 맞춤 <b>${n}/${nSlot}</b>${allSame ? `<em>${top.length}곳 같음</em>` : mates.length ? `<em>${mates.join('·')}위와 같음</em>` : ''}</div>
+      <div class="srplace">${lst ? `도보 10분 안 ${esc(lst)}` : '도보 10분 안 맞춤 장소 적음'}</div>`
+        : `<div class="srplace">주변 정보 없음</div>`;
+      const meta = o.meta ? o.meta(r.id) : '';
+      return `<div class="srcard" data-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${i + 1}순위 ${esc(r.name)}, ${kmTxt(r.dist_km)}, ${esc(bp.txt)}, ${pname} 맞춤 ${n}/${nSlot}">
+      <div class="srtop"><span class="srno">${i + 1}</span><b title="${esc(r.name)}">${esc(r.name)}</b><span class="srkm">${kmTxt(r.dist_km)}</span></div>
+      <div class="srmeta">${r.stay ? '<span class="badge">채비스테이</span>' : ''}${meta ? `<span>${esc(meta)}</span>` : ''}<span class="srbusy ${bp.lv == null ? 'na' : BUSY_CLS[bp.lv]}"><i></i>${esc(bp.txt)}${bp.note ? `<small>${bp.note}</small>` : ''}</span></div>
+      ${why}</div>`; }).join('');
+    const tie = allSame ? `<p class="srtie">${top.length}곳 모두 ${pname} 맞춤 ${slots(fits[0])}/${nSlot}로 같음 → 순서는 덜 붐빔·가까움으로 정함</p>` : '';
     const bm = T.busy_meta, bd = `${bm.first.slice(5, 10).replace('-', '/')}~${bm.last.slice(5, 10).replace('-', '/')}`;
-    return `<div class="sreco" id="sreco"><h4>지금 충전하기 좋은 곳 <small>${sub}</small></h4>` +
-      (cards ? `<div class="srstrip" role="list">${cards}</div>`
-        : `<p class="srnote">반경 ${S.radius_km}km 안에 도보 자료가 있는 충전소 없음${o.keep && ranked.length ? '(위쪽 칩 조건)' : ''} (서울 충전소만 계산됨)</p>`) +
+    return `<div class="sreco" id="sreco"><div class="srhead"><h4>지금 충전하기 좋은 곳</h4><span class="srper" title="현재 페르소나(MY)">${pname} 맞춤</span></div><p class="srsub">${sub}</p>` +
+      (cards ? `<div class="srstrip" role="list">${cards}</div>${tie}`
+        : `<p class="srnote">반경 ${S.radius_km}km 안에 도보 자료가 있는 급속 충전소 없음${o.keep && pool.length ? '(위쪽 칩 조건)' : ''} (서울 충전소만 계산됨)</p>`) +
       (o.keep && top.length && top.length < S.top_n ? `<p class="srnote">조건에 맞는 충전소가 적어요 (${esc(o.keepLabel || '위쪽 칩')})</p>` : '') +
-      `<p class="srnote">점수 = 주변 맞춤 ${S.weights.fit} + 덜 붐빔 ${S.weights.busy} + 가까움 ${S.weights.dist} (가정값) · 붐빔은 ${bd} 수집, 최신 기록 기준 평균이라 참고용 · 반경 안 후보 ${all.length}곳${o.keep ? ` (칩 거르기 전 ${ranked.length}곳)` : ''}</p></div>`;
+      `<p class="srnote">점수 = ${pname} 맞춤 ${S.weights.fit} + 덜 붐빔 ${S.weights.busy} + 가까움 ${S.weights.dist} (가정값) · 맞춤 n/5 = 이 페르소나 추천 카드 5칸 중 도보 10분 안에서 바로 채운 칸 수 · 붐빔은 ${bd} 수집, 최신 기록 기준 평균이라 참고용 · 급속 충전소만(완속만 있는 곳 제외) · 반경 안 후보 ${all.length}곳${o.keep ? ` (칩 거르기 전 ${pool.length}곳)` : ''}</p></div>`;
   }
   function bind(el, onPick){
     el.querySelectorAll('.srcard').forEach(c => { const go = () => onPick(c.dataset.id);
@@ -103,6 +133,6 @@
     const basis = flag === 'ok' ? `관측 ${n}회·2일 이상` : flag === 'one_day' ? `관측 ${n}회·하루치` : flag === 'insufficient' ? `관측 ${n}회(${T.score.n_obs_min || 3}회 미만)` : '관측 없음';
     return {text:busyText(o, flag).replace(/^이 시간대 /, ''), none, occ:o, flag, n, basis};
   }
-  const api = {load, rank, panel, bind, havKm, reasonOf, busyOf, remainKey:rm => T ? remainKey(rm) : null, setTable:t => { T = t; }, ready:() => !!T};
+  const api = {load, rank, panel, bind, havKm, reasonOf, busyOf, busyParts, remainKey:rm => T ? remainKey(rm) : null, setTable:t => { T = t; }, ready:() => !!T};
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else g.STRECO = api;
 })(typeof window !== 'undefined' ? window : this);
