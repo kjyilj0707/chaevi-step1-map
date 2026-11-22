@@ -731,7 +731,7 @@ const zoomSize = (z, lo, hi) => lo + (hi - lo) * Math.max(0, Math.min(1, (z - 7)
 const sizeExpr = (lo, hi) => ['interpolate', ['linear'], ['zoom'], 7, ['*', ['get', 'k'], lo / 48], 16, ['*', ['get', 'k'], hi / 48]];
 const mapLoaded = new Promise(res => map.on('load', () => {
   Object.entries(sprites).forEach(([k, im]) => map.addImage(k, im, {pixelRatio:2}));
-  ['route','conn','acc','ring','trash','poi','sel','demo','st','stay'].forEach(id => map.addSource(id, {type:'geojson', data:EMPTY}));
+  ['route','conn','acc','ring','trash','poidot','poi','sel','demo','st','stay'].forEach(id => map.addSource(id, {type:'geojson', data:EMPTY}));
   map.addLayer({id:'acc', type:'fill', source:'acc', paint:{'fill-color':'#58ddd0', 'fill-opacity':0.18, 'fill-outline-color':'#17a99a'}});
   map.addLayer({id:'route-case', type:'line', source:'route', layout:{'line-cap':'round', 'line-join':'round'}, paint:{'line-color':'#143a52', 'line-width':['interpolate',['linear'],['zoom'],8,6,16,14,18,17]}});
   map.addLayer({id:'route-line', type:'line', source:'route', layout:{'line-cap':'round', 'line-join':'round'}, paint:{'line-color':'#58ddd0', 'line-width':['interpolate',['linear'],['zoom'],8,3,16,9,18,12]}});
@@ -742,8 +742,11 @@ const mapLoaded = new Promise(res => map.on('load', () => {
   map.addLayer({id:'ring', type:'line', source:'ring', paint:{'line-color':'#1b4965', 'line-width':1.5, 'line-dasharray':[3, 3]}});
   map.addLayer({id:'trash', type:'symbol', source:'trash', layout:{'icon-image':'p15', 'icon-size':['interpolate',['linear'],['zoom'],13,0.14,15.5,0.28,18,0.42],
     'icon-allow-overlap':true, 'icon-ignore-placement':true}});      // 쓰레기통: 가게 핀보다 작게, 켜기 단추를 눌렀을 때만
+  /* 주변 장소(11/23 준엽): 상위 5곳(슬롯 카드 또는 키워드 결과 위 5) = 'poi' 업종 아이콘(예전보다 약 1.3배), 나머지 = 'poidot' 업종 색 작은 점(지름 약 7px, 흰 테두리) */
+  map.addLayer({id:'poidot', type:'circle', source:'poidot', paint:{'circle-radius':['interpolate',['linear'],['zoom'],13,2.6,16,3.6,18,4.6], 'circle-color':['get', 'col'],
+    'circle-opacity':0.85, 'circle-stroke-color':'#ffffff', 'circle-stroke-width':1, 'circle-stroke-opacity':0.9}});
   map.addLayer({id:'poi', type:'symbol', source:'poi', layout:{'icon-image':['concat', 'p', ['to-string', ['get', 'c']]],
-    'icon-size':['interpolate',['linear'],['zoom'],13,0.2,15.5,0.42,18,0.62], 'icon-allow-overlap':true, 'icon-ignore-placement':true}});
+    'icon-size':['interpolate',['linear'],['zoom'],13,0.27,15.5,0.55,18,0.8], 'icon-allow-overlap':true, 'icon-ignore-placement':true}});
   map.addLayer({id:'sel', type:'circle', source:'sel', paint:{'circle-radius':['interpolate',['linear'],['zoom'],7,['*',['get','k'],9],16,['*',['get','k'],26]],
     'circle-color':'rgba(88,221,208,.45)', 'circle-stroke-color':'#1b4965', 'circle-stroke-width':2, 'circle-pitch-alignment':'map'}});
   const sym = {'icon-image':['get','img'], 'icon-size':sizeExpr(9, 30), 'icon-allow-overlap':true, 'icon-ignore-placement':true};
@@ -772,7 +775,8 @@ const draw = updateMap;
 const byId = id => D.stations.find(x => x[C.id] === id);
 function hit(pt){ const fs = map.queryRenderedFeatures([[pt.x - 6, pt.y - 6], [pt.x + 6, pt.y + 6]], {layers:['demo-badge','stay','st']}); return fs.length ? byId(fs[0].properties.id) : null; }
 map.on('click', e => { if (!ready || route) return; const s = hit(e.point); if (s){ select(s, false); return; }
-  const f = map.queryRenderedFeatures([[e.point.x - 9, e.point.y - 9], [e.point.x + 9, e.point.y + 9]], {layers:['poi']})[0];
+  const box = r => [[e.point.x - r, e.point.y - r], [e.point.x + r, e.point.y + r]];      // 큰 아이콘 먼저, 작은 점은 손가락 크기(±14px)로 넓게
+  const f = map.queryRenderedFeatures(box(9), {layers:['poi']})[0] || map.queryRenderedFeatures(box(14), {layers:['poidot']})[0];
   if (f) showPlace(f.properties.n, f.properties.c, f.properties.s, f.properties.d, f.geometry.coordinates, f.properties.w); else hidePlace(); });
 let placePop = null;
 let place = null;
@@ -1266,14 +1270,28 @@ function walkUI(){
 }
 function clearPoi(){ if (!poi.s && !poi.data) return; poi = {s:null, data:null, cat:-1, state:'', show:POI_FIRST};
   document.body.classList.remove('infra'); hidePlace();
-  if (ready){ map.getSource('poi').setData(EMPTY); map.getSource('ring').setData(EMPTY); map.getSource('trash').setData(EMPTY); } }
+  if (ready){ map.getSource('poi').setData(EMPTY); map.getSource('poidot').setData(EMPTY); map.getSource('ring').setData(EMPTY); map.getSource('trash').setData(EMPTY); } }
+/* 지도에 크게 그릴 상위 5곳: 키워드가 켜져 있으면 키워드 결과 위 5, 아니면 슬롯 카드(최대 5). 도보 충전소 + 추천 표가 있을 때만(그 밖은 null = 예전처럼 모두 아이콘) */
+function poiTop(){
+  if (!(poi.data && poi.data.walk) || !RT) return null;
+  const r = recoRun(); if (!r) return null;
+  return (r.kw ? r.list : r.cards).slice(0, 5).map(c => ({c, row:recoCardRow(c)})).filter(x => x.row);
+}
+const poiDrawKey = (v, top) => (v ? v.r : '') + '|' + poi.cat + '|' + (top ? top.map(x => x.row[10]).join(',') : '*');
 function drawPoi(){
   if (!ready || !poi.s) return; const s = poi.s, v = poiView(), walk = poi.data && poi.data.walk;
   map.getSource('ring').setData(walk || poi.walk ? EMPTY : circlePoly([s[C.lat], s[C.lng]], poiR));
-  poi.drawn = v ? v.r : null;     // 도보 범위는 원으로 그리지 않음(길 따라 잰 거리라 모양이 원이 아님)
-  const items = v ? v.p.filter(x => inCat(x, poi.cat)) : [];
-  map.getSource('poi').setData({type:'FeatureCollection', features:items.map(x => ({type:'Feature', geometry:{type:'Point', coordinates:[x[4], x[3]]},
-    properties:walk ? {n:x[0], c:sk(shownCat(x)), s:x[2], d:x[5], w:x[6]} : {n:x[0], c:sk(shownCat(x)), s:x[2], d:x[5]}}))});
+  const items = v ? v.p.filter(x => inCat(x, poi.cat)) : [], top = v ? poiTop() : null;
+  poi.drawn = poiDrawKey(v, top);     // 도보 범위는 원으로 그리지 않음(길 따라 잰 거리라 모양이 원이 아님)
+  const feat = (x, c) => ({type:'Feature', geometry:{type:'Point', coordinates:[x[4], x[3]]},
+    properties:Object.assign(walk ? {n:x[0], c, s:x[2], d:x[5], w:x[6]} : {n:x[0], c, s:x[2], d:x[5]}, {col:POI_COL[c]})});
+  if (!top){ map.getSource('poi').setData({type:'FeatureCollection', features:items.map(x => feat(x, sk(shownCat(x))))}); map.getSource('poidot').setData(EMPTY); }
+  else {
+    /* 업종 칩으로 거르면 상위 5곳 중 그 칩에 드는 곳만 크게, 나머지는 점 */
+    const big = top.filter(t => poi.cat < 0 || inCat(t.row, poi.cat)), bigIds = new Set(top.map(t => t.row[10]));
+    map.getSource('poi').setData({type:'FeatureCollection', features:big.map(t => feat(t.row, BIG_SHAPE[t.c.group] != null ? BIG_SHAPE[t.c.group] : sk(shownCat(t.row))))});
+    map.getSource('poidot').setData({type:'FeatureCollection', features:items.filter(x => !bigIds.has(x[10])).map(x => feat(x, sk(shownCat(x))))});
+  }
   const tr = walk && RS.trashMap && poi.data.trash ? poi.data.trash : [];
   map.getSource('trash').setData({type:'FeatureCollection', features:tr.map(t => ({type:'Feature', geometry:{type:'Point', coordinates:[t[3], t[2]]}, properties:{n:t[1]}}))});
 }
@@ -1418,7 +1436,7 @@ function renderPoi(){
   document.body.classList.toggle('infra', on && !route);
   document.body.classList.toggle('wbox', on && !route && walk);
   $('#infraR').style.display = walk ? 'none' : '';
-  if (on && walk){ walkUI(); const v0 = poiView(); if (v0 && poi.drawn !== v0.r) drawPoi(); }      // 타이머·날씨로 상한이 바뀌면 지도 핀도 다시
+  if (on && walk){ walkUI(); const v0 = poiView(); if (v0 && poi.drawn !== poiDrawKey(v0, poiTop())) drawPoi(); }      // 상한·키워드·페르소나가 바뀌면 지도도 다시      // 타이머·날씨로 상한이 바뀌면 지도 핀도 다시
   if (on){      // 위쪽 띠와 종류 단추
     const d = poiView(), plus = d.more ? '+' : '';
     $('#infraTitle').textContent = selected[C.name];
