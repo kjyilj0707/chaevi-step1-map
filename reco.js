@@ -1,4 +1,6 @@
-/* 주변 인프라 추천 v5b (2026-11-22). 기준 구현 = analysis/reco_tables/score_reference.py (같은 결과가 나와야 함)
+/* 주변 인프라 추천 v5d (2026-11-22). 기준 구현 = analysis/reco_tables/score_reference.py (같은 결과가 나와야 함)
+   v5d: 공원 슬롯 활성(data/reco/park/<id>.json, 출입구 최소 도보, 어린이공원 포함). 키워드 '산책하고 싶어요'(필터 = 공원)는 공원 후보를 붙여 v3e 점수,
+     공원의 페르소나 가중치 = params.keyword_park_weight.value. 비·심야는 산책 곱 0 → 결과 없음(화면이 안내 문구)
    기본 카드 = 페르소나별 고정 슬롯 틀(R.slotCandidates → R.fillSlots, T.slotDef). 키워드(아무거나! 제외)가 켜지면 아래 v3e 점수(R.score → R.display)
    슬롯 후보 = 가게·화장실 + 쓰레기통(시간 1~3분, 상황 곱 없음) + 공원(파일이 있을 때만, 상황 곱 = 산책).
      시간 '불가'·상황 곱 0 제외, 활동이 여럿이면 (가능<빠듯, 곱 큰 순, 같으면 앞 활동). 순서 = 시간 → 곱 큰 순 → 편도 짧은 순 → place_id
@@ -65,7 +67,8 @@
       if (sc.sub && !sc.sub.has(p.sub)) continue;
       const ow = p.wm / (e.speed * 60);
       if (!(ow <= e.cap)) continue;
-      const avail = o.remain - 2 * ow - (o.alpha || 0) - 2 * (p.mall || 0) - P.buffer_min, w = pw[p.big] || 0.0, per = {};
+      const avail = o.remain - 2 * ow - (o.alpha || 0) - 2 * (p.mall || 0) - P.buffer_min, per = {};
+      const w = p.big === '공원' ? Number((P.keyword_park_weight || {}).value || 0) : pw[p.big] || 0.0;     // v5c: 공원 키워드는 표의 고정 가중치
       let top = [0.0, null, '불가'];
       for (const a of p.acts){
         if (sc.act && !sc.act.has(a)) continue;
@@ -120,11 +123,11 @@
     (toilets || []).forEach((t, i) => out.push(mark({pid:'toilet:' + t[0], wm:t[4], sub:'공중화장실', big:'화장실', acts:['화장실'], open:t[5], row:i, kind:'toilet'}, 'toilet:' + t[0])));
     return out;
   };
-  /* 쓰레기통·공원 파일 → 슬롯 후보 줄. trash: [연번, 세부 위치, 위도, 경도, 도보 m, 종류], park: [연번, 이름, 위도, 경도, 도보 m, 공원구분] */
+  /* 쓰레기통·공원 파일 → 슬롯 후보 줄. trash: [연번, 세부 위치, 위도, 경도, 도보 m, 종류], park: [공원ID, 이름, 위도, 경도, 도보 m, 공원유형, 어린이공원 1/0] */
   R.extras = (trash, parks) => {
     const out = [];
     (trash || []).forEach((t, i) => out.push({pid:'trash:' + t[0], wm:t[4], sub:'가로쓰레기통', big:'쓰레기통', acts:['쓰레기 버리기'], row:i, kind:'trash'}));
-    (parks || []).forEach((t, i) => out.push({pid:'park:' + t[0], wm:t[4], sub:t[5] || '공원', big:'공원', acts:['산책'], row:i, kind:'park'}));
+    (parks || []).forEach((t, i) => out.push({pid:'park:' + t[0], wm:t[4], sub:t[5] || '공원', big:'공원', acts:['산책'], row:i, kind:'park', child:t[6] ? 1 : 0}));
     return out;
   };
   const RANK = {'가능': 0, '빠듯': 1};
@@ -187,6 +190,7 @@
   /* 화면 동작: 키워드(필터)가 켜지면 v3e(가게·화장실만), 아니면 슬롯 틀(가게·화장실 + 쓰레기통·공원) */
   R.recommend = (T, places, extra, o) => {
     if (o.keyword && T.kw[o.keyword]){
+      if (T.kw[o.keyword].big.includes('공원')) places = places.concat((extra || []).filter(p => p.big === '공원'));     // v5c: 공원 키워드
       const res = R.score(T, places, o);
       return {mode:'keyword', res, cards:R.display(T, res, o.persona, o.keyword), events:[]};
     }

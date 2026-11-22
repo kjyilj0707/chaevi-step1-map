@@ -1,7 +1,7 @@
 """주변 인프라 추천 화면용 자료 만들기 (2026-11-22, 프론트엔드)
 입력(읽기만 함)
-  ../analysis/reco_tables/reco_tables.json                        추천 표 v5b(페르소나별 고정 슬롯 틀 + 동권 11/22 시간·제외 표, 분석 담당)
-  ../analysis/walk_seoul_all/walk_routes_seoul_park_v2.csv        공원 도보(아직 없음 = 공원 데이터 대기. 생기면 data/reco/park/<id>.json 을 만듦)
+  ../analysis/reco_tables/reco_tables.json                        추천 표 v5d(페르소나별 고정 슬롯 틀 + 동권 11/22 시간·제외 표 + 공원 슬롯, 분석 담당)
+  ../analysis/walk_seoul_all/walk_routes_seoul_park_v2.csv        공원 도보(v5d: 재이 11/22 공원, 출입구 최소, 10분 안). 표 params.park_status 가 ready·active 일 때만 씀
   ../analysis/walk_seoul_all/walk_routes_seoul_toilet_v2.csv      공중화장실 도보(10분 안)
   ../analysis/walk_seoul_all/walk_routes_seoul_trashbin_v2.csv    쓰레기통 도보(10분 안) + 옆의 summary_seoul_trashbin_v2.csv
   ../data/team_drive/1121/jaeyi_9stations_final_1122.csv          재이 9곳 최종판: ★·브랜드명·×·복합시설 편도 분 칸만 씀(주소·URL 등은 안 씀)
@@ -10,7 +10,7 @@
   data/reco/tables.json        화면이 쓰는 표(설명 칸은 뺌) + 재이 표시 + α + 화장실 파일 목록 + 쓰레기통(있으면)
   data/reco/toilet/<id>.json   충전소별 도보 10분 안 공중화장실 [연번, 이름, 위도, 경도, 도보 m, 개방시간, 유형]
   data/reco/trash/<id>.json    충전소별 도보 10분 안 가로쓰레기통 [연번, 세부 위치, 위도, 경도, 도보 m, 종류]
-  data/reco/park/<id>.json     충전소별 도보 10분 안 공원 [연번, 이름, 위도, 경도, 도보 m, 공원구분] (공원 파일이 있을 때만)
+  data/reco/park/<id>.json     충전소별 도보 10분 안 공원 [공원ID, 이름, 위도, 경도, 도보 m, 공원유형, 어린이공원 1/0] (park_status ready·active 일 때만)
 가게 단위 예외(store_overrides)와 올리브영 중복 묶음은 도보 파일(build_walk9.py·build_walk_seoul.py)에 이미 반영됨
 점수 계산은 index.html 의 RECO(= analysis/reco_tables/score_reference.py 와 같은 규칙)
 실행: ~/.venvs/work/bin/python -I build_reco.py
@@ -37,7 +37,9 @@ def clean(v):
 
 def main():
     T = json.load(open(TABLES, encoding="utf-8"))
-    shutil.rmtree(OUT, ignore_errors=True); os.makedirs(os.path.join(OUT, "toilet"))
+    for sub in ("toilet", "trash", "park"):      # station_reco.json(충전소 추천, 분석 담당 출력 복사본)은 남김
+        shutil.rmtree(os.path.join(OUT, sub), ignore_errors=True)
+    os.makedirs(os.path.join(OUT, "toilet"))
 
     # 표: 점수에 쓰는 칸만 (v3e: 가중치 = 대분류, 시간·상황 = 가게 동권 활동, 키워드 = 소분류 필터)
     pw = {}
@@ -137,21 +139,24 @@ def main():
             s = pd.read_csv(sm, encoding="utf-8-sig", dtype=str)
             out["trashCovered"] = sorted(s.loc[~s["excluded"].fillna("0").isin(["1", "True", "true"]), "station_id"])
 
-    # 공원(데이터 대기): 파일이 생기면 충전소별 파일 + 표에 수. 없으면 화면은 공원 슬롯을 대체 규칙으로 채움
+    # 공원(v5d, park_status ready·active): 충전소별 파일 + 표에 수. params.park_include_children = 0 이면 어린이공원 뺌(score_reference.load_parks 와 같음)
+    #   쓴 점 = 공식 출입구 최소(없거나 매칭 300m 초과면 대표좌표). 카드 = 제목 name, 라벨 공원유형, 어린이공원이면 배지(park_data.card_fields)
     out["park"] = {}
-    if os.path.exists(PARK):
+    if os.path.exists(PARK) and P.get("park_status") in ("ready", "active"):
         os.makedirs(os.path.join(OUT, "park"))
         pk = pd.read_csv(PARK, encoding="utf-8-sig", dtype={"station_id": str, "place_id": str})
         pk = pk[pd.to_numeric(pk["walk_m"], errors="coerce").notna()].copy()
         pk["walk_m"] = pk["walk_m"].astype(float)
+        if not int(P.get("park_include_children", 1)):
+            pk = pk[pk["is_children_park"] != 1]
         for sid, d in pk.sort_values(["station_id", "walk_m", "place_id"]).groupby("station_id"):
             rows = [[str(r.place_id).replace("park:", ""), clean(r.name), round(float(r.lat), 6), round(float(r.lng), 6),
-                     round(float(r.walk_m), 1), clean(getattr(r, "공원구분", ""))] for r in d.itertuples()]
+                     round(float(r.walk_m), 1), clean(r.공원구분), int(r.is_children_park == 1)] for r in d.itertuples()]
             json.dump(rows, open(os.path.join(OUT, "park", sid + ".json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
             out["park"][sid] = len(rows)
 
     json.dump(out, open(os.path.join(OUT, "tables.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
-    print(f"표 저장 · 재이 표시 {n_j}줄({len(jy)}곳) · α {out['alpha']} · 화장실 파일 {len(tid)}곳 {sum(tid.values())}줄 · 쓰레기통 {len(out['trash'])}곳 / 요약 {len(out['trashCovered'])}곳")
+    print(f"표 저장 · 재이 표시 {n_j}줄({len(jy)}곳) · α {out['alpha']} · 화장실 파일 {len(tid)}곳 {sum(tid.values())}줄 · 쓰레기통 {len(out['trash'])}곳 / 요약 {len(out['trashCovered'])}곳 · 공원 {len(out['park'])}곳 {sum(out['park'].values())}줄")
 
 
 if __name__ == "__main__":

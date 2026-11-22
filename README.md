@@ -16,6 +16,7 @@
 - `build_poi.py`: 원본(`raw/step2/`) → `data/poi/<충전소ID>.json`, `data/poi_counts.csv`(충전소 × 7개 카테고리 개수)
 - 7개 카테고리(식사·카페·테이크아웃·쇼핑·편의·관광여가·업무) 대응표는 임시안임. `build_poi.py` 맨 위의 `MID`, `SUB`를 고치면 됨
 - 실행 순서: `build_data.py` → `build_poi.py`
+- 붐빔 v2(2026-11-22, 우리 쪽 재계산): `build_poi.py` 다음에 `~/.venvs/work/bin/python -I apply_busy_v2.py` → `data/stations.json`의 `occ24`를 `data/usage_by_hour_v2.csv`(= `../analysis/station_reco/usage_by_hour_v2.csv`, 같은 충전기·같은 수집 시각 기록이 둘이면 statUpdDt 최신 하나만)로 바꾸고 `meta.busy` 표시. `build_data.py`·`data/usage_by_hour.csv`(STEP 1)는 그대로 둠. 지도 목록·충전소 상세·충전소 추천 패널이 같은 값(목록 안내에 "11/08~11/11 수집, 최신 기록 기준")
 
 ## 시연 충전소 9곳: 도보 5분·10분 범위
 
@@ -36,11 +37,13 @@
 - 자료: `~/.venvs/work/bin/python -I build_reco.py` → `data/reco/`(tables.json, toilet/, trash/). 점수 = `reco.js`(기준 `analysis/reco_tables/score_reference.py`와 같은 결과)
 - v3e(11/22): 가중치 = 대분류, 시간·상황 = 가게 동권 활동(소분류로 정함), 키워드 = 재이가 붙인 소분류 필터. 보여 주기: P1·P2 대분류별 대표 1곳(5), P3 점수순(5), P4a 편의점·카페 테이크아웃·화장실(3), P4b 카드 단위 4개(편의점·카페(테이크아웃·착석 합침)·화장실·빠른 식사 포장, 점수순). 표나 대분류가 바뀌면 `build_walk9.py` → `build_walk_seoul.py` → `build_reco.py` 순서로 다시 만듦
 - 도보 파일 `pid`·`wm` 칸은 `build_walk9.py`가 넣음(`build_walk_seoul.py` 다시 실행)
+- v5d(11/22): 공원 슬롯 활성. `build_reco.py`가 `../analysis/walk_seoul_all/walk_routes_seoul_park_v2.csv`(10분 안 893행)를 `data/reco/park/<id>.json` [공원ID, 이름, 위도, 경도, 도보 m, 공원유형, 어린이공원 1/0]으로 씀(표 `params.park_status`가 ready·active일 때만). 도보 칩 끝에 '공원'(나무 핀), 목록에도 들어감. 공원 카드 = 이름 + 공원유형(어린이공원이면 배지). 키워드 '산책하고 싶어요' = 공원 필터(가중치 `params.keyword_park_weight`), 비·심야(산책 ×0)면 "비·심야에는 산책을 추천하지 않아요". `build_reco.py`는 `data/reco/station_reco.json`을 지우지 않음
 
 ## 충전소 추천 (기본 지도 화면, MVP 3단계 v1, 2026-11-22)
+- 표 v1.2(붐빔 v2 + fit을 추천 표 v5d(공원 슬롯)로 다시 계산). 카드는 가로로 넘기는 한 줄(서랍 기본 높이 190px에서 첫 카드의 이름·이유가 보임), 점수 설명은 카드 아래. 정보 입력·다시 입력이 끝나면 패널이 바로 새 페르소나·남은 시간으로 바뀜
 - '주변 충전소' 탭 맨 위 "지금 충전하기 좋은 곳" 상위 3곳 카드(이름·채비스테이/급속/완속·이유 한 줄(주변 · 붐빔(참고) · 거리)). 카드를 누르면 그 충전소 상세(주변 인프라 추천)로 감
 - 기준 위치 = 내 위치(권한 있을 때) 또는 지도 가운데, 반경 3km 직선. 페르소나·남은 시간 = 추천 설정(정보 입력 화면 기본값), 시각 = 지금
 - 자료: `data/reco/station_reco.json`(분석 담당 `analysis/station_reco/score_reference_station.py` 출력을 그대로 복사). 코드: `station_reco.js`(`STRECO`)
 - 가중치·반경·상위 몇 곳·붐빔 문구 경계·중립값·도보 자료 없는 충전소 처리(`no_walk_policy`)는 모두 JSON `score`·`reason`에서 읽음 → 규칙이 바뀌면 JSON만 바꾸면 됨
 - 남은 시간은 표에 있는 값(지금 30·45분) 중 가장 가까운 값으로 계산(15분 → 30분 표, 60분 → 45분 표, 화면 제목에 표시)
-- 붐빔은 STEP 1 4일치(11/8~11) 시간대 평균이라 문구에 항상 "(참고)", 관측 3회 미만은 "붐빔 자료 부족"(점수에는 0.5 중립)
+- 붐빔은 4일치(11/8~11) 시간대 평균(v2, 최신 기록 기준)이라 문구에 항상 "(참고)", 관측 3회 미만은 "붐빔 자료 부족"(점수에는 0.5 중립)
