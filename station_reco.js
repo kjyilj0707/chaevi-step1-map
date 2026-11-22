@@ -84,6 +84,32 @@
     out.sort((a, b) => b.score - a.score || a.dist_km - b.dist_km || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     return out;
   }
+  /* 같은 건물 층별 충전소 묶기(11/23 준엽 결정). 이름에서 층 표기(지하N층·지상N층·BN·BNF)를 뺀 이름이 같고 직선 50m 안이면 한 묶음.
+     점수·순서(rank)는 그대로, 패널에서 rank 순서대로 훑어 처음 나온 곳(= 묶음 안 최고 점수)을 대표로 두고 뒤의 같은 묶음은 대표에 붙임 → 상위 3곳은 묶은 뒤 다시 채움 */
+  const FLOOR_RE = /\s*(?:(지하|지상)\s*(\d+)\s*층|\b(B)(\d+)F?\b)/;
+  function floorSplit(name){
+    const m = String(name).match(FLOOR_RE); if (!m) return null;
+    const base = String(name).replace(FLOOR_RE, ' ').replace(/\(\s*\)/g, '').replace(/\s+/g, ' ').replace(/\s+\)/g, ')').trim();
+    return {base, pre:m[1] || '지하', n:+(m[2] || m[4])};      // BN = 지하 N층
+  }
+  const GROUP_KM = 0.05;
+  function groupFloors(list){
+    const pos = {}; T.stations.forEach(x => { pos[x.id] = x; });
+    const reps = [];
+    for (const r of list){
+      const f = floorSplit(r.name), me = pos[r.id];
+      const g = f && reps.find(x => x.fl && x.fl.base === f.base && havKm(pos[x.id].lat, pos[x.id].lng, me.lat, me.lng) <= GROUP_KM);
+      if (g){ g.members.push(Object.assign({}, r, {fl:f})); continue; }
+      reps.push(Object.assign({}, r, {fl:f, members:[]}));
+    }
+    return reps;
+  }
+  /* 묶음 층 글자: '지하3·4·5층', '지하4층·지상1층'(지하 깊은 쪽부터가 아니라 숫자 작은 순) */
+  function floorLabel(r){
+    const fl = [r.fl].concat(r.members.map(m => m.fl)).filter(Boolean), by = {};
+    fl.forEach(f => { (by[f.pre] = by[f.pre] || new Set()).add(f.n); });
+    return ['지하', '지상'].filter(k => by[k]).map(k => k + [...by[k]].sort((a, b) => a - b).join('·') + '층').join('·');
+  }
   const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
   const kmTxt = d => d < 1 ? Math.round(d * 1000) + 'm' : d.toFixed(1) + 'km';
   /* 지도 화면 패널 HTML. o = {lat, lng, from:'me'|'center', persona, personaName, remain, hour, only, keep, keepLabel, meta}
@@ -97,7 +123,7 @@
     if (!T) return '';
     const S = T.score, ranked = rank(o.lat, o.lng, o.persona, o.remain, o.hour);
     const pool = o.only ? ranked.filter(r => o.only(r.id)) : ranked, all = o.keep ? pool.filter(r => o.keep(r.id)) : pool;
-    const top = all.slice(0, S.top_n), rk = remainKey(o.remain), pname = esc(o.personaName || o.persona);
+    const grouped = groupFloors(all), top = grouped.slice(0, S.top_n), rk = remainKey(o.remain), pname = esc(o.personaName || o.persona);
     const sub = `남은 ${o.remain}분${rk !== o.remain ? `(${rk}분 표 기준)` : ''} · ${o.hour}시 · ${o.from === 'me' ? '내 위치' : '지도 가운데'}에서 ${S.radius_km}km${o.keepLabel ? ' · ' + esc(o.keepLabel) : ''}`;
     const nSlot = 5, slots = f => Math.round(f * nSlot);
     /* 동점 = 점수에 들어간 맞춤(fit2, 소수 넷째 자리) 기준(v1.3). fit(n/5)이 같아도 fit2가 다르면 동점 아님 */
@@ -114,9 +140,11 @@
       <div class="srplace">${lst ? `도보 10분 안 ${esc(lst)}` : '도보 10분 안 맞춤 장소 적음'}</div>`
         : `<div class="srplace">주변 정보 없음</div>`;
       const meta = o.meta ? o.meta(r.id) : '', sat = o.thumb ? o.thumb(r.id) : '';      // sat = 위성 작은 그림 HTML(index.html satThumb), 있으면 거리는 그림 아래 띠로
-      return `<div class="srcard${sat ? ' sat' : ''}" data-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${i + 1}순위 ${esc(r.name)}, ${kmTxt(r.dist_km)}, ${esc(bp.txt)}, ${pname} 맞춤 ${n}/${nSlot}${r.rich_lv ? `, 주변 풍부 ${esc(r.rich_lv)}` : ''}">
-      <div class="srtop"><span class="srno">${i + 1}</span><b title="${esc(r.name)}">${esc(r.name)}</b>${sat ? '' : `<span class="srkm">${kmTxt(r.dist_km)}</span>`}</div>${sat ? `<div class="srsat" aria-hidden="true">${sat}<span class="srkm">${kmTxt(r.dist_km)}</span></div>` : ''}
-      <div class="srmeta">${r.stay ? '<span class="badge">채비스테이</span>' : ''}${meta ? `<span>${esc(meta)}</span>` : ''}<span class="srbusy ${bp.lv == null ? 'na' : BUSY_CLS[bp.lv]}"><i></i>${esc(bp.txt)}${bp.note ? `<small>${bp.note}</small>` : ''}</span></div>
+      const nm = r.members.length ? `${r.fl.base} ${floorLabel(r)}` : r.name;      // 묶음이면 '한국타이어 역삼사옥 지하2·3·4층'
+      const grp = r.members.length ? `<span class="srgrp" title="같은 건물 층별 충전소를 묶음. 붐빔·충전기는 대표(${esc(r.name)}) 기준">같은 건물 ${r.members.length + 1}곳</span>` : '';
+      return `<div class="srcard${sat ? ' sat' : ''}" data-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${i + 1}순위 ${esc(nm)}, ${kmTxt(r.dist_km)}, ${esc(bp.txt)}, ${pname} 맞춤 ${n}/${nSlot}${r.rich_lv ? `, 주변 풍부 ${esc(r.rich_lv)}` : ''}">
+      <div class="srtop"><span class="srno">${i + 1}</span><b title="${esc(nm)}">${esc(nm)}</b>${sat ? '' : `<span class="srkm">${kmTxt(r.dist_km)}</span>`}</div>${sat ? `<div class="srsat" aria-hidden="true">${sat}<span class="srkm">${kmTxt(r.dist_km)}</span></div>` : ''}
+      <div class="srmeta">${grp}${r.stay ? '<span class="badge">채비스테이</span>' : ''}${meta ? `<span>${esc(meta)}</span>` : ''}<span class="srbusy ${bp.lv == null ? 'na' : BUSY_CLS[bp.lv]}"><i></i>${esc(bp.txt)}${bp.note ? `<small>${bp.note}</small>` : ''}</span></div>
       ${why}</div>`; }).join('');
     const tie = allSame ? `<p class="srtie">${top.length}곳 모두 ${pname} 맞춤 점수가 같음${top.every(x => x.fit === top[0].fit && x.rich_lv === top[0].rich_lv) ? `(${slots(top[0].fit)}/${nSlot}${top[0].rich_lv ? '·풍부 ' + esc(top[0].rich_lv) : ''})` : ''} → 순서는 덜 붐빔·가까움으로 정함</p>` : '';
     const bm = T.busy_meta, bd = `${bm.first.slice(5, 10).replace('-', '/')}~${bm.last.slice(5, 10).replace('-', '/')}`;
@@ -124,7 +152,7 @@
       (cards ? `<div class="srstrip" role="list">${cards}</div>${tie}`
         : `<p class="srnote">반경 ${S.radius_km}km 안에 도보 자료가 있는 급속 충전소 없음${o.keep && pool.length ? '(위쪽 칩 조건)' : ''} (서울 충전소만 계산됨)</p>`) +
       (o.keep && top.length && top.length < S.top_n ? `<p class="srnote">조건에 맞는 충전소가 적어요 (${esc(o.keepLabel || '위쪽 칩')})</p>` : '') +
-      `<p class="srnote">점수 = ${pname} 맞춤 ${S.weights.fit} + 덜 붐빔 ${S.weights.busy} + 가까움 ${S.weights.dist} (가정값) · 맞춤 = 칸 채움 0.5 + 주변 풍부도 0.5 (가정값) · 칸 채움 n/5 = 이 페르소나 추천 카드 5칸 중 도보 10분 안에서 바로 채운 칸 수 · 주변 N곳 = 이 페르소나 카드 업종(화장실·쓰레기통·공원 포함)에서 ${rk}분 안에 다녀올 수 있는 곳 수, 맑음·도보 10분 기준 · 풍부 상·중·하 = 업종별 서울 내 순위를 카드 비중으로 평균한 3등분(곳 수와 순서가 다를 수 있음) · 이용 기록 적은 ${T.stations.filter(x => x.lowuse).length}곳은 붐빔 ${S.lowuse_occ != null ? S.lowuse_occ : S.busy_neutral}(가정)로 계산 · 붐빔은 ${bd} 수집, 최신 기록 기준 평균이라 참고용 · 급속 충전소만(완속만 있는 곳 제외) · 반경 안 후보 ${all.length}곳${o.keep ? ` (칩 거르기 전 ${pool.length}곳)` : ''}</p></div>`;
+      `<p class="srnote">점수 = ${pname} 맞춤 ${S.weights.fit} + 덜 붐빔 ${S.weights.busy} + 가까움 ${S.weights.dist} (가정값) · 맞춤 = 칸 채움 0.5 + 주변 풍부도 0.5 (가정값) · 칸 채움 n/5 = 이 페르소나 추천 카드 5칸 중 도보 10분 안에서 바로 채운 칸 수 · 주변 N곳 = 이 페르소나 카드 업종(화장실·쓰레기통·공원 포함)에서 ${rk}분 안에 다녀올 수 있는 곳 수, 맑음·도보 10분 기준 · 풍부 상·중·하 = 업종별 서울 내 순위를 카드 비중으로 평균한 3등분(곳 수와 순서가 다를 수 있음) · 이용 기록 적은 ${T.stations.filter(x => x.lowuse).length}곳은 붐빔 ${S.lowuse_occ != null ? S.lowuse_occ : S.busy_neutral}(가정)로 계산 · 붐빔은 ${bd} 수집, 최신 기록 기준 평균이라 참고용 · 급속 충전소만(완속만 있는 곳 제외) · 같은 건물 층별 충전소는 한 장으로 묶음(대표 = 점수 높은 층) · 반경 안 후보 ${all.length}곳${grouped.length < all.length ? `(묶은 뒤 ${grouped.length})` : ''}${o.keep ? ` (칩 거르기 전 ${pool.length}곳)` : ''}</p></div>`;
   }
   function bind(el, onPick){
     el.querySelectorAll('.srcard').forEach(c => { const go = () => onPick(c.dataset.id);
@@ -144,6 +172,6 @@
     const basis = low ? '관측 시간 모두 이용률 0·충전 기록 적음(점수는 중간값)' : flag === 'ok' ? `관측 ${n}회·2일 이상` : flag === 'one_day' ? `관측 ${n}회·하루치` : flag === 'insufficient' ? `관측 ${n}회(${T.score.n_obs_min || 3}회 미만)` : '관측 없음';
     return {text:busyText(o, flag, low).replace(/^이 시간대 /, ''), none, low, occ:o, flag, n, basis};
   }
-  const api = {load, rank, panel, bind, havKm, reasonOf, busyOf, busyParts, remainKey:rm => T ? remainKey(rm) : null, setTable:t => { T = t; }, ready:() => !!T};
+  const api = {load, rank, panel, bind, havKm, reasonOf, busyOf, busyParts, groupFloors, floorSplit, floorLabel, remainKey:rm => T ? remainKey(rm) : null, setTable:t => { T = t; }, ready:() => !!T};
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else g.STRECO = api;
 })(typeof window !== 'undefined' ? window : this);
