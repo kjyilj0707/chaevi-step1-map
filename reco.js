@@ -65,6 +65,7 @@
     for (const p of places){
       if (sc.big && !sc.big.has(p.big)) continue;
       if (sc.sub && !sc.sub.has(p.sub)) continue;
+      if (closedNow(p, o)) continue;
       const ow = p.wm / (e.speed * 60);
       if (!(ow <= e.cap)) continue;
       const avail = o.remain - 2 * ow - (o.alpha || 0) - 2 * (p.mall || 0) - P.buffer_min, per = {};
@@ -130,11 +131,52 @@
     (parks || []).forEach((t, i) => out.push({pid:'park:' + t[0], wm:t[4], sub:t[5] || '공원', big:'공원', acts:['산책'], row:i, kind:'park', child:t[6] ? 1 : 0}));
     return out;
   };
+  /* 화면 단계 추가 필터(2026-11-22, 기준 score_reference.py에는 없음): 화장실 개방시간 문자열 → 지금(o.now = {dow 0=일~6=토, min 0~1439}) 열려 있나.
+     'open' / 'closed' / 'unknown'(정시(영업시작~종료)·기타·'9시간'·빈칸·요일 표기가 복잡한 것 → 카드에 '개방시간 확인').
+     읽는 표기: 상시 → 늘 열림. HH:MM~HH:MM(익일·24시 넘김 = 다음 날 새벽까지), 앞에 평일·주말·월~금·토~일·토(요일)·일(요일)·공휴일, '(09:00~18:00,평일)'.
+     요일 없는 시간 = 요일 표기로 안 정한 나머지 요일. 요일 표기가 있는데 그 요일에 시간이 없으면 닫힘. 공휴일은 모르므로 무시.
+     o.now 가 없으면(대조 시험) 이 필터를 쓰지 않음 → score_reference.py와 같은 결과 */
+  const DAYS = {'평일': [1, 2, 3, 4, 5], '월~금': [1, 2, 3, 4, 5], '주말': [0, 6], '토~일': [0, 6], '토요일': [6], '토': [6], '일요일': [0], '일': [0], '공휴일': []};
+  const OPEN_RE = /(평일|주말|월~금|토~일|토요일|일요일|공휴일|토|일)?(\d{1,2}):(\d{2})~(익일)?(\d{1,2}):(\d{2})/g;
+  const openMemo = new Map();
+  R.parseOpen = str => {
+    const s0 = String(str || '');
+    if (openMemo.has(s0)) return openMemo.get(s0);
+    let res = null;
+    if (s0.includes('상시')) res = 'always';
+    else {
+      let s = s0.replace(/\s+/g, '').replace(/\((\d{1,2}:\d{2}~\d{1,2}:\d{2}),(평일|주말)\)/, '$2$1')
+        .replace(/([가-힣])\|+(?=\d)/g, '$1');      // '토요일|06:00~12:00' → '토요일06:00~12:00'
+      const segs = []; let ok = true;
+      const rest = s.replace(OPEN_RE, (m, d, h1, m1, nx, h2, m2) => {
+        const a = +h1 * 60 + +m1; let b = +h2 * 60 + +m2;
+        if (nx || b <= a) b += 1440;      // 익일·15:00~02:00 → 다음 날 새벽까지(25:00 표기도 같음)
+        if (a >= 1440 || b > a + 1440) ok = false;
+        segs.push({days:d ? DAYS[d] : null, a, b}); return ' '; });
+      if (ok && segs.length && !/[^\s|,()기타정시]/.test(rest)){
+        const named = new Set(segs.filter(x => x.days).flatMap(x => x.days)), hasNamed = segs.some(x => x.days);
+        res = [0, 1, 2, 3, 4, 5, 6].map(dw => segs.filter(x => x.days ? x.days.includes(dw) : !named.has(dw)).map(x => [x.a, x.b]));
+        if (!hasNamed) res = res.map(() => res[0]);
+      }
+    }
+    openMemo.set(s0, res); return res;
+  };
+  R.openState = (str, now) => {
+    const P = R.parseOpen(str);
+    if (P === 'always') return 'open';
+    if (!P) return 'unknown';
+    const m = now.min, prev = (now.dow + 6) % 7;
+    if (P[now.dow].some(([a, b]) => m >= a && m < b)) return 'open';
+    if (P[prev].some(([a, b]) => b > 1440 && m < b - 1440)) return 'open';
+    return 'closed';
+  };
+  const closedNow = (p, o) => o.now && p.kind === 'toilet' && R.openState(p.open, o.now) === 'closed';
   const RANK = {'가능': 0, '빠듯': 1};
   /* 슬롯 후보(점수순): [{p, ow, avail, act, time, tr(시간 순위), mult(상황 곱), group}] */
   R.slotCandidates = (T, places, o) => {
     const P = T.params, e = R.effects(T, o.conds || []), out = [];
     for (const p of places){
+      if (closedNow(p, o)) continue;
       const ow = p.wm / (e.speed * 60);
       if (!(ow <= e.cap)) continue;
       const avail = o.remain - 2 * ow - (o.alpha || 0) - 2 * (p.mall || 0) - P.buffer_min;

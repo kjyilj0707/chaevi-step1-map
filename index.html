@@ -218,6 +218,7 @@ body.infra.placeon .listbtn{display:none}
 .rshare{font-size:10px !important;color:var(--ink2) !important;margin:-3px 0 6px !important}
 .rcard .nm .fbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:var(--ink2);background:var(--grid);vertical-align:1px}
 .rcard .nm .kbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:#fff;background:#2f8f4e;vertical-align:1px}
+.rcard .nm .obadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:#d07a00;border:1px solid #d07a00;vertical-align:1px}
 .rcard .nm .sbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:#6b4a00;background:#ffe9a8;vertical-align:1px}
 .rnote{font-size:11px !important;color:var(--ink2) !important;margin:2px 0 6px !important}
 .rfoot{font-size:10px !important;color:var(--muted) !important;margin:6px 0 0 !important}
@@ -959,12 +960,14 @@ const RTP = fetch('data/reco/tables.json').then(r => r.ok ? r.json() : null).the
 const wcats = () => WKM.cats.concat(RT ? ['화장실'] : [], RT && RT.park && Object.keys(RT.park).length ? ['공원'] : []);     // 끝에 화장실·공원(v5d) 칩
 const PERSONAS = [['P1', '휴게소형'], ['P2', '외출·산책'], ['P3', '마트 장보기'], ['P4a', '차 안 머묾'], ['P4b', '대기·잠깐']];
 const REMAINS = [15, 30, 45, 60];
-const RS = {persona:'P2', remain:30, kw:null, wx:null, hour:null, trashMap:false};     // wx: null = 지금 날씨, 'rain'·'clear' = 직접 고름. hour: null = 지금 시각(시험용으로 바꿀 수 있음)
+const RS = {persona:'P2', remain:30, kw:null, wx:null, hour:null, dow:null, trashMap:false};     // wx: null = 지금 날씨, 'rain'·'clear' = 직접 고름. hour·dow(0=일~6=토): null = 지금(시험용으로 바꿀 수 있음)
 try { const v = localStorage.getItem('recoP'); if (PERSONAS.some(x => x[0] === v)) RS.persona = v; } catch (e) {}
 try { const v = +localStorage.getItem('recoR'); if (REMAINS.includes(v)) RS.remain = v; } catch (e) {}
 if (window.ONB) ONB.init(RS, REMAINS, () => { recoMemo = null; if (selected && poi.s === selected && poi.data){ poi.show = POI_FIRST; renderPoi(); }
-  else if (D && tab === 'near' && !selected && !route) renderBody(); });     // 기본 화면이면 충전소 추천 패널을 새 페르소나·남은 시간으로 다시 그림     // 정보 입력 화면: 페르소나·남은 시간·동승 기본값
+  else if (D && tab === 'near' && !selected && !route) renderBody(); });     // 기본 화면이면 충전소 추천 패널을 새 페르소나·남은 시간으로 다시 그림     // 정보 입력 화면: 페르소나·남은 시간 기본값(동승 없음)
 const recoHour = () => RS.hour == null ? new Date().getHours() : RS.hour;
+/* 화장실 '지금 열림' 판정용 요일·분(화면 단계 추가 필터, reco.js R.openState). 시각을 직접 고르면 그 시 정각 */
+const recoNow = () => { const t = new Date(); return {dow:RS.dow == null ? t.getDay() : RS.dow, min:RS.hour == null ? t.getHours() * 60 + t.getMinutes() : RS.hour * 60}; };
 const isNight = () => { const h = recoHour(); return h >= 22 || h < 6; };
 const walkMinOf = m => Math.max(1, Math.ceil(m / (WKM ? WKM.speed : 1.3) / 60 - 1e-9));     // 목록과 같은 올림(도보 분)
 const openTxt = t => String(t || '').replace(/\s*\|\s*/g, ' ');      // 개방시간 '기타|06:00~24:00' → '기타 06:00~24:00'
@@ -1045,13 +1048,13 @@ let recoMemo = null;
 function recoRun(){
   const s = poi.s, d = poi.data; if (!RT || !s || !d || !d.walk || !d.raw || !d.raw.pid) return null;
   const wx = recoWx(s), conds = RECO.conditions(recoHour(), wx === 'clear' ? null : wx).concat(window.ONB ? ONB.conds() : []);
-  const key = [s[C.id], RS.persona, RS.remain, RS.kw, conds.join('+')].join('|');
+  const now = recoNow(), key = [s[C.id], RS.persona, RS.remain, RS.kw, conds.join('+'), now.dow, now.min].join('|');
   if (recoMemo && recoMemo.key === key && recoMemo.d === d) return recoMemo;
   if (!d.places){ d.places = RECO.places(RT, s[C.id], d.raw, d.toilets); d.extra = RECO.extras(d.trash, d.parks); }
   /* v5b: 키워드 없음·'아무거나!' = 페르소나별 슬롯 틀(쓰레기통·공원 카드 포함), 키워드 = v3e 필터 점수순 */
-  const out = RECO.recommend(RT, d.places, d.extra, {persona:RS.persona, remain:RS.remain, conds, keyword:RS.kw, alpha:RT.alpha[s[C.id]] != null ? RT.alpha[s[C.id]] : (RT.alphaDefault || 0)});
+  const out = RECO.recommend(RT, d.places, d.extra, {persona:RS.persona, remain:RS.remain, conds, keyword:RS.kw, now, alpha:RT.alpha[s[C.id]] != null ? RT.alpha[s[C.id]] : (RT.alphaDefault || 0)});
   const res = out.res, cards = out.cards, eff = RECO.effects(RT, conds);
-  return recoMemo = {key, d, wx, conds, res, cards, mode:out.mode, eff, ids:new Set(cards.map(r => r.p.pid))};
+  return recoMemo = {key, d, wx, conds, now, res, cards, mode:out.mode, eff, ids:new Set(cards.map(r => r.p.pid))};
 }
 const recoCardIds = () => { const r = recoRun(); return r ? r.ids : null; };
 function recoCardRow(r){          // 카드 한 장 → 목록 가게 줄(지도에 보이기·도보 안내에 그대로 씀). 쓰레기통·공원 카드는 그 파일 줄로 같은 모양을 만듦
@@ -1079,9 +1082,11 @@ function recoBuild(){
     /* 공원 카드(v5d park_data.card_fields): 제목 = 공원 이름, 라벨 = 공원유형, 어린이공원이면 배지(라벨 대신) */
     const kid = p.kind === 'park' && p.child ? '<span class="kbadge">어린이공원</span>' : '';
     const tags = [c.group, c.unit && c.unit !== c.group && !(row && row[2].includes(c.unit)) ? c.unit : '', row && !kid ? row[2] : '', p.mall ? `건물 안 이동 +${p.mall}분` : ''].filter(Boolean).join(' · ');
+    /* 화장실 개방시간을 못 읽으면(정시(영업시작~종료)·기타 등) 지금 열렸는지 모름 → 배지 */
+    const ochk = p.kind === 'toilet' && RECO.openState(p.open, r.now) === 'unknown' ? '<span class="obadge">개방시간 확인</span>' : '';
     const fb = c.fb ? `<span class="fbadge" title="원래 자리(${c.slotBig.replace(/\|/g, '·')})에 다녀올 곳이 없어 대신 넣음">대체</span>` : '';
     return `<div class="rcard${p.star ? ' star' : ''}" data-k="${k}"><span class="pin" style="background:${POI_COL[ic]}">${picon(ic, 18)}</span>
-      <div class="nm"><b>${p.star ? `<span class="sbadge">★ ${p.brand || '브랜드'}</span>` : ''}${row ? row[0] : ''}</b><span>${fb}${kid}${tags}</span></div>
+      <div class="nm"><b>${p.star ? `<span class="sbadge">★${p.brand ? ' ' + p.brand : ''}</span>` : ''}${row ? row[0] : ''}</b><span>${fb}${kid}${ochk}${tags}</span></div>
       <div class="oc"><b>도보 ${walkMinOf(p.wm)}분</b><span class="tbadge${/빠듯|불가/.test(c.time) ? ' tight' : ''}">${c.time}</span></div></div>`; }).join('');
   const noWalk = RS.kw && RT.kw[RS.kw] && RT.kw[RS.kw].big.includes('공원') && r.eff.mult['산책'] === 0;     // '산책하고 싶어요' + 비·심야(산책 ×0)
   const why = [night ? '심야: 편도 5분 안, 화장실은 24시간 개방(상시)만, 편의점 우선' : '', wet ? `${wxName}: 편도 5분 안` : '',
@@ -1192,7 +1197,11 @@ function srecoPanel(){
   if (!window.STRECO || !STRECO.ready()) return '';
   const c = map.getCenter(), ref = me ? {lat:me[0], lng:me[1], from:'me'} : {lat:c.lat, lng:c.lng, from:'center'};
   const pn = (PERSONAS.find(x => x[0] === RS.persona) || [, RS.persona])[1];
-  return STRECO.panel(Object.assign(ref, {persona:RS.persona, personaName:pn, remain:RS.remain, hour:recoHour()}));
+  /* 위쪽 칩 = 지도 목록과 같은 기준(passes와 같음, '한가한 곳·붐비는 곳'도 지도에서 고른 시각의 이용률). 시연·서울 도보 칩과 검색어는 추천 후보에 쓰지 않음(후보는 이미 도보 자료 있는 곳) */
+  const on = ['fast', 'slow', 'stay', 'free', 'busy'].filter(k => F[k]), lab = {fast:'급속', slow:'완속만', stay:'채비스테이', free:'한가한 곳', busy:'붐비는 곳'};
+  const keep = on.length ? id => { const s = byId(id); if (!s) return false; const o = s[C.occ][hour];
+    return !(F.fast && s[C.nfast] === 0) && !(F.slow && s[C.nfast] > 0) && !(F.stay && !s[C.stay]) && !(F.free && !(o >= 0 && o < 25)) && !(F.busy && !(o >= 50)); } : null;
+  return STRECO.panel(Object.assign(ref, {persona:RS.persona, personaName:pn, remain:RS.remain, hour:recoHour(), keep, keepLabel:on.map(k => lab[k]).join('·')}));
 }
 if (window.STRECO) STRECO.load('data/reco/station_reco.json', () => { if (D && tab === 'near' && !selected && !route) renderBody(); });
 function renderBody(){
