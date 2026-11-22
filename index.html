@@ -516,6 +516,7 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
   <div><i style="background:var(--q4)"></i>50~75%</div>
   <div><i style="background:var(--q5)"></i>75% 이상</div>
   <div><i style="background:var(--nodata)"></i>기록 없음</div>
+  <div><i style="background:var(--nodata)"></i>기록 적음 (관측 시간 모두 0%·충전 기록 적은 곳)</div>
   <b style="margin-top:6px">테두리 = 충전소 종류</b>
   <div><span class="lgk" data-k="0"></span>급속 (남색 동그라미)</div>
   <div><span class="lgk" data-k="1"></span>채비스테이 (주황 굵은 테두리)</div>
@@ -591,7 +592,12 @@ const BIG_SHAPE = {'식품·편의':7, '뷰티·건강':8, '패션·잡화':10, 
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const RAMP = ['--nodata','--q1','--q2','--q3','--q4','--q5'].map(css);
 const bin = v => v < 0 ? 0 : v < 10 ? 1 : v < 25 ? 2 : v < 50 ? 3 : v < 75 ? 4 : 5;
-const occTxt = v => v < 0 ? '기록 없음' : v + '%';
+const occTxt = v => v === LOW_OCC ? '기록 적음' : v < 0 ? '기록 없음' : v + '%';
+/* 저이용 30곳(충전소 추천 표 v1.3 stations[].lowuse: 관측 시간 모두 이용률 0, 충전 기록 적음, 11/23): 지도 핀·목록·칩에서는 이용률 대신 '기록 적음'(회색, 기록 없음과 같은 색),
+   '한가한 곳' 칩에서 뺌. 원래 occ24(0%)는 stations.json 그대로, '지금 충전소' 탭 그래프도 그대로. 표가 아직 안 왔으면 원래 값 */
+const LOW_OCC = -2;
+const isLowSt = s => !!(window.STRECO && STRECO.isLow && STRECO.isLow(s[C.id]));
+const occAt = (s, h) => isLowSt(s) ? LOW_OCC : s[C.occ][h];
 const wide = () => innerWidth > 820;
 
 /* 주변 인프라 종류 아이콘 (직접 그린 단순한 모양, 24x24, 색은 currentColor) */
@@ -741,7 +747,7 @@ const mapLoaded = new Promise(res => map.on('load', () => {
 function updateMap(){
   if (!ready) return;
   const f = s => ({type:'Feature', geometry:{type:'Point', coordinates:[s[C.lng], s[C.lat]]},
-    properties:{id:s[C.id], img:'m' + markKind(s) + '_' + bin(s[C.occ][hour]), k:s[C.stay] ? 1.7 : markKind(s) === 2 ? 0.85 : 1}});
+    properties:{id:s[C.id], img:'m' + markKind(s) + '_' + bin(occAt(s, hour)), k:s[C.stay] ? 1.7 : markKind(s) === 2 ? 0.85 : 1}});
   map.getSource('st').setData({type:'FeatureCollection', features:shown.filter(s => !s[C.stay]).map(f)});
   map.getSource('stay').setData({type:'FeatureCollection', features:shown.filter(s => s[C.stay]).map(f)});
   map.getSource('demo').setData({type:'FeatureCollection', features:shown.filter(isDemo).map(f)});
@@ -775,7 +781,7 @@ $('#pcGoSt').onclick = () => { if (place) startWalk(place, 'station'); };
 $('#pcX').onclick = hidePlace;
 const noHover = matchMedia('(hover: none)');      // 터치 화면: 손가락으로 누를 때 생기는 가짜 마우스 이동으로 이름표가 남지 않게
 map.on('mousemove', e => { const oe = e.originalEvent; if (!ready || noHover.matches || (oe && oe.sourceCapabilities && oe.sourceCapabilities.firesTouchEvents)) return; const s = hit(e.point); map.getCanvas().style.cursor = s ? 'pointer' : '';
-  if (s) showTip(e.originalEvent, `${s[C.name]} · ${hour}시 ${occTxt(s[C.occ][hour])}`); else hideTip(); });
+  if (s) showTip(e.originalEvent, `${s[C.name]} · ${hour}시 ${occTxt(occAt(s, hour))}`); else hideTip(); });
 map.on('mouseout', hideTip); map.on('movestart', hideTip);
 map.on('moveend', () => { if (D && tab === 'near' && !selected && !route) renderBody(); });
 map.on('rotate', () => { $('#compass svg').style.transform = `rotate(${-map.getBearing()}deg)`; });
@@ -1437,7 +1443,7 @@ $('#infraClear').onclick = () => { poi.cat = -1; poi.show = POI_FIRST; hidePlace
 $('#listBtn').onclick = () => { setSheet(!(sheetH > baseH())); renderPoi(); };
 
 function passes(s){
-  const q = $('#q').value.trim(), o = s[C.occ][hour];
+  const q = $('#q').value.trim(), o = occAt(s, hour);
   if (F.stay && !s[C.stay]) return false;
   if (F.demo && !isWalk(s)) return false;
   if (F.free && !(o >= 0 && o < 25)) return false;
@@ -1461,13 +1467,13 @@ function srecoPanel(){
   const pn = (PERSONAS.find(x => x[0] === RS.persona) || [, RS.persona])[1];
   /* 위쪽 칩 = 지도 목록과 같은 기준(passes와 같음, '한가한 곳·붐비는 곳'도 지도에서 고른 시각의 이용률). 시연·서울 도보 칩과 검색어는 추천 후보에 쓰지 않음(후보는 이미 도보 자료 있는 곳) */
   const on = ['stay', 'free', 'busy'].filter(k => F[k]), lab = {stay:'채비스테이', free:'한가한 곳', busy:'붐비는 곳'};
-  const keep = on.length ? id => { const s = byId(id); if (!s) return false; const o = s[C.occ][hour];
+  const keep = on.length ? id => { const s = byId(id); if (!s) return false; const o = occAt(s, hour);
     return !(F.stay && !s[C.stay]) && !(F.free && !(o >= 0 && o < 25)) && !(F.busy && !(o >= 50)); } : null;
   /* only = 화면 범위(서울·급속만, D.stations에 있는 곳). 칩과 달리 늘 적용 */
   const thumb = id => { const s = byId(id); return s ? satThumb(s[C.lat], s[C.lng]) : ''; }, only = id => !!byId(id), meta = id => { const s = byId(id); return s ? `급속 ${s[C.nfast]}대 · ${s[C.kw]}kW` : ''; };
   return STRECO.panel(Object.assign(ref, {persona:RS.persona, personaName:pn, remain:RS.stRemain, hour:recoHour(), only, meta, thumb, keep, keepLabel:on.map(k => lab[k]).join('·')}));
 }
-if (window.STRECO) STRECO.load('data/reco/station_reco.json', () => { if (D && !route && ((tab === 'near' && !selected) || (selected && stab === 'now'))) renderBody(); });      // '지금 충전소' 탭의 붐빔 문구도 이 표를 씀
+if (window.STRECO) STRECO.load('data/reco/station_reco.json', () => { if (D) refresh(); if (D && !route && ((tab === 'near' && !selected) || (selected && stab === 'now'))) renderBody(); });      // '지금 충전소' 탭의 붐빔 문구도 이 표를 씀
 /* 충전 타이머(charge.js): 지도 위 작은 배지 + 주변 추천은 실제 남은 분(내림)이 바뀔 때, 충전소 추천 패널은 15/30/45/60 내림 값이 바뀔 때 다시 그림 */
 let lastSnap = null, lastMin = null;
 function chgBadge(){
@@ -1504,7 +1510,7 @@ function setTop3(ids){
   ['st', 'stay'].forEach(l => map.setFilter(l, filt));
   ids.forEach((id, i) => { const s = byId(id); if (!s) return;
     const el = document.createElement('div'); el.className = 'top3'; el.setAttribute('role', 'button'); el.setAttribute('aria-label', `${i + 1}순위 ${s[C.name]}`);
-    el.innerHTML = `<div class="t3in" style="animation-delay:${i * 0.18}s"><span class="t3b">${i + 1}순위</span><img alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(markSVG(RAMP[bin(s[C.occ][hour])], markKind(s), bin(s[C.occ][hour]) < 4))}"></div>`;
+    el.innerHTML = `<div class="t3in" style="animation-delay:${i * 0.18}s"><span class="t3b">${i + 1}순위</span><img alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(markSVG(RAMP[bin(occAt(s, hour))], markKind(s), bin(occAt(s, hour)) < 4))}"></div>`;
     const px = top3Px(s), im = el.querySelector('img'); im.style.width = im.style.height = px + 'px';
     el.addEventListener('click', e => { e.stopPropagation(); select(s, true); });
     const mk = new maplibregl.Marker({element:el, anchor:'center'}).setLngLat([s[C.lng], s[C.lat]]).addTo(map); mk._s = s; top3.ms.push(mk);
@@ -1522,15 +1528,15 @@ function renderBody(){
   const c = map.getCenter(), ref = [c.lat, c.lng];
   const list = shown.map(s => [km(ref, [s[C.lat], s[C.lng]]), s]).sort((a, b) => a[0] - b[0]).slice(0, 30);
   // 이용률 낮은 순: 가까운 30곳 안에서 다시 줄 세움 (기록 없는 곳은 맨 뒤, 같으면 가까운 순)
-  if (sortBy === 'occ') list.sort((a, b) => { const x = a[1][C.occ][hour], y = b[1][C.occ][hour];
+  if (sortBy === 'occ') list.sort((a, b) => { const x = occAt(a[1], hour), y = occAt(b[1], hour);
     return (x < 0) - (y < 0) || x - y || a[0] - b[0]; });
   el.innerHTML = srecoPanel() + `<div class="sort" role="group" aria-label="정렬 기준">
       <button type="button" data-s="near" aria-pressed="${sortBy === 'near'}">가까운 순</button>
       <button type="button" data-s="occ" aria-pressed="${sortBy === 'occ'}">이용률 낮은 순</button></div>
     <p class="hint">${F.demo ? `도보 범위가 있는 충전소만 보는 중 (위쪽 "${walkLabel()}"을 끄면 전체) · ` : ''}${sortBy === 'near' ? '지도 가운데에서 가까운 30곳' : '지도 가운데에서 가까운 30곳 안에서 이용률 낮은 순'} · ${hour}시 이용률 (${D.meta.days_by_hour[hour]}일치 평균${D.meta.busy ? ', ' + D.meta.busy.label : ''}) · 조건에 맞는 ${shown.length.toLocaleString('ko-KR')}곳</p>` +
-    (list.map(([d, s]) => `<div class="row" data-id="${s[C.id]}"><span class="dot" style="background:${RAMP[bin(s[C.occ][hour])]}"></span>
+    (list.map(([d, s]) => `<div class="row" data-id="${s[C.id]}"><span class="dot" style="background:${RAMP[bin(occAt(s, hour))]}"></span>
       <div class="nm"><b>${s[C.name]}${s[C.stay] ? ' <span class="badge">스테이</span>' : ''}${isDemo(s) ? ' <span class="badge walk9">도보 시연</span>' : isWalk(s) ? ' <span class="badge walk9">도보</span>' : ''}</b><span>${kmTxt(d)} · 충전기 ${s[C.n]}대(급속 ${s[C.nfast]}) · 최대 ${s[C.kw]}kW</span></div>
-      <div class="oc"><b>${occTxt(s[C.occ][hour])}</b><span>이용률</span></div></div>`).join('') || '<p class="hint">조건에 맞는 충전소 없음</p>');
+      <div class="oc"><b>${occTxt(occAt(s, hour))}</b><span>이용률</span></div></div>`).join('') || '<p class="hint">조건에 맞는 충전소 없음</p>');
   if (window.STRECO) STRECO.bind(el, id => { const s = byId(id); if (s) select(s, true); });
   setTop3([...el.querySelectorAll('.srcard')].slice(0, 3).map(c => c.dataset.id));
   el.querySelectorAll('.sort button').forEach(b => b.onclick = () => { sortBy = b.dataset.s; renderBody(); });
@@ -1577,7 +1583,7 @@ function detailHTML(){
     info = walk
       ? `<p>도보 <b>${mins}분</b> · <b>${mTxt(route.dist)}</b> · ${route.track ? '내 위치에서 출발' : route.s[C.name] + '에서 출발'}</p>
          <p>걷는 길 기준이며 실제 횡단보도·건물 출입구와 다를 수 있음${route.track ? ' · 경로에서 30m 넘게 벗어나면 다시 계산함' : ''}</p>`
-      : `<p>예상 시간 <b>${mins}분</b> (마지막 계산 시점 기준) · 도착 시각(${eta.getHours()}시)의 이용률 <b>${occTxt(route.s[C.occ][eta.getHours()])}</b></p>
+      : `<p>예상 시간 <b>${mins}분</b> (마지막 계산 시점 기준) · 도착 시각(${eta.getHours()}시)의 이용률 <b>${occTxt(occAt(route.s, eta.getHours()))}</b></p>
          <p>마지막 계산 ${hm(route.at)}:${String(route.at.getSeconds()).padStart(2,'0')} · ${route.why} · 계산 ${route.n}회${route.busy ? ' · 다시 계산 중…' : ''}${route.err ? ' · ' + route.err : ''}</p>
          <p>2분마다, 또는 경로에서 50m 넘게 벗어나면 다시 계산함</p>`; }
   return `<p>${d.sub || ''}</p>${info}<div class="acts" style="margin-bottom:0">

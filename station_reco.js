@@ -172,6 +172,8 @@
     const basis = low ? '관측 시간 모두 이용률 0·충전 기록 적음(점수는 중간값)' : flag === 'ok' ? `관측 ${n}회·2일 이상` : flag === 'one_day' ? `관측 ${n}회·하루치` : flag === 'insufficient' ? `관측 ${n}회(${T.score.n_obs_min || 3}회 미만)` : '관측 없음';
     return {text:busyText(o, flag, low).replace(/^이 시간대 /, ''), none, low, occ:o, flag, n, basis};
   }
-  const api = {load, rank, panel, bind, havKm, reasonOf, busyOf, busyParts, groupFloors, floorSplit, floorLabel, remainKey:rm => T ? remainKey(rm) : null, setTable:t => { T = t; }, ready:() => !!T};
+  let LOWSET = null;
+  const isLow = id => { if (!T) return false; if (!LOWSET || LOWSET.t !== T) LOWSET = {t:T, s:new Set(T.stations.filter(x => x.lowuse).map(x => x.id))}; return LOWSET.s.has(id); };
+  const api = {load, rank, panel, isLow, bind, havKm, reasonOf, busyOf, busyParts, groupFloors, floorSplit, floorLabel, remainKey:rm => T ? remainKey(rm) : null, setTable:t => { T = t; }, ready:() => !!T};
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else g.STRECO = api;
 })(typeof window !== 'undefined' ? window : this);
