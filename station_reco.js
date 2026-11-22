@@ -124,7 +124,7 @@
       (cards ? `<div class="srstrip" role="list">${cards}</div>${tie}`
         : `<p class="srnote">반경 ${S.radius_km}km 안에 도보 자료가 있는 급속 충전소 없음${o.keep && pool.length ? '(위쪽 칩 조건)' : ''} (서울 충전소만 계산됨)</p>`) +
       (o.keep && top.length && top.length < S.top_n ? `<p class="srnote">조건에 맞는 충전소가 적어요 (${esc(o.keepLabel || '위쪽 칩')})</p>` : '') +
-      `<p class="srnote">점수 = ${pname} 맞춤 ${S.weights.fit} + 덜 붐빔 ${S.weights.busy} + 가까움 ${S.weights.dist} (가정값) · 맞춤 = 칸 채움 0.5 + 주변 풍부도 0.5 (가정값) · 칸 채움 n/5 = 이 페르소나 추천 카드 5칸 중 도보 10분 안에서 바로 채운 칸 수 · 주변 N곳 = 그 칸 업종에서 남은 시간 안에 다녀올 수 있는 곳 수, 풍부 상·중·하 = 서울 충전소 안 3등분 · 이용 기록 적은 ${T.stations.filter(x => x.lowuse).length}곳은 붐빔 중간값(${S.lowuse_occ != null ? S.lowuse_occ : S.busy_neutral})으로 계산 · 붐빔은 ${bd} 수집, 최신 기록 기준 평균이라 참고용 · 급속 충전소만(완속만 있는 곳 제외) · 반경 안 후보 ${all.length}곳${o.keep ? ` (칩 거르기 전 ${pool.length}곳)` : ''}</p></div>`;
+      `<p class="srnote">점수 = ${pname} 맞춤 ${S.weights.fit} + 덜 붐빔 ${S.weights.busy} + 가까움 ${S.weights.dist} (가정값) · 맞춤 = 칸 채움 0.5 + 주변 풍부도 0.5 (가정값) · 칸 채움 n/5 = 이 페르소나 추천 카드 5칸 중 도보 10분 안에서 바로 채운 칸 수 · 주변 N곳 = 이 페르소나 카드 업종(화장실·쓰레기통·공원 포함)에서 ${rk}분 안에 다녀올 수 있는 곳 수, 맑음·도보 10분 기준 · 풍부 상·중·하 = 업종별 서울 내 순위를 카드 비중으로 평균한 3등분(곳 수와 순서가 다를 수 있음) · 이용 기록 적은 ${T.stations.filter(x => x.lowuse).length}곳은 붐빔 ${S.lowuse_occ != null ? S.lowuse_occ : S.busy_neutral}(가정)로 계산 · 붐빔은 ${bd} 수집, 최신 기록 기준 평균이라 참고용 · 급속 충전소만(완속만 있는 곳 제외) · 반경 안 후보 ${all.length}곳${o.keep ? ` (칩 거르기 전 ${pool.length}곳)` : ''}</p></div>`;
   }
   function bind(el, onPick){
     el.querySelectorAll('.srcard').forEach(c => { const go = () => onPick(c.dataset.id);
