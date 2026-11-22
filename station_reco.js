@@ -93,16 +93,30 @@
     return {base, pre:m[1] || '지하', n:+(m[2] || m[4])};      // BN = 지하 N층
   }
   const GROUP_KM = 0.05;
-  function groupFloors(list){
+  /* 거리 묶기(11/23 준엽): 층 규칙에 안 걸려도 앞에 나온 대표와 직선 NEAR_KM 이하면 같은 곳으로 봄(대표 = 점수 높은 곳, 빈 순위는 다음 순위로).
+     NEAR_KM = 0이면 끔. 기본 100m(준엽이 50·100·150·200m 표를 보고 고를 수 있게 상수) */
+  let NEAR_KM = 0.1;
+  function groupFloors(list, nearKm){
+    const D = nearKm != null ? nearKm : NEAR_KM;
     const pos = {}; T.stations.forEach(x => { pos[x.id] = x; });
     const reps = [];
     for (const r of list){
-      const f = floorSplit(r.name), me = pos[r.id];
-      const g = f && reps.find(x => x.fl && x.fl.base === f.base && havKm(pos[x.id].lat, pos[x.id].lng, me.lat, me.lng) <= GROUP_KM);
-      if (g){ g.members.push(Object.assign({}, r, {fl:f})); continue; }
+      const f = floorSplit(r.name), me = pos[r.id], dk = x => havKm(pos[x.id].lat, pos[x.id].lng, me.lat, me.lng);
+      const g = f && reps.find(x => x.fl && x.fl.base === f.base && dk(x) <= GROUP_KM);
+      if (g){ g.members.push(Object.assign({}, r, {fl:f, how:'floor', gap:dk(g)})); continue; }
+      const nb = D > 0 && reps.find(x => dk(x) <= D);
+      if (nb){ nb.members.push(Object.assign({}, r, {fl:f, how:'near', gap:dk(nb)})); continue; }
       reps.push(Object.assign({}, r, {fl:f, members:[]}));
     }
     return reps;
+  }
+  /* 카드 이름·배지: 층 묶음만 = '○○ 지하3·4·5층' + '같은 건물 3곳', 거리 묶음이 있으면 = '○○ 외 1곳' + '근처 80m'(묶인 곳 중 가장 먼 거리, 10m 미만은 '같은 자리') */
+  function groupText(r){
+    const fl = r.members.filter(m => m.how === 'floor'), nr = r.members.filter(m => m.how === 'near');
+    const base = fl.length ? `${r.fl.base} ${floorLabel({fl:r.fl, members:fl})}` : r.name;
+    if (!nr.length) return {name:base, badge:fl.length ? `같은 건물 ${fl.length + 1}곳` : '', tip:fl.length ? '같은 건물 층별 충전소를 묶음' : ''};
+    const far = Math.max(...nr.map(m => m.gap));
+    return {name:`${base} 외 ${nr.length}곳`, badge:far < 0.01 ? '같은 자리' : `근처 ${Math.round(far * 1000)}m`, tip:'가까운 충전소를 묶음: ' + nr.map(m => `${m.name}(${Math.round(m.gap * 1000)}m)`).join(', ')};
   }
   /* 묶음 층 글자: '지하3·4·5층', '지하4층·지상1층'(지하 깊은 쪽부터가 아니라 숫자 작은 순) */
   function floorLabel(r){
@@ -140,8 +154,8 @@
       <div class="srplace">${lst ? `도보 10분 안 ${esc(lst)}` : '도보 10분 안 맞춤 장소 적음'}</div>`
         : `<div class="srplace">주변 정보 없음</div>`;
       const meta = o.meta ? o.meta(r.id) : '', sat = o.thumb ? o.thumb(r.id) : '';      // sat = 위성 작은 그림 HTML(index.html satThumb), 있으면 거리는 그림 아래 띠로
-      const nm = r.members.length ? `${r.fl.base} ${floorLabel(r)}` : r.name;      // 묶음이면 '한국타이어 역삼사옥 지하2·3·4층'
-      const grp = r.members.length ? `<span class="srgrp" title="같은 건물 층별 충전소를 묶음. 붐빔·충전기는 대표(${esc(r.name)}) 기준">같은 건물 ${r.members.length + 1}곳</span>` : '';
+      const gt = groupText(r), nm = gt.name;      // 묶음이면 '나인트리… 지하3·4·5층' 또는 '○○ 외 1곳'
+      const grp = gt.badge ? `<span class="srgrp" title="${esc(gt.tip)}. 붐빔·충전기·사진은 대표(${esc(r.name)}) 기준">${esc(gt.badge)}</span>` : '';
       return `<div class="srcard${sat ? ' sat' : ''}" data-id="${esc(r.id)}" role="button" tabindex="0" aria-label="${i + 1}순위 ${esc(nm)}, ${kmTxt(r.dist_km)}, ${esc(bp.txt)}, ${pname} 맞춤 ${n}/${nSlot}${r.rich_lv ? `, 주변 풍부 ${esc(r.rich_lv)}` : ''}">
       <div class="srtop"><span class="srno">${i + 1}</span><b title="${esc(nm)}">${esc(nm)}</b>${sat ? '' : `<span class="srkm">${kmTxt(r.dist_km)}</span>`}</div>${sat ? `<div class="srsat" aria-hidden="true">${sat}<span class="srkm">${kmTxt(r.dist_km)}</span></div>` : ''}
       <div class="srmeta">${grp}${r.stay ? '<span class="badge">채비스테이</span>' : ''}${meta ? `<span>${esc(meta)}</span>` : ''}<span class="srbusy ${bp.lv == null ? 'na' : BUSY_CLS[bp.lv]}"><i></i>${esc(bp.txt)}${bp.note ? `<small>${bp.note}</small>` : ''}</span></div>
@@ -152,7 +166,7 @@
       (cards ? `<div class="srstrip" role="list">${cards}</div>${tie}`
         : `<p class="srnote">반경 ${S.radius_km}km 안에 도보 자료가 있는 급속 충전소 없음${o.keep && pool.length ? '(위쪽 칩 조건)' : ''} (서울 충전소만 계산됨)</p>`) +
       (o.keep && top.length && top.length < S.top_n ? `<p class="srnote">조건에 맞는 충전소가 적어요 (${esc(o.keepLabel || '위쪽 칩')})</p>` : '') +
-      `<p class="srnote">점수 = ${pname} 맞춤 ${S.weights.fit} + 덜 붐빔 ${S.weights.busy} + 가까움 ${S.weights.dist} (가정값) · 맞춤 = 칸 채움 0.5 + 주변 풍부도 0.5 (가정값) · 칸 채움 n/5 = 이 페르소나 추천 카드 5칸 중 도보 10분 안에서 바로 채운 칸 수 · 주변 N곳 = 이 페르소나 카드 업종(화장실·쓰레기통·공원 포함)에서 ${rk}분 안에 다녀올 수 있는 곳 수, 맑음·도보 10분 기준 · 풍부 상·중·하 = 업종별 서울 내 순위를 카드 비중으로 평균한 3등분(곳 수와 순서가 다를 수 있음) · 이용 기록 적은 ${T.stations.filter(x => x.lowuse).length}곳은 붐빔 ${S.lowuse_occ != null ? S.lowuse_occ : S.busy_neutral}(가정)로 계산 · 붐빔은 ${bd} 수집, 최신 기록 기준 평균이라 참고용 · 급속 충전소만(완속만 있는 곳 제외) · 같은 건물 층별 충전소는 한 장으로 묶음(대표 = 점수 높은 층) · 반경 안 후보 ${all.length}곳${grouped.length < all.length ? `(묶은 뒤 ${grouped.length})` : ''}${o.keep ? ` (칩 거르기 전 ${pool.length}곳)` : ''}</p></div>`;
+      `<p class="srnote">점수 = ${pname} 맞춤 ${S.weights.fit} + 덜 붐빔 ${S.weights.busy} + 가까움 ${S.weights.dist} (가정값) · 맞춤 = 칸 채움 0.5 + 주변 풍부도 0.5 (가정값) · 칸 채움 n/5 = 이 페르소나 추천 카드 5칸 중 도보 10분 안에서 바로 채운 칸 수 · 주변 N곳 = 이 페르소나 카드 업종(화장실·쓰레기통·공원 포함)에서 ${rk}분 안에 다녀올 수 있는 곳 수, 맑음·도보 10분 기준 · 풍부 상·중·하 = 업종별 서울 내 순위를 카드 비중으로 평균한 3등분(곳 수와 순서가 다를 수 있음) · 이용 기록 적은 ${T.stations.filter(x => x.lowuse).length}곳은 붐빔 ${S.lowuse_occ != null ? S.lowuse_occ : S.busy_neutral}(가정)로 계산 · 붐빔은 ${bd} 수집, 최신 기록 기준 평균이라 참고용 · 급속 충전소만(완속만 있는 곳 제외) · 같은 건물 층별 충전소와 ${Math.round(NEAR_KM * 1000)}m 안 충전소는 한 장으로 묶음(대표 = 점수 높은 곳) · 반경 안 후보 ${all.length}곳${grouped.length < all.length ? `(묶은 뒤 ${grouped.length})` : ''}${o.keep ? ` (칩 거르기 전 ${pool.length}곳)` : ''}</p></div>`;
   }
   function bind(el, onPick){
     el.querySelectorAll('.srcard').forEach(c => { const go = () => onPick(c.dataset.id);
@@ -174,6 +188,6 @@
   }
   let LOWSET = null;
   const isLow = id => { if (!T) return false; if (!LOWSET || LOWSET.t !== T) LOWSET = {t:T, s:new Set(T.stations.filter(x => x.lowuse).map(x => x.id))}; return LOWSET.s.has(id); };
-  const api = {load, rank, panel, isLow, bind, havKm, reasonOf, busyOf, busyParts, groupFloors, floorSplit, floorLabel, remainKey:rm => T ? remainKey(rm) : null, setTable:t => { T = t; }, ready:() => !!T};
+  const api = {load, rank, panel, isLow, bind, havKm, reasonOf, busyOf, busyParts, groupFloors, floorSplit, floorLabel, groupText, setNearKm:v => { NEAR_KM = v; }, nearKm:() => NEAR_KM, remainKey:rm => T ? remainKey(rm) : null, setTable:t => { T = t; }, ready:() => !!T};
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else g.STRECO = api;
 })(typeof window !== 'undefined' ? window : this);
