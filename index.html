@@ -221,6 +221,26 @@ body.infra.placeon .listbtn{display:none}
 .rcard .nm .kbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:#fff;background:#2f8f4e;vertical-align:1px}
 .rcard .nm .obadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:#d07a00;border:1px solid #d07a00;vertical-align:1px}
 .rcard .nm .sbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:#6b4a00;background:#ffe9a8;vertical-align:1px}
+/* 11/22 v2 '주변' 탭: 슬롯 카드 가로 한 줄 → 키워드 칩 → 리스트 */
+.reco2{margin:0 0 4px}
+.rstrip{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding:0 14px;margin:0 -14px;padding:0 14px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.rstrip::-webkit-scrollbar{display:none}
+.rcard.h{flex:0 0 70%;max-width:280px;scroll-snap-align:start;flex-direction:column;align-items:stretch;gap:2px;margin:0;min-height:84px;padding:7px 10px;background:var(--mintbg)}
+.rcard.h.star{background:#fffaf0}
+.rh1{display:flex;align-items:center;gap:7px;min-width:0}
+.rh1 .pin{width:24px !important;height:24px !important}
+.rh1 b{flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.rh2{display:block;font-size:11px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rh3{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--navy);font-variant-numeric:tabular-nums}
+.rcard.h .sbadge,.rcard.h .fbadge,.rcard.h .kbadge,.rcard.h .obadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;vertical-align:1px}
+.rcard.h .sbadge{color:#6b4a00;background:#ffe9a8}
+.rcard.h .fbadge{color:var(--ink2);background:var(--grid)}
+.rcard.h .kbadge{color:#fff;background:#2f8f4e}
+.rcard.h .obadge{color:#d07a00;border:1px solid #d07a00}
+.rcard.l .oc{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.rlh{margin:10px 0 6px !important}
+.rlh small{font-size:11px;font-weight:500;color:var(--ink2);margin-left:4px}
+.sreco h4 small{display:none}
 .rnote{font-size:11px !important;color:var(--ink2) !important;margin:2px 0 6px !important}
 .rfoot{font-size:10px !important;color:var(--muted) !important;margin:6px 0 0 !important}
 .back{border:0;background:var(--mintbg);color:var(--navy);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;margin-bottom:8px}
@@ -829,10 +849,10 @@ const wxRain = w => w.rain ? `${w.ptyText}${w.rn1 > 0 ? ' ' + w.rn1 + 'mm' : ''}
 const wxSoon = w => { if (w.rain) return ''; const n = (w.next || []).find(f => f.pty > 0); return n ? ` · ${parseInt(n.time, 10)}시 ${n.ptyText} 예보` : ''; };
 const wxLine = w => `${w.skyText ? w.skyText + ' ' : ''}${Math.round(w.temp)}℃ · ${wxRain(w)} · 바람 ${Math.round(w.wsd)}m/s${wxSoon(w)} · ${w.time} 기준`;
 const wxHTML = w => `<span class="wxic">${wxIcon(w)}</span><span>${wxLine(w)}</span>`;
-function wxStation(s){         // 충전소 카드의 날씨 한 줄
-  const el = $('#wxSt'); if (!el) return;
-  const v = wxPeek(s[C.lat], s[C.lng]); if (v){ el.innerHTML = wxHTML(v); return; }
-  el.innerHTML = '<span class="wxmuted">날씨 불러오는 중…</span>';
+function wxStation(s){         // 충전소 카드의 날씨 한 줄('지금 충전소' 탭). '주변' 탭에서는 추천의 비 조건용으로만 불러옴
+  const el = $('#wxSt');
+  const v = wxPeek(s[C.lat], s[C.lng]); if (v){ if (el) el.innerHTML = wxHTML(v); return; }
+  if (el) el.innerHTML = '<span class="wxmuted">날씨 불러오는 중…</span>';
   wxGet(s[C.lat], s[C.lng]).then(w => { const e = $('#wxSt'); if (e && selected === s) e.innerHTML = wxHTML(w);
       if (selected === s && poi.s === s && poi.data && poi.data.walk && !RS.wx) renderPoi(); })      // 추천의 비 조건을 지금 날씨로 다시 계산
     .catch(() => { const e = $('#wxSt'); if (e && selected === s) e.innerHTML = '<span class="wxmuted">날씨 정보 없음</span>'; });
@@ -1054,78 +1074,84 @@ function recoRun(){
   const s = poi.s, d = poi.data; if (!RT || !s || !d || !d.walk || !d.raw || !d.raw.pid) return null;
   syncRemain();
   const wx = recoWx(s), conds = RECO.conditions(recoHour(), wx === 'clear' ? null : wx).concat(window.ONB ? ONB.conds() : []);
-  const now = recoNow(), key = [s[C.id], RS.persona, RS.remain, RS.kw, conds.join('+'), now.dow, now.min].join('|');
+  const kw = RS.kw && RT.kw[RS.kw] ? RS.kw : null;
+  const now = recoNow(), key = [s[C.id], RS.persona, RS.remain, kw, conds.join('+'), now.dow, now.min].join('|');
   if (recoMemo && recoMemo.key === key && recoMemo.d === d) return recoMemo;
   if (!d.places){ d.places = RECO.places(RT, s[C.id], d.raw, d.toilets); d.extra = RECO.extras(d.trash, d.parks); }
-  /* v5b: 키워드 없음·'아무거나!' = 페르소나별 슬롯 틀(쓰레기통·공원 카드 포함), 키워드 = v3e 필터 점수순 */
-  const out = RECO.recommend(RT, d.places, d.extra, {persona:RS.persona, remain:RS.remain, conds, keyword:RS.kw, now, alpha:RT.alpha[s[C.id]] != null ? RT.alpha[s[C.id]] : (RT.alphaDefault || 0)});
-  const res = out.res, cards = out.cards, eff = RECO.effects(RT, conds);
-  return recoMemo = {key, d, wx, conds, now, res, cards, mode:out.mode, eff, ids:new Set(cards.map(r => r.p.pid))};
+  /* 11/22 v2 화면: 위 가로 카드 = 페르소나 슬롯 틀(키워드 없이, reco.js 결과 그대로) / 아래 리스트 = 고른 키워드의 v3e 점수순 전체(RECO.recommend 키워드 res),
+     키워드가 없거나 '아무거나!'면 키워드 없는 v3e 점수순 전체(RECO.score). 점수 계산은 reco.js 그대로 */
+  const o = {persona:RS.persona, remain:RS.remain, conds, now, alpha:RT.alpha[s[C.id]] != null ? RT.alpha[s[C.id]] : (RT.alphaDefault || 0)};
+  const out = RECO.recommend(RT, d.places, d.extra, Object.assign({keyword:null}, o));
+  const list = kw ? RECO.recommend(RT, d.places, d.extra, Object.assign({keyword:kw}, o)).res : RECO.score(RT, d.places, Object.assign({keyword:null}, o));
+  return recoMemo = {key, d, wx, conds, now, kw, cards:out.cards, mode:out.mode, list, eff:RECO.effects(RT, conds)};
 }
-const recoCardIds = () => { const r = recoRun(); return r ? r.ids : null; };
 function recoCardRow(r){          // 카드 한 장 → 목록 가게 줄(지도에 보이기·도보 안내에 그대로 씀). 쓰레기통·공원 카드는 그 파일 줄로 같은 모양을 만듦
   const k = r.p.kind;
   if (k === 'trash' || k === 'park'){ const t = (k === 'trash' ? poi.data.trash : poi.data.parks || [])[r.p.row]; if (!t) return null;
     return [t[1], -1, k === 'trash' ? '가로쓰레기통' + (t[5] ? ' · ' + t[5] : '') : t[5] || '공원', t[2], t[3], Math.round(t[4]), walkMinOf(t[4]), 0, 0, null, r.p.pid, t[4], '', BIG_SHAPE[r.p.big]]; }
   return poi.data.p.find(x => x[10] === r.p.pid) || null;
 }
+const RLIST_FIRST = 10, RLIST_STEP = 20;
+let rlistShow = RLIST_FIRST;
+function recoItem(c, k, cls){      // 카드(가로)·리스트 줄 공통 내용: ★·복합시설·화장실 개방·어린이공원·대체 표시
+  const p = c.p, ic = BIG_SHAPE[c.group] != null ? BIG_SHAPE[c.group] : 7, row = recoCardRow(c), r = recoMemo;
+  const kid = p.kind === 'park' && p.child ? '<span class="kbadge">어린이공원</span>' : '';
+  const tags = [c.group, c.unit && c.unit !== c.group && !(row && row[2].includes(c.unit)) ? c.unit : '', row && !kid ? row[2] : '', p.mall ? `건물 안 이동 +${p.mall}분` : ''].filter(Boolean).join(' · ');
+  const ochk = p.kind === 'toilet' && r && RECO.openState(p.open, r.now) === 'unknown' ? '<span class="obadge">개방시간 확인</span>' : '';
+  const fb = c.fb ? `<span class="fbadge" title="원래 자리(${c.slotBig.replace(/\|/g, '·')})에 다녀올 곳이 없어 대신 넣음">대체</span>` : '';
+  const star = p.star ? `<span class="sbadge">★${p.brand ? ' ' + p.brand : ''}</span>` : '';
+  const tb = `<span class="tbadge${/빠듯|불가/.test(c.time) ? ' tight' : ''}">${c.time}</span>`;
+  if (cls === 'h') return `<div class="rcard h${p.star ? ' star' : ''}" data-k="${k}" role="button" tabindex="0">
+      <div class="rh1"><span class="pin" style="background:${POI_COL[ic]}">${picon(ic, 16)}</span><b>${star}${row ? row[0] : ''}</b></div>
+      <span class="rh2">${fb}${kid}${ochk}${tags}</span>
+      <span class="rh3"><b>도보 ${walkMinOf(p.wm)}분</b>${tb}</span></div>`;
+  return `<div class="rcard l${p.star ? ' star' : ''}" data-l="${k}"><span class="pin" style="background:${POI_COL[ic]}">${picon(ic, 17)}</span>
+      <div class="nm"><b>${star}${row ? row[0] : ''}</b><span>${fb}${kid}${ochk}${tags}</span></div>
+      <div class="oc"><b>도보 ${walkMinOf(p.wm)}분</b>${tb}</div></div>`;
+}
 function recoBuild(){
   const r = recoRun(); if (!r) return null;
   const s = poi.s, h = recoHour(), night = r.conds.includes('night'), morning = r.conds.includes('morning');
-  const live = !RS.wx, wxName = {rain:'비', snow:'눈', clear:'비 없음'}[r.wx] || '날씨 정보 없음';
-  const tz = night ? '심야(22~06시)' : morning ? '아침(07~10시)' : '낮';
-  /* 페르소나 칩(v5b): VOC 글 비율 순서(외출·산책 → 휴게소 → 차 안 → 대기 → 마트), 칩에 두 비율(기존 자료·새 카페·디시) */
-  const pc = (RT.share && RT.share.length ? RT.share.map(x => [x.persona_id, x.label, x]) : PERSONAS).map(([id, nm, x]) => `<button class="rchip" type="button" data-p="${id}" aria-pressed="${RS.persona === id}"${x ? ` title="VOC 글 기준: 기존 자료 ${x.share_base}% · 새 카페·디시 ${x.share_new}%"` : ''}>${nm}${x ? `<small>${x.share_base}%·${x.share_new}%</small>` : ''}</button>`).join('');
-  const rm = REMAINS.map(v => `<button type="button" data-r="${v}" aria-pressed="${RS.remain === v}">${v}분</button>`).join('');
+  const wxName = {rain:'비', snow:'눈', clear:'비 없음'}[r.wx] || '날씨 정보 없음';
   const wet = r.wx === 'rain' || r.wx === 'snow';
-  const kws = Object.keys(RT.kw).map(k => `<button class="rchip kw" type="button" data-k="${k}" aria-pressed="${RT.kw[k] ? RS.kw === k : !RS.kw}">${k}</button>`).join('');
+  const kws = Object.keys(RT.kw).map(k => `<button class="rchip kw" type="button" data-k="${k}" aria-pressed="${RT.kw[k] ? r.kw === k : !r.kw}">${k}</button>`).join('');
   const tb = RT.trash && RT.trash[s[C.id]], tcov = (RT.trashCovered || []).includes(s[C.id]);
-  const trash = tb ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 16)}</span><span class="tx">가까운 쓰레기통 <b>${walkMinOf(tb[0])}분</b> (${tb[1]}) · 10분 안 ${tb[2]}곳</span><button type="button" id="trashBtn" aria-pressed="${RS.trashMap}">지도에 보기</button></p>`
-      : tcov ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 16)}</span><span class="tx">10분 안 가로쓰레기통 없음(서울시 목록 기준)</span></p>` : '';
-  /* 카드 = 대분류 + 세원 중분류·소분류(화장실은 개방시간). P4b 는 카드 단위 이름(편의점·카페·빠른 식사(포장))을 대분류 뒤에 붙임 */
-  /* 슬롯 카드 중 대체(원래 슬롯 종류가 없어 대체 목록에서 채운 카드)는 '대체' 표시 */
-  const cards = r.cards.map((c, k) => { const p = c.p, ic = BIG_SHAPE[c.group] != null ? BIG_SHAPE[c.group] : 7, row = recoCardRow(c);
-    /* 공원 카드(v5d park_data.card_fields): 제목 = 공원 이름, 라벨 = 공원유형, 어린이공원이면 배지(라벨 대신) */
-    const kid = p.kind === 'park' && p.child ? '<span class="kbadge">어린이공원</span>' : '';
-    const tags = [c.group, c.unit && c.unit !== c.group && !(row && row[2].includes(c.unit)) ? c.unit : '', row && !kid ? row[2] : '', p.mall ? `건물 안 이동 +${p.mall}분` : ''].filter(Boolean).join(' · ');
-    /* 화장실 개방시간을 못 읽으면(정시(영업시작~종료)·기타 등) 지금 열렸는지 모름 → 배지 */
-    const ochk = p.kind === 'toilet' && RECO.openState(p.open, r.now) === 'unknown' ? '<span class="obadge">개방시간 확인</span>' : '';
-    const fb = c.fb ? `<span class="fbadge" title="원래 자리(${c.slotBig.replace(/\|/g, '·')})에 다녀올 곳이 없어 대신 넣음">대체</span>` : '';
-    return `<div class="rcard${p.star ? ' star' : ''}" data-k="${k}"><span class="pin" style="background:${POI_COL[ic]}">${picon(ic, 18)}</span>
-      <div class="nm"><b>${p.star ? `<span class="sbadge">★${p.brand ? ' ' + p.brand : ''}</span>` : ''}${row ? row[0] : ''}</b><span>${fb}${kid}${ochk}${tags}</span></div>
-      <div class="oc"><b>도보 ${walkMinOf(p.wm)}분</b><span class="tbadge${/빠듯|불가/.test(c.time) ? ' tight' : ''}">${c.time}</span></div></div>`; }).join('');
-  const noWalk = RS.kw && RT.kw[RS.kw] && RT.kw[RS.kw].big.includes('공원') && r.eff.mult['산책'] === 0;     // '산책하고 싶어요' + 비·심야(산책 ×0)
+  const trash = tb ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 14)}</span><span class="tx">가까운 쓰레기통 <b>${walkMinOf(tb[0])}분</b> (${tb[1]}) · 10분 안 ${tb[2]}곳</span><button type="button" id="trashBtn" aria-pressed="${RS.trashMap}">지도에 보기</button></p>`
+      : tcov ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 14)}</span><span class="tx">10분 안 가로쓰레기통 없음(서울시 목록 기준)</span></p>` : '';
+  const cards = r.cards.map((c, k) => recoItem(c, k, 'h')).join('');
+  const noWalk = r.kw && RT.kw[r.kw].big.includes('공원') && r.eff.mult['산책'] === 0;     // '산책하고 싶어요' + 비·심야(산책 ×0)
+  const lst = r.list.slice(0, rlistShow), rest = r.list.length - lst.length;
   const why = [night ? '심야: 편도 5분 안, 화장실은 24시간 개방(상시)만, 편의점 우선' : '', wet ? `${wxName}: 편도 5분 안` : '',
     morning ? '아침: 테이크아웃 커피·포장 식사 우선' : '', RT.alpha[s[C.id]] ? `지하주차장 출구 ${RT.alpha[s[C.id]]}분 포함` : ''].filter(Boolean).join(' · ');
-  const html = `<div class="reco"><h4>지금 다녀올 곳 추천</h4>
-    <div class="rrow" role="group" aria-label="충전 중 나는">${pc}</div>
-    ${RT.share && RT.share.length ? '<p class="rshare">칩 비율 = VOC 글 기준(기존 자료·새 카페·디시)</p>' : ''}
-    <div class="rrow"><span class="rlab">남은 시간</span><div class="rseg2" id="recoR" role="group" aria-label="남은 충전 시간">${rm}</div></div>
-    <div class="rrow"><span class="rlab">날씨</span><button class="rchip" type="button" id="recoWx" aria-pressed="${wet}" title="눌러서 비 올 때·안 올 때로 바꿔 보기">${wet ? '☂ ' : ''}${wxName}${live ? ' · 지금' : ' (가정)'}</button><span class="rctx">${h}시 · ${tz}</span></div>
-    ${window.ONB ? ONB.chips() : ''}
+  const pn = window.ONB ? ONB.name(RS.persona) : RS.persona;
+  const tleft = timerLeftMin();
+  const basis = `추천 기준(자동): ${pn}(MY) · 남은 ${RS.remain}분(${RS.remainFrom === 'timer' ? `충전 타이머 ${Math.ceil(tleft)}분 남음` : 'MY 기본값'}) · ${wxName}${RS.wx ? '(가정)' : '(지금)'} · ${h}시`;
+  const html = `<div class="reco2">
+    ${cards ? `<div class="rstrip" role="list">${cards}</div>` : `<p class="hint">남은 ${RS.remain}분 안에 다녀올 곳 없음</p>`}
     <p class="rq">지금 뭐 하고 싶으세요?</p>
     <div class="rrow" role="group" aria-label="하고 싶은 것">${kws}</div>
+    <h4 class="rlh">${r.kw ? `'${r.kw}'` : '전체 후보(아무거나!)'} <small>점수순 ${r.list.length}곳</small></h4>
+    ${lst.length ? lst.map((c, k) => recoItem(c, k, 'l')).join('') : (noWalk ? '<p class="hint">비·심야에는 산책을 추천하지 않아요</p>' : `<p class="hint">남은 ${RS.remain}분 안에 다녀올 곳 없음${r.kw ? ' (키워드: ' + r.kw + ')' : ''}</p>`)}
+    ${rest > 0 ? `<button class="pmore" id="rlMore" type="button">더보기 (나머지 ${rest}곳)</button>` : r.list.length > RLIST_FIRST ? '<button class="pmore" id="rlMore" type="button">접기</button>' : ''}
     ${trash}
-    ${cards || (noWalk ? '<p class="hint">비·심야에는 산책을 추천하지 않아요</p>' : `<p class="hint">남은 ${RS.remain}분 안에 다녀올 곳 없음${RS.kw ? ' (키워드: ' + RS.kw + ')' : ''}</p>`)}
     ${why ? `<p class="rnote">${why}</p>` : ''}
+    <p class="rfoot">${basis}</p>
     <p class="rfoot">시간 판정: 남은 시간 − 왕복 도보 − 여유 5분 안에 들면 가능, 짧게만 되면 빠듯 · 추천 가중치는 충전 후기(VOC) 비율 기반 가정값임</p></div>`;
-  return {html, r};
+  return {html, r, lst, rest};
 }
 function recoBind(el, rc){
-  const again = () => { poi.show = POI_FIRST; renderPoi(); };
-  el.querySelectorAll('.reco [data-p]').forEach(b => b.onclick = () => { RS.persona = b.dataset.p; try { localStorage.setItem('recoP', RS.persona); } catch (e) {} again(); });
-  el.querySelectorAll('#recoR button').forEach(b => b.onclick = () => { RS.remain = +b.dataset.r; try { localStorage.setItem('recoR', RS.remain); } catch (e) {} again(); });
-  el.querySelectorAll('.reco [data-k]').forEach(b => b.onclick = () => { const k = b.dataset.k; RS.kw = !RT.kw[k] || RS.kw === k ? null : k; again(); });
-  const w = $('#recoWx'); if (w) w.onclick = () => {      // 비 ↔ 비 없음을 직접 골라 봄. 고른 값이 지금 날씨와 같아지면 '가정'을 풀고 지금 날씨로 돌아감
-    const next = rc.r.wx === 'rain' || rc.r.wx === 'snow' ? 'clear' : 'rain';
-    RS.wx = null; const now = recoWx(poi.s), same = now === next || (now === 'snow' && next === 'rain');
-    RS.wx = same ? null : next; again(); };
-  if (window.ONB) ONB.bind(el, again);
+  const again = () => { renderPoi(); };
+  el.querySelectorAll('.reco2 [data-k].kw').forEach(b => b.onclick = () => { const k = b.dataset.k; RS.kw = !RT.kw[k] || RS.kw === k ? null : k; rlistShow = RLIST_FIRST; again(); });
   const t = $('#trashBtn'); if (t) t.onclick = () => { RS.trashMap = !RS.trashMap; drawPoi(); renderPoi(); };
-  el.querySelectorAll('.rcard').forEach(c => c.onclick = () => { if (window.ONB) ONB.card(rc.r.cards[+c.dataset.k].group, RT); const x = recoCardRow(rc.r.cards[+c.dataset.k]); if (!x) return;
-    if (x[1] < 0 && rc.r.cards[+c.dataset.k].p.kind === 'trash' && !RS.trashMap){ RS.trashMap = true; drawPoi(); }      // 쓰레기통 카드: 지도에 쓰레기통 핀도 켬
+  const mb = $('#rlMore'); if (mb) mb.onclick = () => { const top = rc.rest <= 0; rlistShow = top ? RLIST_FIRST : rlistShow + RLIST_STEP; renderPoi();
+    if (top){ const h = el.querySelector('.rlh'); if (h) h.scrollIntoView({block:'nearest'}); } };
+  const pick = c => { if (!c) return; if (window.ONB) ONB.card(c.group, RT); const x = recoCardRow(c); if (!x) return;
+    if (x[1] < 0 && c.p.kind === 'trash' && !RS.trashMap){ RS.trashMap = true; drawPoi(); }      // 쓰레기통 카드: 지도에 쓰레기통 핀도 켬
     setSheet(false); renderPoi();
-    map.easeTo({center:[x[4], x[3]], zoom:Math.max(map.getZoom(), 17), duration:500}); showPlace(x[0], x[1] < 0 ? x[13] : sk(x[1]), x[2], x[5], [x[4], x[3]], x[6]); });
+    map.easeTo({center:[x[4], x[3]], zoom:Math.max(map.getZoom(), 17), duration:500}); showPlace(x[0], x[1] < 0 ? x[13] : sk(x[1]), x[2], x[5], [x[4], x[3]], x[6]); };
+  el.querySelectorAll('.rcard.h').forEach(c => { const go = () => pick(rc.r.cards[+c.dataset.k]); c.onclick = go;
+    c.onkeydown = e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); go(); } }; });
+  el.querySelectorAll('.rcard.l').forEach(c => c.onclick = () => pick(rc.lst[+c.dataset.l]));
 }
 function renderPoi(){
   const m = D.meta.poi, on = !!selected && poi.s === selected && poi.state === 'ok', walk = !!(poi.data && poi.data.walk);
@@ -1149,9 +1175,9 @@ function renderPoi(){
   const head = poi.walk ? `주변 인프라 (도보 ${walkMin}분)` : `주변 인프라 (반경 ${poiR}m)`;
   if (poi.state === 'none'){ el.innerHTML = ''; return; }
   if (poi.state === 'uncovered'){ el.innerHTML = `<h4>주변 인프라</h4><p>${selected[C.sido]}은(는) 상권 자료가 아직 없음 (현재 ${m.covered.length}개 시·도만 있음)</p>`; return; }
-  if (poi.state === 'loading'){ el.innerHTML = `<h4>${head}</h4><p>불러오는 중…</p>`; return; }
+  if (poi.state === 'loading'){ el.innerHTML = `<h4>${head}</h4><p class="hint">${selected[C.name]} · 불러오는 중…</p>`; return; }
   if (poi.state === 'error'){ el.innerHTML = `<h4>주변 인프라</h4><p>상권 자료를 불러오지 못함</p>`; return; }
-  const d = poiView(), skip = walk && recoCardIds(), full = d.p.filter(x => inCat(x, poi.cat) && !(skip && skip.has(x[10]))).slice(0, walk ? 100 : 60), list = full.slice(0, poi.show);
+  const d = poiView(), full = d.p.filter(x => inCat(x, poi.cat)).slice(0, walk ? 100 : 60), list = full.slice(0, poi.show);
   const rest = full.length - list.length;
   /* 충전소 단위 표시: low = 정확도 낮음(lowWhy 이유), pending = v2 판정 보류(카카오 미확인, 노량진 대체식의 행 단위 low와 다름),
      empty = 도보 10분 안 가게 0곳, WKM.excluded = 측정 이상으로 도보 자료에서 뺀 충전소(직선 반경으로 보여 줌) */
@@ -1162,14 +1188,15 @@ function renderPoi(){
   const note = walk ? `<p class="w9note">${lowTxt}${(wk && wk.note) || WKM.note}${poi.data.fail ? ` · 경로 미확인 ${poi.data.fail}곳은 뺌` : ''}${walkMin === 5 && !empty ? ' · 10분으로 넓혀 볼 수 있음' : ''}</p>`
       : excl ? `<p class="w9note"><b>${excl}</b> · 직선 반경으로 보여 줌</p>` : '';
   const rc = walk ? recoBuild() : null, rh = rc ? rc.html : '';
-  if (!d.sum){ el.innerHTML = `${rh}<h4>${head}</h4>${note}<p class="hint">${empty ? '도보 10분 안 가게 없음' : rng + ' 안 상가 없음'}${!walk && poiR < 100 ? ' · 위쪽에서 100m로 넓혀 볼 수 있음' : ''}</p>`; if (rc) recoBind(el, rc); return; }
+  /* 11/22 v2: 도보 충전소 + 추천 표가 있으면 '주변' 탭 = 가로 카드 → 키워드 → 리스트(기존 도보 5분·10분 전체 목록은 뺌, 지도 칩·핀은 그대로) */
+  if (rc){ el.innerHTML = rh + note; recoBind(el, rc); return; }
+  if (!d.sum){ el.innerHTML = `${rh}<h4>${head}</h4>${note}<p class="hint">${empty ? '도보 10분 안 가게 없음' : rng + ' 안 상가 없음'}${!walk && poiR < 100 ? ' · 위쪽에서 100m로 넓혀 볼 수 있음' : ''}</p>`; return; }
   el.innerHTML = rh + (walk ? `<h4>${rc && rc.r.cards.length ? '그 밖의 곳' : '주변 인프라'} 도보 ${walkMin}분 · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳${d.sum > full.length && poi.cat < 0 ? ' / ' + d.sum.toLocaleString('ko-KR') + '곳' : ''})</h4>${note}`
       : `<h4>주변 인프라 ${poiR}m · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳)</h4>${note}
     ${d.more ? `<p class="hint">가게가 많아 가까운 ${d.sum}곳까지만 셈 (실제는 더 많음)</p>` : ''}`) +
     (list.map((x, k) => `<div class="prow" data-k="${k}"><span class="pin" style="background:${POI_COL[sk(shownCat(x))]}">${picon(sk(shownCat(x)), 17)}</span><div class="nm"><b>${x[0]}</b><span>${x[2]}${walk && x[8] ? ' · 카카오 도보 경로값' : ''}</span></div>` +
       (walk ? `<div class="oc"><b>도보 ${x[6]}분</b><span>${x[5]}m</span></div></div>` : `<div class="oc"><b>${x[5]}m</b></div></div>`)).join('') || '<p class="hint">해당하는 곳 없음</p>') +
     (rest > 0 ? `<button class="pmore" id="poiMore" type="button">더보기 (나머지 ${rest}곳)</button>` : full.length > POI_FIRST ? `<button class="pmore" id="poiMore" type="button">접기</button>` : '');
-  if (rc) recoBind(el, rc);
   const mb = $('#poiMore'); if (mb) mb.onclick = () => { const top = rest <= 0; poi.show = top ? POI_FIRST : poi.show + POI_STEP; renderPoi();
     if (top){ const h = el.querySelector('h4'); if (h) h.scrollIntoView({block:'nearest'}); } };
   el.querySelectorAll('.prow').forEach(r => r.onclick = () => { const x = list[+r.dataset.k]; setSheet(false); renderPoi();
@@ -1297,7 +1324,14 @@ $('#zout').onclick = () => map.easeTo({zoom:map.getZoom() - 1, duration:300});
 $('#overview').onclick = overview;
 
 function renderDetail(el){
-  const s = selected, o = s[C.occ], W = 360, H = 130, L0 = 26, B = 18, T = 8, bw = (W - L0) / 24;
+  const s = selected;
+  if (stab !== 'now'){      // '주변' 탭: 주변 인프라 추천(가로 카드 → 키워드 → 리스트). 위쪽 띠에 충전소 이름·뒤로 단추
+    el.innerHTML = '<div id="poiBox"></div>'; renderPoi(); wxStation(s); el.scrollTop = 0; return; }
+  renderNow(el, s);
+}
+/* '지금 충전소' 탭: 충전소 기본 정보 + 충전 시작(charge.js) + 시간대별 이용률 */
+function renderNow(el, s){
+  const o = s[C.occ], W = 360, H = 130, L0 = 26, B = 18, T = 8, bw = (W - L0) / 24;
   const y = v => T + (H - T - B) * (1 - v / 100);
   let bars = '';
   for (let h = 0; h < 24; h++){
@@ -1316,11 +1350,10 @@ function renderDetail(el){
     <div class="facts"><div><b>${occTxt(o[hour])}</b>${hour}시 이용률</div><div><b>${s[C.n]}대</b>충전기 (급속 ${s[C.nfast]})</div>
     <div><b>${s[C.med] < 0 ? '-' : s[C.med] + '분'}</b>급속 1회 중앙값</div></div>
     <div class="acts"><button class="act" id="goRoute" type="button">여기까지 경로 안내</button></div>
-    <div id="poiBox"></div>
     <h4>시간대별 이용률 (%) · 남색 막대 = ${hour}시</h4>
     <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="시간대별 이용률 막대 그래프">${grid}${bars}${xl}</svg>
     <p>최대 출력 ${s[C.kw]}kW${s[C.bad] > 0 ? ' · 통신이상 ' + s[C.bad] + '%' : ''}</p></div>`;
-  renderPoi(); wxStation(s);
+  wxStation(s);
   $('#back').onclick = () => { selected = null; renderBody(); draw(); };
   $('#goRoute').onclick = () => startRoute(s);
   el.querySelectorAll('rect[data-t]').forEach(r => { r.onmousemove = e => showTip(e, r.dataset.t); r.onmouseleave = hideTip; });
