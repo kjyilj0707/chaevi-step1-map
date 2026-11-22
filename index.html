@@ -300,6 +300,7 @@ body.nav .chgbadge,body.onb-on .chgbadge{display:none}
 @keyframes t3bounce{0%,55%,100%{transform:translateY(0)}25%{transform:translateY(-7px)}40%{transform:translateY(0)}47%{transform:translateY(-2px)}}
 @media (prefers-reduced-motion: reduce){ .t3in{animation:none} }
 .rnote{font-size:11px !important;color:var(--ink2) !important;margin:2px 0 6px !important}
+.rshort{font-size:12px;color:var(--ink);background:var(--mintbg);border-left:3px solid var(--accent);border-radius:6px;padding:7px 9px;margin:2px 0 8px}
 .rfoot{font-size:10px !important;color:var(--muted) !important;margin:6px 0 0 !important}
 .back{border:0;background:var(--mintbg);color:var(--navy);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;margin-bottom:8px}
 h3{margin:0;font-size:17px;color:var(--navy)}
@@ -1043,19 +1044,23 @@ const wcats = () => WKM.cats.concat(RT ? ['화장실'] : [], RT && RT.park && Ob
 const PERSONAS = [['P1', '휴게소형'], ['P2', '외출·산책형'], ['P3', '마트형'], ['P4a', '차 안형'], ['P4b', '대기형']];      // MY(onboard.js NAME)와 같은 이름(11/22 점검 4)
 const REMAINS = [15, 30, 45, 60];
 /* 추천 기준값(11/22 v2: 화면의 페르소나·남은 시간·날씨 조건 줄은 숨김, 값은 자동)
-   persona = MY 페르소나(onboard.js), base = MY '보통 머무는 시간'(없으면 30), remain = 충전 타이머가 돌면 타이머 남은 시간 이하인 15/30/45/60 중 가장 큰 값(내림, 15분 미만이면 15분 표 + 표시), 아니면 base.
+   persona = MY 페르소나(onboard.js), base = MY '보통 머무는 시간'(없으면 30).
+   remain = 주변 추천(reco.js)에 넣는 남은 분: 충전 타이머가 돌면 실제 남은 분(소수, 22.8분이면 22.8), 아니면 base(11/22 준엽 결정 D37).
+   stRemain = 충전소 추천(station_reco.js)에 넣는 값: 타이머가 돌면 15/30/45/60 중 남은 시간 이하인 가장 큰 값(내림, 기존 그대로), 아니면 base.
    wx: null = 지금 날씨(충전소 좌표). hour·dow(0=일~6=토): null = 지금(시험용으로 바꿀 수 있음) */
 const RS = {persona:'P2', base:30, remain:30, kw:null, wx:null, hour:null, dow:null, trashMap:false};
 const snapRemain = m => { const ok = REMAINS.filter(v => v <= m + 1e-9); return ok.length ? Math.max(...ok) : REMAINS[0]; };      // 남은 시간 이하인 가장 큰 값(22.8분 → 15, 44분 → 30). 15분 미만이면 15(표시는 remainNote). 11/22 점검 1(D37), station_reco.js remainKey와 같은 원칙
 const timerLeftMin = () => window.CHG && CHG.leftMin ? CHG.leftMin() : null;
-function syncRemain(){ const t = timerLeftMin(); RS.remain = t != null ? snapRemain(t) : RS.base; RS.remainFrom = t != null ? 'timer' : 'my'; RS.remainRaw = t; return RS.remain; }
+function syncRemain(){ const t = timerLeftMin(); RS.remain = t != null ? t : RS.base; RS.stRemain = t != null ? snapRemain(t) : RS.base;
+  RS.remainFrom = t != null ? 'timer' : 'my'; RS.remainRaw = t; return RS.remain; }
 /* 타이머 남은 분 글자(내림: 22분 48초 → 22분). 1분 미만은 '1분 미만' */
 const leftTxt = t => t < 1 ? '1분 미만' : Math.floor(t) + '분';
-/* 추천 기준 줄의 남은 시간 부분. 타이머가 표의 가장 짧은 값(15분)보다 적으면 '(남은 N분, 15분 표 기준)' */
+/* 남은 시간 글자: 타이머면 실제 분(내림, 22.8 → '22분'), 아니면 MY 값 */
+const remainLab = () => RS.remainFrom === 'timer' && RS.remainRaw != null ? leftTxt(RS.remainRaw) : RS.base + '분';
+/* 추천 기준 줄의 남은 시간 부분: '남은 22분(충전 타이머)' / '남은 30분(MY 기본값)' */
 function remainNote(){
-  if (RS.remainFrom !== 'timer') return `남은 ${RS.remain}분(MY 기본값)`;
-  const t = timerLeftMin(); if (t == null) return `남은 ${RS.remain}분(MY 기본값)`;
-  return t < REMAINS[0] ? `남은 ${RS.remain}분(남은 ${leftTxt(t)}, ${REMAINS[0]}분 표 기준 · 충전 타이머)` : `남은 ${RS.remain}분(충전 타이머 ${leftTxt(t)} 남음)`;
+  const t = timerLeftMin();
+  return t != null ? `남은 ${leftTxt(t)}(충전 타이머)` : `남은 ${RS.base}분(MY 기본값)`;
 }
 if (window.ONB) ONB.init(RS, REMAINS, () => { recoMemo = null; if (selected && stab === 'now'){ renderBody(); return; }      // '지금 충전소' 탭이면 배터리 칸이 새 MY 값을 읽게 다시 그림(11/22 점검 8)
   if (selected && poi.s === selected && poi.data){ poi.show = POI_FIRST; renderPoi(); }
@@ -1145,7 +1150,8 @@ function recoRun(){
   syncRemain();
   const wx = recoWx(s), conds = RECO.conditions(recoHour(), wx === 'clear' ? null : wx).concat(window.ONB ? ONB.conds() : []);
   const kw = RS.kw && RT.kw[RS.kw] ? RS.kw : null;
-  const now = recoNow(), key = [s[C.id], RS.persona, RS.remain, kw, conds.join('+'), now.dow, now.min].join('|');
+  const now = recoNow(), rkey = RS.remainFrom === 'timer' ? 't' + Math.floor(RS.remain) : RS.remain;     // 타이머는 분이 바뀔 때만 다시 계산(값은 그때의 실제 분)
+  const key = [s[C.id], RS.persona, rkey, kw, conds.join('+'), now.dow, now.min].join('|');
   if (recoMemo && recoMemo.key === key && recoMemo.d === d) return recoMemo;
   if (!d.places){ d.places = RECO.places(RT, s[C.id], d.raw, d.toilets); d.extra = RECO.extras(d.trash, d.parks); }
   /* 11/22 v2 화면: 위 가로 카드 = 페르소나 슬롯 틀(키워드 없이, reco.js 결과 그대로) / 아래 리스트 = 고른 키워드의 v3e 점수순 전체(RECO.recommend 키워드 res),
@@ -1153,7 +1159,7 @@ function recoRun(){
   const o = {persona:RS.persona, remain:RS.remain, conds, now, alpha:RT.alpha[s[C.id]] != null ? RT.alpha[s[C.id]] : (RT.alphaDefault || 0)};
   const out = RECO.recommend(RT, d.places, d.extra, Object.assign({keyword:null}, o));
   const list = kw ? RECO.recommend(RT, d.places, d.extra, Object.assign({keyword:kw}, o)).res : RECO.score(RT, d.places, Object.assign({keyword:null}, o));
-  return recoMemo = {key, d, wx, conds, now, kw, cards:out.cards, mode:out.mode, list, eff:RECO.effects(RT, conds)};
+  return recoMemo = {key, rem:o.remain, d, wx, conds, now, kw, cards:out.cards, mode:out.mode, list, eff:RECO.effects(RT, conds)};
 }
 function recoCardRow(r){          // 카드 한 장 → 목록 가게 줄(지도에 보이기·도보 안내에 그대로 씀). 쓰레기통·공원 카드는 그 파일 줄로 같은 모양을 만듦
   const k = r.p.kind;
@@ -1192,6 +1198,11 @@ function recoBuild(){
   const trash = tb ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 14)}</span><span class="tx">가까운 쓰레기통 <b>${walkMinOf(tb[0])}분</b> (${tb[1]}) · 10분 안 ${tb[2]}곳</span><button type="button" id="trashBtn" aria-pressed="${RS.trashMap}">지도에 보기</button></p>`
       : tcov ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 14)}</span><span class="tx">10분 안 가로쓰레기통 없음(서울시 목록 기준)</span></p>` : '';
   const cards = r.cards.map((c, k) => recoItem(c, k, 'h')).join('');
+  /* 남은 시간이 부족할 때 안내(11/22 D37): 카드 0장 = 부족, 화장실·쓰레기통만 남거나 타이머 15분 미만 = 적음 */
+  const onlyShort = r.cards.length && r.cards.every(c => c.p.kind === 'toilet' || c.p.kind === 'trash');
+  const short = !r.cards.length ? `<p class="hint rshort">남은 ${remainLab()}: 시간이 부족해 다녀올 곳이 없어요${tb ? ' · 가까운 쓰레기통은 아래에' : ''}</p>`
+      : onlyShort ? `<p class="hint rshort">남은 ${remainLab()}: 다녀올 곳이 적어요 · 가까운 화장실·쓰레기통만 보여요</p>`
+      : RS.remainFrom === 'timer' && RS.remain < REMAINS[0] ? `<p class="hint rshort">남은 ${remainLab()}: 다녀올 곳이 적어요</p>` : '';
   const noWalk = r.kw && RT.kw[r.kw].big.includes('공원') && r.eff.mult['산책'] === 0;     // '산책하고 싶어요' + 비·심야(산책 ×0)
   const lst = r.list.slice(0, rlistShow), rest = r.list.length - lst.length;
   const why = [night ? '심야: 편도 5분 안, 화장실은 24시간 개방(상시)만, 편의점 우선' : '', wet ? `${wxName}: 편도 5분 안` : '',
@@ -1200,11 +1211,11 @@ function recoBuild(){
   basisWx = wxName + (RS.wx ? '(가정)' : '(지금)');
   const basis = basisTxt();
   const html = `<div class="reco2">
-    ${cards ? `<div class="rstrip" role="list">${cards}</div>` : `<p class="hint">남은 ${RS.remain}분 안에 다녀올 곳 없음</p>`}
+    ${short}${cards ? `<div class="rstrip" role="list">${cards}</div>` : ''}
     <p class="rq">지금 뭐 하고 싶으세요?</p>
     <div class="rrow" role="group" aria-label="하고 싶은 것">${kws}</div>
     <h4 class="rlh">${r.kw ? `'${r.kw}'` : '전체 후보(아무거나!)'} <small>점수순 ${r.list.length}곳</small></h4>
-    ${lst.length ? lst.map((c, k) => recoItem(c, k, 'l')).join('') : (noWalk ? '<p class="hint">비·심야에는 산책을 추천하지 않아요</p>' : `<p class="hint">남은 ${RS.remain}분 안에 다녀올 곳 없음${r.kw ? ' (키워드: ' + r.kw + ')' : ''}</p>`)}
+    ${lst.length ? lst.map((c, k) => recoItem(c, k, 'l')).join('') : (noWalk ? '<p class="hint">비·심야에는 산책을 추천하지 않아요</p>' : `<p class="hint">남은 ${remainLab()} 안에 다녀올 곳 없음${r.kw ? ' (키워드: ' + r.kw + ')' : ''}</p>`)}
     ${rest > 0 ? `<button class="pmore" id="rlMore" type="button">더보기 (나머지 ${rest}곳)</button>` : r.list.length > RLIST_FIRST ? '<button class="pmore" id="rlMore" type="button">접기</button>' : ''}
     ${trash}
     ${why ? `<p class="rnote">${why}</p>` : ''}
@@ -1308,11 +1319,11 @@ function srecoPanel(){
   const on = ['fast', 'slow', 'stay', 'free', 'busy'].filter(k => F[k]), lab = {fast:'급속', slow:'완속만', stay:'채비스테이', free:'한가한 곳', busy:'붐비는 곳'};
   const keep = on.length ? id => { const s = byId(id); if (!s) return false; const o = s[C.occ][hour];
     return !(F.fast && s[C.nfast] === 0) && !(F.slow && s[C.nfast] > 0) && !(F.stay && !s[C.stay]) && !(F.free && !(o >= 0 && o < 25)) && !(F.busy && !(o >= 50)); } : null;
-  return STRECO.panel(Object.assign(ref, {persona:RS.persona, personaName:pn, remain:RS.remain, hour:recoHour(), keep, keepLabel:on.map(k => lab[k]).join('·')}));
+  return STRECO.panel(Object.assign(ref, {persona:RS.persona, personaName:pn, remain:RS.stRemain, hour:recoHour(), keep, keepLabel:on.map(k => lab[k]).join('·')}));
 }
 if (window.STRECO) STRECO.load('data/reco/station_reco.json', () => { if (D && !route && ((tab === 'near' && !selected) || (selected && stab === 'now'))) renderBody(); });      // '지금 충전소' 탭의 붐빔 문구도 이 표를 씀
-/* 충전 타이머(charge.js): 지도 위 작은 배지 + 남은 시간이 15/30/45/60 중 다른 값으로 넘어가면 추천을 다시 계산 */
-let lastSnap = null;
+/* 충전 타이머(charge.js): 지도 위 작은 배지 + 주변 추천은 실제 남은 분(내림)이 바뀔 때, 충전소 추천 패널은 15/30/45/60 내림 값이 바뀔 때 다시 그림 */
+let lastSnap = null, lastMin = null;
 function chgBadge(){
   const b = $('#chgBadge'), m = timerLeftMin(), st = window.CHG ? CHG.state() : null;
   const hereNow = st && selected && selected[C.id] === st.sid && stab === 'now';
@@ -1323,17 +1334,17 @@ function chgBadge(){
 $('#chgBadge').onclick = () => { const st = window.CHG && CHG.state(); if (!st || !D) return; const s = byId(st.sid); if (!s) return; if (route) stopRoute(true); select(s, true); setStab('now'); };
 function chgSync(why){
   chgBadge();
-  const m = timerLeftMin(), snap = m != null ? snapRemain(m) : null;
+  const m = timerLeftMin(), snap = m != null ? snapRemain(m) : null, mi = m != null ? Math.floor(m) : null;
   if (why === 'done') toast('충전 예상 시간이 끝났어요 · 차에서 충전량을 확인해 주세요');
   if (why === 'tick'){ const be = document.getElementById('recoBasis'); if (be && basisWx){ const t = basisTxt(); if (be.textContent !== t) be.textContent = t; } }      // 칸이 그대로여도 '타이머 N분 남음' 글자는 갱신
-  if (snap === lastSnap && why === 'tick') return;
-  lastSnap = snap;
+  if (snap === lastSnap && mi === lastMin && why === 'tick') return;
+  const snapCh = snap !== lastSnap; lastSnap = snap; lastMin = mi;
   if (!D || route) return;
-  if (!selected) renderBody();
+  if (!selected){ if (snapCh || why !== 'tick') renderBody(); }
   else if (stab === 'near' && poi.s === selected && poi.data) renderPoi();
   else if (stab === 'now' && why !== 'tick') renderBody();
 }
-if (window.CHG){ CHG.load(); CHG.on(chgSync); lastSnap = timerLeftMin() != null ? snapRemain(timerLeftMin()) : null; }
+if (window.CHG){ CHG.load(); CHG.on(chgSync); const m0 = timerLeftMin(); lastSnap = m0 != null ? snapRemain(m0) : null; lastMin = m0 != null ? Math.floor(m0) : null; }
 /* 지도: '지금 충전하기 좋은 곳' 상위 3곳 = 충전소 아이콘이 살짝 통통 튀고 위에 '1순위' 말풍선(HTML 표시, 원래 아이콘은 그동안 숨김).
    기본 지도 화면에서만, 패널을 다시 그릴 때(지도 이동·칩·시각·타이머) 갱신. prefers-reduced-motion 이면 튀지 않음(CSS) */
 let top3 = {key:'', ms:[]};
