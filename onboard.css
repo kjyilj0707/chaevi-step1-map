@@ -105,4 +105,4 @@ body.nav #onbFab{display:none}
 .qz-foot small{color:var(--muted)}
 .qz-next{border:0;background:var(--navy);color:#fff;font-size:15px;font-weight:700;border-radius:99px;padding:11px 22px}
 .qz-next:disabled{background:#c9c4bb;color:#f6f3ee}
-
+.lg-real{display:block;text-align:center;margin:4px auto 0}

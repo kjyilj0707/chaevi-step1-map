@@ -12,8 +12,10 @@
 <meta property="og:image" content="https://kjyilj0707.github.io/chaevi-step1-map/icon-512.png">
 <meta name="description" content="채비 충전소에서 도보 5~10분 안에 다녀올 곳을 보여 주는 지도 (학술제 MVP)">
 <script>
-/* 컴퓨터처럼 넓은 화면에서 직접 열면 휴대폰 비율 틀(frame.html) 안에서 보여 줌 */
-if (window.top === window.self && matchMedia('(min-width: 821px)').matches) location.replace('frame.html' + location.hash);
+/* 두 버전(11/23 준엽): 실사용판 = 주소 그대로(./), 시연판 = ?mode=demo(또는 demo.html → ?mode=demo). onboard.js·charge.js가 이 값으로 저장 칸을 나눔 */
+window.CHAEVI_MODE = new URLSearchParams(location.search).get('mode') === 'demo' ? 'demo' : 'real';
+/* 컴퓨터처럼 넓은 화면에서 직접 열면 휴대폰 비율 틀(frame.html) 안에서 보여 줌(버전 주소 유지) */
+if (window.top === window.self && matchMedia('(min-width: 821px)').matches) location.replace('frame.html' + location.search + location.hash);
 </script>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -397,6 +399,8 @@ a.kmap{font-size:10.5px;font-weight:700;color:var(--mint2);text-decoration:none;
 .tmr-n{margin:8px 0 0 !important;font-size:10.5px !important;color:var(--muted) !important}
 .chgbadge{position:fixed;z-index:1090;left:50%;transform:translateX(-50%);top:calc(124px + env(safe-area-inset-top));border:0;background:var(--navy);color:#fff;border-radius:99px;padding:6px 12px;font-size:12px;font-weight:600;box-shadow:var(--shadow);display:flex;align-items:center;gap:6px;white-space:nowrap;max-width:calc(100vw - 170px)}
 .chgbadge[hidden]{display:none}
+.modetag{flex:none;font-size:10.5px;font-weight:800;color:#a2620a;background:#fff4dc;border:1px solid #f1d9a6;border-radius:99px;padding:2px 7px;letter-spacing:.02em}
+.modetag[hidden]{display:none}
 /* 길찾기(11/23): 충전소를 고르면 서랍 탭 줄 오른쪽. 누르면 화면 안 경로 안내(startRoute, Worker /route). 카카오맵은 실패했을 때만 보조 링크. 새 탭 link/to = 출발지는 카카오맵이 정하는 현재 위치, API·키 없음 */
 /* 11/23 준엽: 서랍 위쪽 탭 줄 오른쪽(서랍 안이라 높이가 바뀌어도 함께 움직이고 카드·지도 버튼 줄을 가리지 않음) */
 .tabrow{flex:none;display:flex;align-items:center;gap:8px}
@@ -544,6 +548,7 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
     <span class="logo" id="barIcon"></span>
     <input id="q" type="search" placeholder="충전소 이름·주소 검색" autocomplete="off">
     <button class="wx" id="wx" type="button" hidden aria-label="지도 가운데 날씨"></button>
+    <span class="modetag" id="modeTag" hidden>시연</span>
     <button id="home" type="button">처음</button>
   </div>
   <div class="infrabar" id="infraBar">
@@ -742,6 +747,7 @@ const SEOUL = [37.5665, 126.978];
 const EMPTY = {type:'FeatureCollection', features:[]};
 
 /* 지도: OSM 바탕(또는 브이월드 위성). 확대·회전·기울이기가 끊김 없이 이어짐 */
+if (window.CHAEVI_MODE === 'demo') document.getElementById('modeTag').hidden = false;      // 버전 표시는 시연판에만
 const SAT_URL = 'https://xdworld.vworld.kr/2d/Satellite/service/{z}/{x}/{y}.jpeg';
 const map = new maplibregl.Map({container:'map', center:[SEOUL[1], SEOUL[0]], zoom:11.5, minZoom:8.5, maxZoom:19, maxPitch:60, attributionControl:false,
   style:{version:8, sources:{osm:{type:'raster', tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize:256, maxzoom:19,

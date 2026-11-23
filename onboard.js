@@ -76,21 +76,24 @@
   /* ---------- 시연 로그인(11/23 준엽): 진짜 로그인이 아님. 가상 인물 5명(A~E, 11/23 준엽: 이름 대신 알파벳) 중 하나를 고르면 그 사람 값으로 들어감. 비밀번호·서버 없음 ----------
      세션 localStorage 'chaeviSession' = {mode:'demo', id} | {mode:'me'}. 시연 프로필은 'chaeviDemo:<id>'에 따로 저장(내 MY 'chaeviProfile'과 섞이지 않음).
      인물 값 = MY 폼의 Q1~Q3·기본 정보 칸 그대로. Q2(충전 중 하는 일, +3점)가 그 페르소나라 시작 점수 1위가 그 페르소나(prior_v1 규칙, π < 1) */
-  const SKEY = 'chaeviSession', DKEY = 'chaeviDemo:';
+  /* 두 버전(11/23): 실사용판(real) = 로그인 없음, MY 'chaeviProfile' / 시연판(demo, ?mode=demo) = 인물 로그인, 세션 'chaeviDemoSession'·프로필 'chaeviDemo:<id>'·타이머 'chaeviChargeDemo'(charge.js).
+     같은 브라우저에서 두 주소를 오가도 서로의 저장값을 읽거나 지우지 않음 */
+  const MODE = g.CHAEVI_MODE === 'demo' || new URLSearchParams(location.search).get('mode') === 'demo' ? 'demo' : 'real';
+  const SKEY = 'chaeviDemoSession', DKEY = 'chaeviDemo:';
   const DEMO = [
     {id:'demo_p1', name:'A', ini:'A', p:'P1', intro:'주말 장거리, 휴게소에서 점심 겸 충전', a:{q1:'hwy', q2:'P1', q3:30}, b:{age:'40s', gender:'male', car:'egmp', speed:'fast', time:'lunch', freq:'1'}},
     {id:'demo_p2', name:'B', ini:'B', p:'P2', intro:'주말 낮 도심 외출 중 충전', a:{q1:'town', q2:'P2', q3:45}, b:{age:'30s', gender:'female', car:'tesla', speed:'fast', time:'afternoon', freq:'2_3'}},
     {id:'demo_p3', name:'C', ini:'C', p:'P3', intro:'퇴근길 마트 장보며 충전', a:{q1:'mart', q2:'P3', q3:45}, b:{age:'40s', gender:'female', car:'other', speed:'slow', time:'evening', freq:'2_3'}},
     {id:'demo_p4a', name:'D', ini:'D', p:'P4a', intro:'밤에 차 안에서 영상 보며 충전', a:{q1:'home', q2:'P4a', q3:30}, b:{age:'20s', gender:'male', car:'small_old', speed:'fast', time:'night', freq:'4_6'}},
     {id:'demo_p4b', name:'E', ini:'E', p:'P4b', intro:'출근 전 잠깐 급속 충전', a:{q1:'home', q2:'P4b', q3:15}, b:{age:'50s', gender:'male', car:'egmp', speed:'fast', time:'morning', freq:'daily'}}];
-  const sess = () => { try { const v = JSON.parse(localStorage.getItem(SKEY)); return v && (v.mode === 'me' || (v.mode === 'demo' && DEMO.some(d => d.id === v.id))) ? v : null; } catch (e) { return null; } };
-  const setSess = v => { try { if (v) localStorage.setItem(SKEY, JSON.stringify(v)); else localStorage.removeItem(SKEY); } catch (e) {} };
+  const sess = () => { if (MODE !== 'demo') return null; try { const v = JSON.parse(localStorage.getItem(SKEY)); return v && v.mode === 'demo' && DEMO.some(d => d.id === v.id) ? v : null; } catch (e) { return null; } };
+  const setSess = v => { if (MODE !== 'demo') return; try { if (v) localStorage.setItem(SKEY, JSON.stringify(v)); else localStorage.removeItem(SKEY); } catch (e) {} };
   const demoOf = () => { const v = sess(); return v && v.mode === 'demo' ? DEMO.find(d => d.id === v.id) : null; };
-  const profKey = () => { const d = demoOf(); return d ? DKEY + d.id : KEY; };
-  const load = () => { try { const p = JSON.parse(localStorage.getItem(profKey())); return p && p.persona_scores ? upgrade(p) : null; } catch (e) { return null; } };
-  const save = p => { try { localStorage.setItem(profKey(), JSON.stringify(p)); } catch (e) {} };
+  const profKey = () => { if (MODE !== 'demo') return KEY; const d = demoOf(); return d ? DKEY + d.id : null; };      // 시연판에서 로그인 전에는 읽지도 쓰지도 않음
+  const load = () => { const k = profKey(); if (!k) return null; try { const p = JSON.parse(localStorage.getItem(k)); return p && p.persona_scores ? upgrade(p) : null; } catch (e) { return null; } };
+  const save = p => { const k = profKey(); if (!k) return; try { localStorage.setItem(k, JSON.stringify(p)); } catch (e) {} };
   /* 사람이 바뀔 때 남으면 안 되는 이 기기 값: 충전 타이머, 예전 추천 기억 */
-  const clearTransient = () => { try { ['chaeviCharge', 'recoP', 'recoR'].forEach(k => localStorage.removeItem(k)); DEMO.forEach(d => localStorage.removeItem(DKEY + d.id)); } catch (e) {} };
+  const clearTransient = () => { if (MODE !== 'demo') return; try { localStorage.removeItem('chaeviChargeDemo'); DEMO.forEach(d => localStorage.removeItem(DKEY + d.id)); } catch (e) {} };      // 시연판 값만
   let PJ = null;      // prior_v1.json
   /* 파이썬 round(x, 3)과 같은 반올림(정확히 가운데면 짝수 쪽, station_reco.js와 같은 방식) */
   const rd = x => { const t = Math.abs(x).toFixed(60), rest = t.slice(t.indexOf('.') + 4);
@@ -146,7 +149,7 @@
   }
 
   let prof = load(), RS = null, REM = [15, 30, 45, 60], redraw = () => {}, open = false, queue = [], about = () => '';
-  const need = () => !sess() || !prof;
+  const need = () => (MODE === 'demo' && !sess()) || !prof;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c]));
 
   /* ---------- 폼 ---------- */
@@ -208,6 +211,7 @@
       else if (act === 'later') finish(false);
       else if (act === 'close') close();
       else if (act === 'logout') logout();
+      else if (act === 'requiz') showQuiz();
       else if (act === 'reset'){ if (!resetArm){ resetArm = true; b.textContent = '한 번 더 누르면 초기화'; b.classList.add('arm'); } else reset(); }
     });
     el.addEventListener('input', e => {
@@ -225,7 +229,7 @@
     const bat = f.bat === '' || f.bat == null ? '' : f.bat;
     const html = `<div class="onb-in my">
       <div class="my-top"><h2 id="myT">MY${demoOf() ? ` <small class="my-who">${esc(demoOf().name)} · ${demoOf().id}</small>` : ''}</h2>${first ? '<span></span>' : '<button type="button" class="my-x" data-act="close" aria-label="닫기">×</button>'}</div>
-      ${first ? '' : '<button type="button" class="my-switch" data-act="logout">다른 사람으로 보기</button>'}
+      ${first ? '' : MODE === 'demo' ? '<button type="button" class="my-switch" data-act="logout">다른 사람으로 보기</button>' : '<button type="button" class="my-switch" data-act="requiz">질문 다시 하기</button>'}
       <p class="my-lead">${first ? '충전 습관을 알려 주시면 충전하는 동안 다녀올 곳을 먼저 보여 드려요. ' : ''}이름·연락처는 받지 않고, 답은 이 기기에만 저장돼요(서버로 보내지 않음).</p>
       <section class="my-card my-persona">
         <p class="my-sub">현재 페르소나</p>
@@ -331,7 +335,6 @@
   function logout(){ clearTransient(); setSess(null); location.reload(); }
   function showLogin(){
     lockOpen();
-    const mine = (() => { try { return !!JSON.parse(localStorage.getItem(KEY)); } catch (e) { return false; } })();
     el.innerHTML = `<div class="onb-in lgn">
       <p class="lg-brand">CHAEVI · 시연</p>
       <h2 class="lg-t">누구로 둘러볼까요?</h2>
@@ -340,13 +343,10 @@
         <span class="lg-av" aria-hidden="true">${esc(d.ini)}</span>
         <span class="lg-body"><b>${esc(d.name)}</b><span class="lg-id">${d.id} · ${NAME[d.p]}</span><span class="lg-in">${esc(d.intro)}</span>
           <span class="lg-meta">${esc(LAB['car:' + d.b.car] || '')} · ${esc(LAB['time:' + d.b.time] || '')} 충전 · 보통 ${d.a.q3}분</span></span></button>`).join('')}</div>
-      <button type="button" class="onb-go lg-new" data-act="new">${mine ? '내 정보로 계속' : '새 사용자로 시작'}</button>
-      ${mine ? '<button type="button" class="onb-link" data-act="newq">새 사용자로 다시 답하기</button>' : ''}
+      <a class="onb-link lg-real" href="./">실사용판 열기 (내 정보로 시작)</a>
     </div>`;
     el.onclick = e => { const b = e.target.closest('button'); if (!b) return;
-      if (b.dataset.demo) return loginDemo(b.dataset.demo);
-      if (b.dataset.act === 'new'){ setSess({mode:'me'}); prof = load(); if (prof){ apply(); el.onclick = null; close(); redraw(); } else showQuiz(); }
-      if (b.dataset.act === 'newq'){ setSess({mode:'me'}); showQuiz(); } };
+      if (b.dataset.demo) return loginDemo(b.dataset.demo); };
   }
   /* 새 사용자 질문(11/23 준엽 참고 이미지: 타일 격자 + 아래 고정 띠). 1 하고 싶은 것(여러 개, 2개 이상) · 2 주로 충전하는 곳 · 3 보통 머무는 시간 · 4 시간대 · 5 차종(4·5 건너뛰기 가능) */
   const QZ = [{k:'acts', grp:'a', multi:2, t:'충전하는 동안 무엇을 하고 싶으세요?', d:'2개 이상 골라 주세요. 고른 것으로 맞춤 추천을 정해요.'},
@@ -363,7 +363,7 @@
     const body = multi ? `<div class="qz-grid">${ACTS.map(t => `<button type="button" class="qz-tile" data-v="${t.id}" aria-pressed="${cur.includes(t.id)}">${tileArt(t)}<i class="qz-chk" aria-hidden="true"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span>${esc(t.t)}</span></button>`).join('')}</div>`
       : `<div class="qz-grid2">${q.o.map(([v, t]) => `<button type="button" class="qz-opt" data-v="${esc(v)}" aria-pressed="${cur === v}">${esc(t)}</button>`).join('')}</div>`;
     el.innerHTML = `<div class="onb-in qz">
-      <div class="qz-top"><button type="button" class="qz-back" data-act="${qz.i ? 'back' : 'login'}" aria-label="이전">←</button>
+      <div class="qz-top">${qz.i ? '<button type="button" class="qz-back" data-act="back" aria-label="이전">←</button>' : prof ? '<button type="button" class="qz-back" data-act="cancel" aria-label="닫기">×</button>' : ''}
         <div class="qz-bar" role="progressbar" aria-valuemin="1" aria-valuemax="${QZ.length}" aria-valuenow="${qz.i + 1}"><i style="width:${(qz.i + 1) / QZ.length * 100}%"></i></div><span class="qz-n">${qz.i + 1}/${QZ.length}</span></div>
       <h2 class="qz-t">${esc(q.t)}</h2><p class="qz-d">${esc(q.d || '')}</p>
       ${body}
@@ -371,7 +371,7 @@
         <button type="button" class="qz-next" data-act="next"${ok ? '' : ' disabled'}>${q.skip && !n ? '건너뛰기' : '다음'}</button></div></div>`;
     el.onclick = e => { const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.act === 'back'){ qz.i--; return drawQuiz(); }
-      if (b.dataset.act === 'login') return showLogin();
+      if (b.dataset.act === 'cancel'){ el.onclick = null; qz = null; return close(); }      // MY에서 '질문 다시 하기'를 그만둠(기존 MY 그대로)
       if (b.dataset.act === 'next'){ if (!b.disabled){ qz.i++; drawQuiz(); } return; }
       const v = q.k === 'q3' ? +b.dataset.v : b.dataset.v;
       if (b.classList.contains('qz-tile')){ const k = qz.a.acts.indexOf(v); if (k >= 0) qz.a.acts.splice(k, 1); else qz.a.acts.push(v); return keepScroll(drawQuiz); }
@@ -395,7 +395,7 @@
       <button type="button" class="onb-link" data-act="back">답 다시 고르기</button></div>`;
     el.onclick = e => { const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.act === 'back'){ qz.i = QZ.length - 1; return drawQuiz(); }
-      if (b.dataset.act === 'go'){ setSess({mode:'me'}); prof = p; save(prof);      // answers.acts(여러 개)와 q2(1위) 함께 저장 apply(); el.onclick = null; qz = null; close(); redraw();
+      if (b.dataset.act === 'go'){ prof = p; save(prof); apply(); el.onclick = null; qz = null; close(); redraw();      // answers.acts(여러 개)와 q2(1위) 함께 저장
         if (typeof g.toast === 'function') g.toast(`${NAME[t]}(으)로 시작해요 · MY에서 바꿀 수 있어요`); } };
   }
 
@@ -406,8 +406,8 @@
     RS = rs; if (Array.isArray(remains)) REM = remains; if (typeof re === 'function') redraw = () => { try { re(); } catch (e) {} };
     if (opt && typeof opt.about === 'function') about = opt.about;
     apply(); fabBtn(); fabLabel();
-    if (!sess()) showLogin();                 // 세션 없음 → 시연 로그인 화면(앱 첫 화면)
-    else if (!prof) showQuiz();               // '나'로 들어왔는데 MY 없음 → 질문
+    if (MODE === 'demo'){ if (!sess()) showLogin(); }      // 시연판: 인물 고르기(질문 흐름 없음)
+    else if (!prof){ lockOpen(); setTimeout(showQuiz, 0); }      // 실사용판: MY 없으면 바로 질문 → 결과 → 지도. 그림(index.html의 illo)이 정의된 뒤 그리려고 한 박자 뒤
     /* 하고 싶은 것 점수표(tables.json pw): 오면 acts가 있는 프로필의 시작 점수를 다시 계산(learn 유지) */
     fetch(opt && opt.tables || 'data/reco/tables.json').then(r => r.ok ? r.json() : null).then(t => {
       if (!t || !t.pw) return; PW = t.pw;
@@ -444,6 +444,7 @@
   ONB.open = () => show(false);
   ONB.persona = () => prof ? top(prof) : null;      // 시험용
   ONB.isDemo = () => !!demoOf();
+  ONB.mode = () => MODE;
   ONB.userName = () => { const d = demoOf(); return d ? d.name : ''; };
   ONB.demos = () => DEMO.map(d => Object.assign({}, d));      // 시험용
   ONB.login = id => loginDemo(id);

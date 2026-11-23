@@ -25,6 +25,6 @@ body{background:#e9e2d6;display:flex;align-items:center;justify-content:center;o
 </head>
 <body>
 <div class="phone"><iframe id="app" title="충전소 지도" allow="geolocation; accelerometer; gyroscope; magnetometer"></iframe></div>
-<script>document.getElementById('app').src = 'index.html?v=' + Date.now() + location.hash;</script>
+<script>document.getElementById('app').src = 'index.html' + (location.search ? location.search + '&' : '?') + 'v=' + Date.now() + location.hash;      // 버전 주소(?mode=demo) 유지</script>
 </body>
 </html>

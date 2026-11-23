@@ -6,7 +6,8 @@
    - 남은 시간은 index.html이 '주변' 탭 추천의 남은 시간(15/30/45/60 중 남은 시간 이하인 가장 큰 값, 15분 미만이면 15분 표)과 지도 위 작은 배지에 씀
    - 서버로 보내는 것 없음. 저장소가 막히면 이 화면을 연 동안만 돎 */
 (function (g) {
-  const KEY = 'chaeviCharge', EFF = 0.9, TAPER_AT = 80, TAPER = 0.5, BAT_DEF = 70;
+  const KEY = (typeof window !== 'undefined' && window.CHAEVI_MODE === 'demo') ? 'chaeviChargeDemo' : 'chaeviCharge',      /* 시연판 타이머는 따로 저장(11/23) */
+    EFF = 0.9, TAPER_AT = 80, TAPER = 0.5, BAT_DEF = 70;
   let J = null, P = null, st = null, mem = null, setup = null, subs = [], doneSeen = false;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c]));
   const read = () => { try { const v = JSON.parse(localStorage.getItem(KEY)); return v && v.end ? v : null; } catch (e) { return mem; } };
