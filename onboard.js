@@ -325,6 +325,11 @@
   // pick 줄 처리: 공통 click 처리기가 f.pick 에 값/해제를 넣음(k='pick')
 
   /* ---------- 시연 로그인 화면 + 새 사용자 질문 ---------- */
+  /* '채소' 로고·슬로건(11/23 준엽): 채소 = 채비 + 소중한 시간. 시연판 로그인 화면·실사용판 질문 첫 화면에만(지도 화면에는 넣지 않음) */
+  const LOGO = `<div class="chs" aria-label="채소 — 채비에서 보내는 소중한 시간">
+    <span class="chs-mark" aria-hidden="true"><svg viewBox="0 0 32 32" width="30" height="30"><path d="M16 3C9 7 5.5 13 6.5 20.5 7.2 25.6 11 29 16 29s8.8-3.4 9.5-8.5C26.5 13 23 7 16 3z" fill="#3d9a7f"/><path d="M17.6 9.5 11.8 18h4l-1.4 6.8 6-9h-4.1z" fill="#fff"/></svg></span>
+    <span class="chs-word">채소</span>
+    <span class="chs-line"><em>채</em>비에서 보내는 <em>소</em>중한 시간</span></div>`;
   function lockOpen(){ build(); first = true; el.hidden = false; open = true; document.body.classList.add('onb-on'); }      // first = Esc로 닫히지 않게
   function loginDemo(id){
     const d = DEMO.find(x => x.id === id); if (!d) return;
@@ -336,7 +341,7 @@
   function showLogin(){
     lockOpen();
     el.innerHTML = `<div class="onb-in lgn">
-      <p class="lg-brand">CHAEVI · 시연</p>
+      ${LOGO}
       <h2 class="lg-t">누구로 둘러볼까요?</h2>
       <p class="lg-lead">시연용 가상 인물이에요. 실제 로그인이 아니고, 고른 값은 이 기기에만 저장돼요.</p>
       <div class="lg-list">${DEMO.map(d => `<button type="button" class="lg-card" data-demo="${d.id}" data-p="${d.p}">
@@ -365,7 +370,7 @@
     el.innerHTML = `<div class="onb-in qz">
       <div class="qz-top">${qz.i ? '<button type="button" class="qz-back" data-act="back" aria-label="이전">←</button>' : prof ? '<button type="button" class="qz-back" data-act="cancel" aria-label="닫기">×</button>' : ''}
         <div class="qz-bar" role="progressbar" aria-valuemin="1" aria-valuemax="${QZ.length}" aria-valuenow="${qz.i + 1}"><i style="width:${(qz.i + 1) / QZ.length * 100}%"></i></div><span class="qz-n">${qz.i + 1}/${QZ.length}</span></div>
-      <h2 class="qz-t">${esc(q.t)}</h2><p class="qz-d">${esc(q.d || '')}</p>
+      ${qz.i === 0 && !prof ? LOGO : ''}<h2 class="qz-t">${esc(q.t)}</h2><p class="qz-d">${esc(q.d || '')}</p>
       ${body}
       <div class="qz-foot"><span>${multi ? `<b>${n}</b>개 선택 <small>(${q.multi}개 이상)</small>` : q.skip && !n ? '건너뛸 수 있어요' : n ? '골랐어요' : '하나 골라 주세요'}</span>
         <button type="button" class="qz-next" data-act="next"${ok ? '' : ' disabled'}>${q.skip && !n ? '건너뛰기' : '다음'}</button></div></div>`;
