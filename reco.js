@@ -202,12 +202,15 @@
     out.sort((a, b) => a.tr - b.tr || b.mult - a.mult || a.ow - b.ow || cmpPid(a.p.pid, b.p.pid));
     return out;
   };
+  const FAC_BIG = new Set(['화장실', '쓰레기통']), FAC_CAP = 2;
   /* 슬롯 틀 채우기 → {cards: [후보 + {slot, slotBig, fb(대체로 채운 선택지 이름, 슬롯 카드는 '')}], events: [[원 슬롯 대분류, 대체 이름 또는 null]]} */
   R.fillSlots = (T, c, persona) => {
     const P = T.params, CAP = +P.big_cap, exempt = new Set((P.big_cap_exempt || {})[persona] || []), slots = (T.slotDef || {})[persona] || [];
     const used = new Set(), nBig = {}, cards = [], missing = [], events = [];
-    const ok = (r, fb) => !used.has(r.p.pid) && (fb || exempt.has(r.p.big) || (nBig[r.p.big] || 0) < CAP);
-    const take = (r, slot, fb) => { used.add(r.p.pid); nBig[r.p.big] = (nBig[r.p.big] || 0) + 1;
+    /* 11/23 준엽: 편의시설(화장실+쓰레기통)은 합쳐 최대 FAC_CAP장. 슬롯·대체 모두 적용 → 넘치는 편의시설 후보는 건너뛰고 다음 후보·다음 대체로 채움(화면 JS에만 있는 규칙) */
+    let nFac = 0;
+    const ok = (r, fb) => !used.has(r.p.pid) && !(FAC_BIG.has(r.p.big) && nFac >= FAC_CAP) && (fb || exempt.has(r.p.big) || (nBig[r.p.big] || 0) < CAP);
+    const take = (r, slot, fb) => { used.add(r.p.pid); nBig[r.p.big] = (nBig[r.p.big] || 0) + 1; if (FAC_BIG.has(r.p.big)) nFac++;
       cards.push(Object.assign({}, r, {slot:slot.n, slotBig:slot.big.join('|'), fb:fb || '', k:cards.length})); };
     for (const slot of slots){
       const bigs = new Set(slot.big), subs = new Set(); let n = 0;

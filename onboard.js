@@ -507,7 +507,7 @@
   ONB.persona = () => prof ? top(prof) : null;      // 시험용
   ONB.isDemo = () => !!demoOf();
   ONB.mode = () => MODE;
-  ONB.build = '20261124h';      // index.html CHAEVI_BUILD와 같아야 함(다르면 index.html이 다시 불러옴)
+  ONB.build = '20261124i';      // index.html CHAEVI_BUILD와 같아야 함(다르면 index.html이 다시 불러옴)
   ONB.who = () => { const d = demoOf(); return d ? {id:d.id, name:d.name, p:d.p} : null; };      // 시연판 지도 위 '다른 사람으로 보기' 버튼용
   ONB.userName = () => { const d = demoOf(); return d ? d.name : ''; };
   ONB.demos = () => DEMO.map(d => Object.assign({}, d));      // 시험용
