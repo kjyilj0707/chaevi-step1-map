@@ -28,12 +28,12 @@ if (window.top === window.self && matchMedia('(min-width: 821px)').matches) loca
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <!-- 버전 꼬리표(11/24): GitHub Pages 캐시(max-age 600) 때문에 새 index.html + 옛 onboard.js가 섞이지 않게. 화면 코드를 바꾸면 BUILD와 꼬리표를 함께 올림 -->
-<script>window.CHAEVI_BUILD = '20261124d';</script>
-<script src="reco.js?v=20261124d"></script>
-<script src="station_reco.js?v=20261124d"></script>
-<script src="charge.js?v=20261124d"></script>
-<link rel="stylesheet" href="onboard.css?v=20261124d">
-<script src="onboard.js?v=20261124d"></script>
+<script>window.CHAEVI_BUILD = '20261124e';</script>
+<script src="reco.js?v=20261124e"></script>
+<script src="station_reco.js?v=20261124e"></script>
+<script src="charge.js?v=20261124e"></script>
+<link rel="stylesheet" href="onboard.css?v=20261124e">
+<script src="onboard.js?v=20261124e"></script>
 <script>
 /* 그래도 옛 onboard.js가 왔으면(BUILD가 다르면) 한 번만 꼬리표를 바꿔 다시 불러옴 */
 (function () { try {
@@ -45,21 +45,21 @@ if (window.top === window.self && matchMedia('(min-width: 821px)').matches) loca
 </script>
 <style>
 :root{
-  --navy:#1b4965; --navy2:#143a52; --mint:#58ddd0; --mint2:#17a99a; --mintbg:#f8f0e2;
-  --surface:#fffdf8; --ink:#2b2622; --ink2:#6b625a; --muted:#9a9087;
-  --grid:#efe8dc; --axis:#d6ccbe; --accent:#ff7a59; --me:#2a78d6;
+  --navy:#1b4965; --navy2:#143a52; --mint:#58ddd0; --mint2:#0f857a; --mintbg:#e9f5f2;
+  --surface:#ffffff; --ink:#1d2b33; --ink2:#4f5f66; --muted:#65737a;
+  --grid:#e4ebe8; --axis:#c8d3cf; --accent:#ff7a59; --me:#2a78d6;
   --q1:#d3f6f1; --q2:#8ee6dc; --q3:#3fcabd; --q4:#1f8f8f; --q5:#1b4965; --nodata:#b9bfc4;
-  --s1:#1b4965; --s3:#17a99a; --shadow:0 4px 16px rgba(74,52,28,.20);
+  --bg:#F6F8F5; --s1:#1b4965; --s3:#0f857a; --shadow:0 4px 16px rgba(27,73,101,.20);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0;overflow:hidden}
-body{background:#f4ede2;color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
 button{font:inherit;color:inherit;cursor:pointer}
 
 /* 시작 화면 */
 
 /* 본 화면: 지도가 전체, 그 위에 떠 있는 조작부 */
-#map{position:fixed;inset:0;background:#f1e9dc;outline:none}
+#map{position:fixed;inset:0;background:#eef2f0;outline:none}
 .top{position:fixed;z-index:1000;top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;max-width:520px;pointer-events:none}
 .top > *{pointer-events:auto}
 .search{display:flex;align-items:center;gap:10px;height:52px;background:var(--surface);border-radius:26px;box-shadow:var(--shadow);padding:0 8px 0 14px}
@@ -77,7 +77,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .wxline .wxmuted{color:var(--muted)}
 .chips{display:flex;gap:8px;margin-top:10px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px}
 .chips::-webkit-scrollbar{display:none}
-.chip{flex:none;border:1px solid transparent;background:var(--surface);box-shadow:0 2px 8px rgba(74,52,28,.16);border-radius:99px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.chip{flex:none;border:1px solid transparent;background:var(--surface);box-shadow:0 2px 8px rgba(27,73,101,.16);border-radius:99px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;white-space:nowrap}
 .chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
 .chip[aria-pressed="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
 .hourpill{position:fixed;z-index:1000;left:12px;top:calc(132px + env(safe-area-inset-top));width:58px;background:var(--surface);border-radius:29px;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;padding:6px 0}
@@ -102,7 +102,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .legendbox i.me{background:var(--me);border:2px solid #fff;box-shadow:0 0 0 1px var(--me)}
 
 /* 아래 서랍 */
-.sheet{position:fixed;z-index:1100;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -4px 20px rgba(74,52,28,.20);
+.sheet{position:fixed;z-index:1100;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -4px 20px rgba(27,73,101,.20);
   height:var(--sheet-h,190px);max-height:calc(100vh - 150px);display:flex;flex-direction:column;transition:height .32s cubic-bezier(.2,.85,.25,1);padding-bottom:env(safe-area-inset-bottom)}
 #locate,.maplibregl-ctrl-bottom-left{transition:bottom .32s cubic-bezier(.2,.85,.25,1)}
 body.sheethigh #locate,body.sheethigh .listbtn,body.sheethigh .maplibregl-ctrl-bottom-left{opacity:0;pointer-events:none}
@@ -111,7 +111,7 @@ body.dragging #map{pointer-events:none}
 .handle,.tabs{touch-action:none;user-select:none;-webkit-user-select:none}
 .handle{flex:none;border:0;background:transparent;width:100%;height:28px;cursor:grab;display:flex;align-items:center;justify-content:center}
 .handle::before{content:"";width:44px;height:5px;border-radius:3px;background:var(--axis)}
-.tabs{flex:none;display:none;grid-template-columns:1fr 1fr;gap:4px;background:#f3ebdf;border-radius:14px;padding:4px;margin:0 12px 8px}
+.tabs{flex:none;display:none;grid-template-columns:1fr 1fr;gap:4px;background:#e8efed;border-radius:14px;padding:4px;margin:0 12px 8px}
 body.selon .tabs{display:grid}
 .tabs button{border:0;background:transparent;border-radius:11px;padding:9px 0;font-size:14px;font-weight:600;color:var(--ink2)}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--navy);box-shadow:0 1px 4px rgba(20,58,82,.15)}
@@ -130,7 +130,7 @@ body.selon .tabs{display:grid}
 .row .oc b{display:block;font-size:14px;color:var(--navy)}
 .row .oc span{font-size:11px;color:var(--ink2)}
 .badge{font-size:10px;color:#fff;background:var(--accent);border-radius:99px;padding:1px 7px;font-weight:600;vertical-align:1px}
-.badge.walk9{background:var(--mint2)}
+.badge.walk9{background:var(--mint);color:var(--navy)}
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .act{border:0;background:var(--navy);color:#fff;border-radius:99px;padding:10px 16px;font-size:13px;font-weight:700;text-decoration:none;display:inline-block}
 .act.ghost{background:var(--mintbg);color:var(--navy)}
@@ -160,7 +160,7 @@ body.infra.wbox .legendbox{top:calc(204px + env(safe-area-inset-top))}
 .wbrow output{flex:none;min-width:104px;text-align:right;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
 .wbrow output b{font-size:14px;color:var(--navy)}
 .wbrow button{flex:none;border:1px solid var(--axis);background:var(--surface);border-radius:99px;padding:3px 9px;font-size:11px;font-weight:700;color:var(--ink2)}
-.wbrow button[aria-pressed="true"]{background:var(--mint2);border-color:var(--mint2);color:#fff}
+.wbrow button[aria-pressed="true"]{background:var(--mint);border-color:var(--mint);color:var(--navy)}
 .walkwhy{margin:2px 0 0;font-size:10.5px;color:var(--ink2);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .walkwhy .lim{color:#a2620a;font-weight:700}
 /* 지도 바탕 '일반 | 위성'(11/23 Q3, 위성 = 국토교통부 브이월드) */
@@ -211,7 +211,7 @@ body.infra.placeon .listbtn{display:none}
 /* 제목 줄 = '지금 충전하기 좋은 곳' + 현재 페르소나 알약(11/23: 페르소나 기반임을 드러냄), 아래 작은 기준 줄 */
 .srhead{display:flex;align-items:center;gap:6px;margin:0 14px;min-width:0}
 .sreco h4{margin:0;font-size:14px;white-space:nowrap;color:var(--navy)}
-.srper{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:700;color:var(--mint2);background:#e3f7f4;border:1px solid #bfeee8;border-radius:99px;padding:2px 8px}
+.srper{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:700;color:var(--navy);background:#e3f7f4;border:1px solid #bfeee8;border-radius:99px;padding:2px 8px}
 .srsub{margin:2px 14px 6px !important;font-size:11px !important;color:var(--ink2) !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 가로로 넘기는 카드 한 줄: 한 장 = 너비 84%(다음 카드가 옆에 살짝 보임). 줄 위계 = 순위·이름·거리 / 충전기·붐빔 / 왜 추천 */
 .srstrip{display:flex;align-items:flex-start;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding:0 14px;padding:0 14px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
@@ -236,7 +236,7 @@ body.infra.placeon .listbtn{display:none}
 .srwhy b{color:var(--mint2);font-size:13px}
 .srgrp{font-size:10.5px;font-weight:700;color:var(--navy);background:#e6eef3;border-radius:6px;padding:1px 6px;white-space:nowrap}
 .srrich{font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 6px;white-space:nowrap}      /* 주변 풍부도 3단(v1.3): 상 진한 민트 / 중 옅은 민트 / 하 회색 */
-.srrich.r3{background:var(--mint2);color:#fff}
+.srrich.r3{background:var(--mint);color:var(--navy)}
 .srrich.r2{background:var(--q1);color:#0f6f66}
 .srrich.r1{background:var(--grid);color:var(--ink2)}
 .srwhy em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--ink2);background:var(--grid);border-radius:6px;padding:1px 6px}
@@ -266,7 +266,7 @@ body.infra.placeon .listbtn{display:none}
 .rrow::-webkit-scrollbar{display:none}
 .rchip{flex:none;border:1px solid var(--axis);background:var(--surface);border-radius:99px;padding:6px 11px;font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap}
 .rchip[aria-pressed="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
-.rchip.kw[aria-pressed="true"]{background:var(--mint2);border-color:var(--mint2)}
+.rchip.kw[aria-pressed="true"]{background:var(--mint);border-color:var(--mint);color:var(--navy)}
 .rseg2{flex:none;display:flex;gap:2px;background:var(--surface);border:1px solid var(--axis);border-radius:99px;padding:2px}
 .rseg2 button{border:0;background:transparent;border-radius:99px;padding:4px 9px;font-size:12px;font-weight:700;color:var(--ink2)}
 .rseg2 button[aria-pressed="true"]{background:var(--navy);color:#fff}
@@ -286,7 +286,7 @@ body.infra.placeon .listbtn{display:none}
 .rcard .nm span{display:block;font-size:11px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rcard .oc{flex:none;text-align:right}
 .rcard .oc b{display:block;font-size:13px;color:var(--navy);font-variant-numeric:tabular-nums}
-.tbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:1px 7px;color:#fff;background:var(--mint2)}
+.tbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:1px 7px;color:var(--navy);background:var(--mint)}
 .tbadge.tight{background:#d07a00}
 .rchip small{font-size:10px;font-weight:500;margin-left:4px;opacity:.75;font-variant-numeric:tabular-nums}
 .rshare{font-size:10px !important;color:var(--ink2) !important;margin:-3px 0 6px !important}
@@ -297,30 +297,30 @@ body.infra.placeon .listbtn{display:none}
 /* 11/22 v2 '주변' 탭: 슬롯 카드 가로 한 줄 → 키워드 칩 → 리스트 */
 .reco2{margin:0 0 4px}
 /* 두 추천 구역(11/23, 준엽 참고 이미지): 흰 바탕·연초록 포인트·둥근 카드. 색·크기는 여기 한곳에 모음 */
-.reco2{--pick:#3d9a7f;--pickbg:#eaf6f1;--pill:#f1eee8}
+.reco2{--pick:#127a6f;--pickbg:#eaf6f1;--pill:#eef2f0}
 .rsec{margin:0 -14px;padding:14px 16px 14px}
 .rper{background:var(--surface)}
-.rkw{background:#fbfaf7;border-top:10px solid #eeebe5}
+.rkw{background:#f6f8f5;border-top:10px solid #e6ece9}
 .rpick{margin:0 0 4px !important;font-size:11.5px !important;font-weight:800;letter-spacing:.02em;color:var(--pick) !important}
 .rtitle{margin:0 0 4px;font-size:20px;line-height:1.3;color:#22323b;word-break:keep-all}
 .rlead{margin:0 0 10px !important;font-size:12.5px !important;color:var(--ink2) !important;line-height:1.45}
 .rpills{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
 .rpill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--ink2);background:var(--pill);border-radius:99px;padding:5px 11px;white-space:nowrap}
-.rpill.wx{background:var(--pickbg);color:#2c6e5b;border:1px solid #bfe3d6}
-.rpill.demo{font-size:11px;padding:4px 9px;background:#fff;border:1px dashed #cfc8bc;color:var(--ink2)}
+.rpill.wx{background:var(--pickbg);color:#11695f;border:1px solid #bfe3d6}
+.rpill.demo{font-size:11px;padding:4px 9px;background:#fff;border:1px dashed #c3cdc9;color:var(--ink2)}
 .rsech{display:flex;align-items:center;gap:8px;margin:0 0 8px}
 .rsech b{font-size:15.5px;color:#22323b}
 .rsech b.big{font-size:18px}
 .rswipe{margin-left:auto;font-size:11.5px;color:var(--ink2);white-space:nowrap}
 .rmap{font-size:10px;font-weight:700;color:#fff;background:var(--navy);border-radius:99px;padding:2px 7px;white-space:nowrap}
 .rsech .rmap + .rswipe{margin-left:auto}
-.rband{margin:10px 0 0 !important;font-size:12px !important;color:#2c6e5b !important;background:var(--pickbg);border-radius:12px;padding:9px 12px;line-height:1.45}
+.rband{margin:10px 0 0 !important;font-size:12px !important;color:#11695f !important;background:var(--pickbg);border-radius:12px;padding:9px 12px;line-height:1.45}
 .rper .rshort{margin-top:8px}
 .rkw .rrow{margin:2px 0 4px}
-.rkw .rchip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border-color:#e3ded5;padding:8px 13px;font-size:12.5px}
+.rkw .rchip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border-color:#d3ddd9;padding:8px 13px;font-size:12.5px}
 .rkw .rchip .ic{display:inline-flex}
 /* 큰 카드: 412px에서 1장 + 다음 카드 일부 */
-.rcard.h.rbig{flex:0 0 76% !important;max-width:320px;flex-direction:column !important;align-items:stretch !important;gap:6px !important;padding:14px 14px 12px;background:var(--surface);border:1.5px solid #ece8e1;border-radius:18px;min-height:0;box-shadow:0 1px 3px rgba(60,50,30,.05)}
+.rcard.h.rbig{flex:0 0 76% !important;max-width:320px;flex-direction:column !important;align-items:stretch !important;gap:6px !important;padding:14px 14px 12px;background:var(--surface);border:1.5px solid #e1e8e5;border-radius:18px;min-height:0;box-shadow:0 1px 3px rgba(27,73,101,.05)}
 .rcard.h.rbig.star{border-color:#e0a400}
 .rbtop{display:flex;align-items:center;gap:11px}
 .rbtop .illo{border-radius:16px}
@@ -342,7 +342,7 @@ body.infra.placeon .listbtn{display:none}
 .rpk .rpksay{font-weight:500;font-size:13px;color:var(--ink);padding-left:29px}
 .rpkpills{grid-column:1 / 3;display:flex;flex-wrap:wrap;gap:5px;padding-left:29px}
 .rpk.star{border-color:#e0a400}
-.rcard.l{background:transparent;border:0;border-bottom:1px solid #ece8e1;border-radius:0;margin:0;padding:11px 2px}
+.rcard.l{background:transparent;border:0;border-bottom:1px solid #e1e8e5;border-radius:0;margin:0;padding:11px 2px}
 .rcard.l .illo{border-radius:14px}
 .rcard.l .nm b{font-size:14.5px;color:#22323b}
 .rcard.l .oc b{font-size:12.5px;font-weight:600;color:var(--ink2)}
@@ -401,7 +401,7 @@ a.kmap{font-size:10.5px;font-weight:700;color:var(--mint2);text-decoration:none;
 .crow input[type=number]{flex:1;min-width:0;border:1.5px solid var(--axis);border-radius:10px;padding:7px 9px;font:inherit;font-size:16px;background:var(--surface)}
 .crow .cu{flex:none;font-size:12px;color:var(--ink2)}
 .crow .cu em{font-style:normal;font-size:10px;font-weight:700;color:#a2620a;background:#fff4dc;border-radius:99px;padding:1px 6px}
-.crow .cu em.my{color:#fff;background:var(--mint2)}
+.crow .cu em.my{color:var(--navy);background:var(--mint)}
 .cest{display:flex;align-items:baseline;justify-content:space-between;margin:10px 2px 2px}
 .cest span{font-size:12.5px;font-weight:700;color:var(--ink)}
 .cest b{font-size:22px;color:var(--navy);font-variant-numeric:tabular-nums}
@@ -421,11 +421,11 @@ a.kmap{font-size:10.5px;font-weight:700;color:var(--mint2);text-decoration:none;
 .tmr-n{margin:8px 0 0 !important;font-size:10.5px !important;color:var(--muted) !important}
 .chgbadge{position:fixed;z-index:1090;left:50%;transform:translateX(-50%);top:calc(124px + env(safe-area-inset-top));border:0;background:var(--navy);color:#fff;border-radius:99px;padding:6px 12px;font-size:12px;font-weight:600;box-shadow:var(--shadow);display:flex;align-items:center;gap:6px;white-space:nowrap;max-width:calc(100vw - 170px)}
 .chgbadge[hidden]{display:none}
-.modetag{flex:none;font-size:10.5px;font-weight:800;color:#a2620a;background:#fff4dc;border:1px solid #f1d9a6;border-radius:99px;padding:2px 7px;letter-spacing:.02em}
+.modetag{flex:none;font-size:10.5px;font-weight:800;color:var(--navy);background:var(--mintbg);border:1px solid #bfe7e1;border-radius:99px;padding:2px 7px;letter-spacing:.02em}
 .modetag[hidden]{display:none}
-.whobtn{flex:none;display:inline-flex;align-items:center;gap:5px;border:1px solid #f1d9a6;background:#fff8e8;border-radius:99px;padding:3px 9px 3px 7px;font:inherit;color:var(--ink2)}
+.whobtn{flex:none;display:inline-flex;align-items:center;gap:5px;border:1px solid #bfe7e1;background:var(--mintbg);border-radius:99px;padding:3px 9px 3px 7px;font:inherit;color:var(--ink2)}
 .whobtn[hidden]{display:none}
-.whobtn i{font-style:normal;font-size:10px;font-weight:800;color:#a2620a}
+.whobtn i{font-style:normal;font-size:10px;font-weight:800;color:var(--navy)}
 .whobtn b{font-size:11.5px;font-weight:700;color:var(--navy)}
 .whoav{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;background:var(--pc,#5f7484)}
 .whobtn[data-p="P1"]{--pc:#d9822b}.whobtn[data-p="P2"]{--pc:#17a99a}.whobtn[data-p="P3"]{--pc:#3d7fd1}.whobtn[data-p="P4a"]{--pc:#8a63d2}.whobtn[data-p="P4b"]{--pc:#5f7484}
@@ -497,7 +497,7 @@ body.nav.walk .navfabs,body.nav.walk .navcard{display:none}
 body.walk .walkfab{display:flex;position:fixed;z-index:1000;bottom:calc(124px + env(safe-area-inset-bottom))}
 #walkOverview{left:12px} #walkRe{right:12px}
 body.walk .walkcard{display:block}
-.walkcard{position:fixed;z-index:1200;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -4px 20px rgba(74,52,28,.20);padding:8px 14px calc(18px + env(safe-area-inset-bottom)) 18px}
+.walkcard{position:fixed;z-index:1200;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -4px 20px rgba(27,73,101,.20);padding:8px 14px calc(18px + env(safe-area-inset-bottom)) 18px}
 .wgrip{display:block;width:44px;height:5px;border-radius:3px;background:var(--axis);margin:0 auto 10px}
 .wrow{display:flex;align-items:center;gap:10px}
 .wmain{flex:1;min-width:0}
@@ -789,10 +789,10 @@ const map = new maplibregl.Map({container:'map', center:[SEOUL[1], SEOUL[0]], zo
       attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자'},
       /* 위성 = 국토교통부 브이월드 위성영상(키 없는 XYZ, HTTPS·CORS * 확인 11/23). 처음엔 숨김, '위성'을 누르면 보임 */
       sat:{type:'raster', tiles:[SAT_URL], tileSize:256, minzoom:6, maxzoom:19, attribution:'&copy; 국토교통부 브이월드'}},
-    layers:[{id:'bg', type:'background', paint:{'background-color':'#f1e9dc'}},
+    layers:[{id:'bg', type:'background', paint:{'background-color':'#eef2f0'}},
       {id:'osm', type:'raster', source:'osm', paint:{'raster-saturation':-0.15, 'raster-contrast':-0.06, 'raster-brightness-max':1}},
       {id:'sat', type:'raster', source:'sat', layout:{visibility:'none'}},
-      {id:'warm', type:'background', paint:{'background-color':'#f0c078', 'background-opacity':0.13}}]}});
+      {id:'warm', type:'background', paint:{'background-color':'#f0c078', 'background-opacity':0}}]}});
 map.addControl(new maplibregl.AttributionControl({compact:true}), 'bottom-left');
 /* 지도 바탕 '일반 | 위성'(11/23 Q3). 위성 타일이 계속 실패하면(6번, 한 장도 못 받음) 일반으로 돌아가고 위성 버튼을 끔. 고른 바탕은 이 기기에만 기억 */
 let baseMode = 'osm', satErr = 0, satOk = false;

@@ -17,7 +17,7 @@ body.onb-on #toast{visibility:visible;z-index:6500}
 .my-card h3 em{font-style:normal;color:var(--mint2)}
 .my-card h3 small{font-size:11px;font-weight:600;color:var(--ink2);margin-left:4px}
 .my-card h4{margin:0 0 4px;font-size:15px;color:var(--navy)}
-.my-card h4 small{font-size:11px;font-weight:600;color:#fff;background:var(--mint2);border-radius:99px;padding:1px 7px;margin-left:4px;vertical-align:1px}
+.my-card h4 small{font-size:11px;font-weight:700;color:var(--navy);background:var(--mint);border-radius:99px;padding:1px 7px;margin-left:4px;vertical-align:1px}
 .my-sub{margin:0;font-size:12px;font-weight:700;color:var(--mint2)}
 .my-desc{margin:0 0 6px;font-size:13px;color:var(--ink)}
 .my-lab{margin:10px 0 5px;font-size:12.5px;font-weight:700;color:var(--ink)}
@@ -33,7 +33,7 @@ body.onb-on #toast{visibility:visible;z-index:6500}
 .my-bat .my-in{flex:1;min-width:0}
 .my-chk{flex:none;display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--ink)}
 .my-chk input{width:18px;height:18px}
-.my-foot{display:flex;flex-direction:column;align-items:center;gap:4px;margin:6px 0 10px;position:sticky;bottom:0;background:linear-gradient(rgba(255,253,248,0), var(--surface) 30%);padding-top:14px}
+.my-foot{display:flex;flex-direction:column;align-items:center;gap:4px;margin:6px 0 10px;position:sticky;bottom:0;background:linear-gradient(rgba(255,255,255,0), var(--surface) 30%);padding-top:14px}
 .my-about{font-size:12px;color:var(--ink2);margin:6px 0 0}
 .my-about summary{cursor:pointer;font-weight:700;color:var(--navy);padding:6px 0}
 .my-about .limits{padding-left:16px;margin:4px 0}
@@ -49,11 +49,11 @@ body.nav #onbFab{display:none}
 /* 시연 로그인·새 사용자 질문(11/23). 페르소나 색 = --pc (index.html 주변 화면과 같은 값) */
 .lg-card[data-p="P1"],#onbFab[data-p="P1"]{--pc:#d9822b}.lg-card[data-p="P2"],#onbFab[data-p="P2"]{--pc:#17a99a}.lg-card[data-p="P3"],#onbFab[data-p="P3"]{--pc:#3d7fd1}
 .lg-card[data-p="P4a"],#onbFab[data-p="P4a"]{--pc:#8a63d2}.lg-card[data-p="P4b"],#onbFab[data-p="P4b"]{--pc:#5f7484}
-.lg-brand{margin:18px 0 4px;font-size:12px;font-weight:800;letter-spacing:.04em;color:#3d9a7f}
+.lg-brand{margin:18px 0 4px;font-size:12px;font-weight:800;letter-spacing:.04em;color:#127a6f}
 .lg-t{margin:0 0 6px;font-size:24px;color:#22323b}
 .lg-lead{margin:0 0 14px;font-size:13px;color:var(--ink2);line-height:1.55}
 .lg-list{display:flex;flex-direction:column;gap:10px;margin:0 0 16px}
-.lg-card{display:flex;align-items:center;gap:12px;text-align:left;border:1.5px solid #ece8e1;background:var(--surface);border-radius:18px;padding:12px 14px;box-shadow:0 1px 3px rgba(60,50,30,.05);font:inherit;color:inherit}
+.lg-card{display:flex;align-items:center;gap:12px;text-align:left;border:1.5px solid #e1e8e5;background:var(--surface);border-radius:18px;padding:12px 14px;box-shadow:0 1px 3px rgba(27,73,101,.05);font:inherit;color:inherit}
 .lg-card:active{border-color:var(--pc)}
 .lg-av{flex:none;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;background:var(--pc)}
 .lg-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
@@ -66,17 +66,17 @@ body.nav #onbFab{display:none}
 .qz-top{display:flex;align-items:center;gap:10px;margin:8px 0 22px}
 .qz-back{flex:none;border:0;background:var(--mintbg);color:var(--navy);width:38px;height:38px;border-radius:50%;font-size:18px;font-weight:700}
 .qz-bar{flex:1;height:6px;border-radius:99px;background:var(--grid);overflow:hidden}
-.qz-bar i{display:block;height:100%;background:#3d9a7f;border-radius:99px;transition:width .25s}
+.qz-bar i{display:block;height:100%;background:#127a6f;border-radius:99px;transition:width .25s}
 .qz-n{flex:none;font-size:12px;font-weight:700;color:var(--ink2)}
 .qz-t{margin:0 0 16px;font-size:22px;line-height:1.35;color:#22323b;word-break:keep-all}
 .qz-res{margin:0 0 8px;font-size:26px;color:#22323b}
-.qz-res em{font-style:normal;color:#3d9a7f}
+.qz-res em{font-style:normal;color:#127a6f}
 .qz-bars{display:flex;flex-direction:column;gap:8px;margin:6px 0 4px}
 .qz-row{display:grid;grid-template-columns:84px 1fr 40px;align-items:center;gap:8px;font-size:13px;color:var(--ink2)}
 .qz-row i{height:10px;border-radius:99px;background:var(--grid);overflow:hidden}
 .qz-row b{display:block;height:100%;background:#b9d9cd;border-radius:99px}
 .qz-row.on{color:#22323b;font-weight:700}
-.qz-row.on b{background:#3d9a7f}
+.qz-row.on b{background:#127a6f}
 .qz-row em{font-style:normal;text-align:right}
 .qz .onb-go{margin-top:16px}
 .my-who{font-size:12px;font-weight:600;color:var(--ink2);margin-left:6px;letter-spacing:0}
@@ -97,14 +97,14 @@ body.nav #onbFab{display:none}
 .qz-tile[aria-pressed="true"] span{color:var(--navy);font-weight:800}
 .qz-tile:active .illo{transform:scale(.95)}
 .qz-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.qz-opt{display:flex;align-items:flex-end;min-height:84px;text-align:left;border:1.5px solid #e3ded5;background:var(--surface);border-radius:16px;padding:12px 14px;font:inherit;font-size:15px;font-weight:700;color:var(--ink);line-height:1.3;word-break:keep-all}
+.qz-opt{display:flex;align-items:flex-end;min-height:84px;text-align:left;border:1.5px solid #d3ddd9;background:var(--surface);border-radius:16px;padding:12px 14px;font:inherit;font-size:15px;font-weight:700;color:var(--ink);line-height:1.3;word-break:keep-all}
 .qz-opt[aria-pressed="true"]{border-color:var(--navy);background:var(--mintbg);box-shadow:inset 0 0 0 1.5px var(--navy)}
 .qz-foot{position:fixed;left:0;right:0;bottom:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:480px;margin:0 auto;padding:12px 18px calc(12px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--grid)}
 .qz-foot span{font-size:13.5px;color:var(--ink2)}
 .qz-foot b{color:var(--navy);font-size:15px}
 .qz-foot small{color:var(--muted)}
 .qz-next{border:0;background:var(--navy);color:#fff;font-size:15px;font-weight:700;border-radius:99px;padding:11px 22px}
-.qz-next:disabled{background:#c9c4bb;color:#f6f3ee}
+.qz-next:disabled{background:#c3ccc9;color:#f6f8f5}
 .lg-real{display:block;text-align:center;margin:4px auto 0}
 /* '채소' 로고 + 태그라인(11/23 시안) */
 .chs{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;margin:14px 0 14px}
