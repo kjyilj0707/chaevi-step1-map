@@ -74,7 +74,7 @@
   const Q1_PTS = 1.5;
 
   /* ---------- 시연 로그인(11/23 준엽): 진짜 로그인이 아님. 가상 인물 5명(A~E, 11/23 준엽: 이름 대신 알파벳) 중 하나를 고르면 그 사람 값으로 들어감. 비밀번호·서버 없음 ----------
-     세션 localStorage 'chaeviSession' = {mode:'demo', id} | {mode:'me'}. 시연 프로필은 'chaeviDemo:<id>'에 따로 저장(내 MY 'chaeviProfile'과 섞이지 않음).
+     세션은 시연판에서만 'chaeviDemoSession'(아래 MODE 참고, 11/23 낮 판 'chaeviSession'은 지움). 시연 프로필은 'chaeviDemo:<id>'에 따로 저장(내 MY 'chaeviProfile'과 섞이지 않음).
      인물 값 = MY 폼의 Q1~Q3·기본 정보 칸 그대로. Q2(충전 중 하는 일, +3점)가 그 페르소나라 시작 점수 1위가 그 페르소나(prior_v1 규칙, π < 1) */
   /* 두 버전(11/23): 실사용판(real) = 로그인 없음, MY 'chaeviProfile' / 시연판(demo, ?mode=demo) = 인물 로그인, 세션 'chaeviDemoSession'·프로필 'chaeviDemo:<id>'·타이머 'chaeviChargeDemo'(charge.js).
      같은 브라우저에서 두 주소를 오가도 서로의 저장값을 읽거나 지우지 않음 */
@@ -148,6 +148,8 @@
     p.learn[id] = rd((+p.learn[id] || 0) + (mx + 3 - (+s[id] || 0))); sumUp(p);
   }
 
+  /* 예전 판 저장값 정리(11/24): 11/23 낮 판 시연 세션 'chaeviSession'은 이제 안 씀 → 지움(실사용판 MY 'chaeviProfile'은 지우지 않음) */
+  try { localStorage.removeItem('chaeviSession'); } catch (e) {}
   let prof = load(), RS = null, REM = [15, 30, 45, 60], redraw = () => {}, open = false, queue = [], about = () => '';
   const need = () => (MODE === 'demo' && !sess()) || !prof;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c]));
@@ -330,6 +332,7 @@
     <span class="chs-mark" aria-hidden="true"><svg viewBox="0 0 32 32" width="30" height="30"><path d="M16 3C9 7 5.5 13 6.5 20.5 7.2 25.6 11 29 16 29s8.8-3.4 9.5-8.5C26.5 13 23 7 16 3z" fill="#3d9a7f"/><path d="M17.6 9.5 11.8 18h4l-1.4 6.8 6-9h-4.1z" fill="#fff"/></svg></span>
     <span class="chs-word">채소</span>
     <span class="chs-line"><em>채</em>비에서 보내는 <em>소</em>중한 시간</span></div>`;
+  const emptyMy = p => { const a = p.answers || {}; return !(a.acts && a.acts.length) && !a.q1 && !a.q2 && !a.q3 && !IDS.some(id => +p.learn[id] > 0); };
   function lockOpen(){ build(); first = true; el.hidden = false; open = true; document.body.classList.add('onb-on'); }      // first = Esc로 닫히지 않게
   function loginDemo(id){
     const d = DEMO.find(x => x.id === id); if (!d) return;
@@ -412,7 +415,8 @@
     if (opt && typeof opt.about === 'function') about = opt.about;
     apply(); fabBtn(); fabLabel();
     if (MODE === 'demo'){ if (!sess()) showLogin(); }      // 시연판: 인물 고르기(질문 흐름 없음)
-    else if (!prof){ lockOpen(); setTimeout(showQuiz, 0); }      // 실사용판: MY 없으면 바로 질문 → 결과 → 지도. 그림(index.html의 illo)이 정의된 뒤 그리려고 한 박자 뒤
+    /* 실사용판: MY가 없거나, 예전 판에서 '나중에 입력'으로 건너뛴 빈 MY(답 없음·카드 선택 없음)면 질문부터. 답이 있는 MY면 바로 지도(MY → '질문 다시 하기') */
+    else if (!prof || emptyMy(prof)){ lockOpen(); setTimeout(showQuiz, 0); }      // 실사용판: MY 없으면 바로 질문 → 결과 → 지도. 그림(index.html의 illo)이 정의된 뒤 그리려고 한 박자 뒤
     /* 하고 싶은 것 점수표(tables.json pw): 오면 acts가 있는 프로필의 시작 점수를 다시 계산(learn 유지) */
     fetch(opt && opt.tables || 'data/reco/tables.json').then(r => r.ok ? r.json() : null).then(t => {
       if (!t || !t.pw) return; PW = t.pw;
@@ -450,6 +454,7 @@
   ONB.persona = () => prof ? top(prof) : null;      // 시험용
   ONB.isDemo = () => !!demoOf();
   ONB.mode = () => MODE;
+  ONB.build = '20261124a';      // index.html CHAEVI_BUILD와 같아야 함(다르면 index.html이 다시 불러옴)
   ONB.who = () => { const d = demoOf(); return d ? {id:d.id, name:d.name, p:d.p} : null; };      // 시연판 지도 위 '다른 사람으로 보기' 버튼용
   ONB.userName = () => { const d = demoOf(); return d ? d.name : ''; };
   ONB.demos = () => DEMO.map(d => Object.assign({}, d));      // 시험용
