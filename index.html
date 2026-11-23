@@ -28,12 +28,12 @@ if (window.top === window.self && matchMedia('(min-width: 821px)').matches) loca
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <!-- 버전 꼬리표(11/24): GitHub Pages 캐시(max-age 600) 때문에 새 index.html + 옛 onboard.js가 섞이지 않게. 화면 코드를 바꾸면 BUILD와 꼬리표를 함께 올림 -->
-<script>window.CHAEVI_BUILD = '20261124i';</script>
-<script src="reco.js?v=20261124i"></script>
-<script src="station_reco.js?v=20261124i"></script>
-<script src="charge.js?v=20261124i"></script>
-<link rel="stylesheet" href="onboard.css?v=20261124i">
-<script src="onboard.js?v=20261124i"></script>
+<script>window.CHAEVI_BUILD = '20261124j';</script>
+<script src="reco.js?v=20261124j"></script>
+<script src="station_reco.js?v=20261124j"></script>
+<script src="charge.js?v=20261124j"></script>
+<link rel="stylesheet" href="onboard.css?v=20261124j">
+<script src="onboard.js?v=20261124j"></script>
 <script>
 /* 그래도 옛 onboard.js가 왔으면(BUILD가 다르면) 한 번만 꼬리표를 바꿔 다시 불러옴 */
 (function () { try {
@@ -904,7 +904,7 @@ function showPlace(n, c, s, d, lngLat, w){     // 가게를 고르면: 지도에
     .setHTML(facKindOfSub(s) ? `<div><b>${facKindOfSub(s)}</b><span>${esc0(n)}</span></div>` : `<div><b>${n}</b></div>`).addTo(map);      // 편의시설: 제목 = 화장실/쓰레기통, 아래 = 위치
   $('#pcPin').style.background = POI_COL[place.c]; $('#pcPin').innerHTML = picon(place.c, 20);
   const fk = facKindOfSub(s), where = fk ? `${n} · ` : '';
-  $('#pcName').textContent = fk || n; $('#pcSub').textContent = w ? `${where}${s} · 충전소에서 걸어서 ${w}분 (${d}m)` : `${where}${s} · 충전소에서 ${d}m`;
+  $('#pcName').textContent = fk || n; $('#pcSub').textContent = w ? `${where}${shopTxt(s)} · 충전소에서 걸어서 ${w}분 (${d}m)` : `${where}${shopTxt(s)} · 충전소에서 ${d}m`;
   $('#pcGoTxt').textContent = w ? `충전소에서 걸어서 ${w}분 · 길 보기` : '충전소에서 걸어가는 길';
   document.body.classList.add('placeon');
 }
@@ -1586,9 +1586,11 @@ const illo = (ic, px) => `<span class="illo" style="--c:${POI_COL[ic]};--s:${px}
 const FAC = {'화장실':'화장실', '쓰레기통':'쓰레기통'};
 const facOf = c => FAC[c.group] || null;
 const facKindOfSub = s => /^공중화장실/.test(s || '') ? '화장실' : /쓰레기통/.test(s || '') ? '쓰레기통' : null;      // 지도 말풍선용(업종 글자로 판단)
+/* 11/24 준엽: 화면에 보이는 업종 이름만 '소매업' → '가게'(데이터·키·필터는 원래 이름 그대로). '의류소매업'처럼 붙어 있으면 '의류 가게', '도소매업'도 '가게' */
+const shopTxt = t => t == null ? t : String(t).replace(/\s*(?:도)?소매업/g, ' 가게').replace(/^ /, '');
 const esc0 = t => String(t == null ? '' : t).replace(/[&<>"]/g, x => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[x]);
 /* 카드의 업종 줄: '대분류 · 소분류'(가게 줄 row[2] = '세원 중분류 · 소분류' 또는 '공중화장실 · 개방시간' 등) */
-const subOf = (c, row) => { const t = row && row[2] ? String(row[2]).split(' · ').pop() : ''; return t && t !== c.group ? `${c.group} · ${t}` : c.group; };
+const subOf = (c, row) => { const t = row && row[2] ? String(row[2]).split(' · ').pop() : ''; return t && t !== c.group ? `${c.group} · ${shopTxt(t)}` : c.group; };
 /* 제안 한 줄(11/23, 화면 문구 표): 대분류 우선 → 활동 → 기본 */
 const PHRASE_BIG = {'디저트·간식':'달콤한 간식 하나 어때요?', '공원':'가볍게 한 바퀴 걷고 오기 좋아요.', '화장실':'출발 전에 화장실 들러 가세요.', '쓰레기통':'차 안 쓰레기를 정리하고 와요.',
   '뷰티·건강':'필요한 것만 금방 사 오세요.', '패션·잡화':'잠깐 둘러보고 오기 좋아요.', '생활·리빙':'생활용품 하나 챙겨 오기 좋아요.', '취미·문화':'잠깐 구경하고 오기 좋아요.',
@@ -1607,7 +1609,7 @@ function visitMin(c){
 function recoItem(c, k, cls, why){      // 카드(가로)·리스트 줄 공통 내용: ★·복합시설·화장실 개방·어린이공원·대체 표시. why = 큰 카드의 '왜 추천' 한 줄
   const p = c.p, ic = BIG_SHAPE[c.group] != null ? BIG_SHAPE[c.group] : 7, row = recoCardRow(c), r = recoMemo;
   const kid = p.kind === 'park' && p.child ? '<span class="kbadge">어린이공원</span>' : '';
-  const tags = [c.group, c.unit && c.unit !== c.group && !(row && row[2].includes(c.unit)) ? c.unit : '', row && !kid ? row[2] : '', p.mall ? `건물 안 이동 +${p.mall}분` : ''].filter(Boolean).join(' · ');
+  const tags = [c.group, c.unit && c.unit !== c.group && !(row && row[2].includes(c.unit)) ? c.unit : '', row && !kid ? shopTxt(row[2]) : '', p.mall ? `건물 안 이동 +${p.mall}분` : ''].filter(Boolean).join(' · ');
   const ochk = p.kind === 'toilet' && r && RECO.openState(p.open, r.now) === 'unknown' ? '<span class="obadge">개방시간 확인</span>' : '';
   const fb = c.fb ? `<span class="fbadge" title="원래 자리(${c.slotBig.replace(/\|/g, '·')})에 다녀올 곳이 없어 대신 넣음">대체</span>` : '';
   const star = p.star ? `<span class="sbadge">★${p.brand ? ' ' + p.brand : ''}</span>` : '';
@@ -1766,7 +1768,7 @@ function renderPoi(){
   el.innerHTML = rh + (walk ? `<h4>${rc && rc.r.cards.length ? '그 밖의 곳' : '주변 인프라'} 도보 편도 ${fmtMin(walkSlider())}분 · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳${d.sum > full.length && poi.cat < 0 ? ' / ' + d.sum.toLocaleString('ko-KR') + '곳' : ''})</h4>${note}`
       : `<h4>주변 인프라 ${poiR}m · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳)</h4>${note}
     ${d.more ? `<p class="hint">가게가 많아 가까운 ${d.sum}곳까지만 셈 (실제는 더 많음)</p>` : ''}`) +
-    (list.map((x, k) => `<div class="prow" data-k="${k}"><span class="pin" style="background:${POI_COL[sk(shownCat(x))]}">${picon(sk(shownCat(x)), 17)}</span><div class="nm"><b>${x[0]}</b><span>${x[2]}${walk && x[8] ? ' · 카카오 도보 경로값' : ''}</span></div>` +
+    (list.map((x, k) => `<div class="prow" data-k="${k}"><span class="pin" style="background:${POI_COL[sk(shownCat(x))]}">${picon(sk(shownCat(x)), 17)}</span><div class="nm"><b>${x[0]}</b><span>${shopTxt(x[2])}${walk && x[8] ? ' · 카카오 도보 경로값' : ''}</span></div>` +
       (walk ? `<div class="oc"><b>도보 ${x[6]}분</b><span>${x[5]}m</span></div></div>` : `<div class="oc"><b>${x[5]}m</b></div></div>`)).join('') || '<p class="hint">해당하는 곳 없음</p>') +
     (rest > 0 ? `<button class="pmore" id="poiMore" type="button">더보기 (나머지 ${rest}곳)</button>` : full.length > POI_FIRST ? `<button class="pmore" id="poiMore" type="button">접기</button>` : '');
   const mb = $('#poiMore'); if (mb) mb.onclick = () => { const top = rest <= 0; poi.show = top ? POI_FIRST : poi.show + POI_STEP; renderPoi();
@@ -1928,7 +1930,7 @@ function detailHTML(){
          <p>2분마다, 또는 경로에서 50m 넘게 벗어나면 다시 계산함</p>`; }
   /* 카카오맵은 실패했을 때만 보조 링크(11/23 준엽: 기본은 화면 안 안내) */
   const kk = route.err ? `<a class="kfall" href="https://map.kakao.com/link/to/${encodeURIComponent(String(d.name).replace(/,/g, ' '))},${(+d.lat).toFixed(6)},${(+d.lng).toFixed(6)}" target="_blank" rel="noopener noreferrer">카카오맵에서 열기</a>` : '';
-  return `<p>${d.sub || ''}</p>${info}${kk}<div class="acts" style="margin-bottom:0">
+  return `<p>${shopTxt(d.sub || '')}</p>${info}${kk}<div class="acts" style="margin-bottom:0">
     <button class="act ghost" id="stopRoute" type="button">안내 끝</button></div>`;
 }
 function bindDetail(){ const b = $('#stopRoute'); if (b) b.onclick = () => stopRoute();
