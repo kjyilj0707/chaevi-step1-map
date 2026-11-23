@@ -336,10 +336,14 @@ body.infra.placeon .listbtn{display:none}
 .rper .rstrip .srcard{flex:0 0 84%;max-width:330px}
 .rpktile{background:transparent}
 .rpktile .illo{border-radius:10px}
-.rpktile .illo svg{width:46px;height:46px}
+.rpktile .illo svg{width:36px;height:36px}
+/* 11/24: 이름이 짧을 때 왼쪽이 비지 않게 그림 칸 104 → 76px, 제안 문구를 왼쪽 열(그림 옆)로 올림 */
+.srcard.sat.rpk{grid-template-columns:minmax(0,1fr) 76px;grid-template-rows:auto auto 1fr;align-content:start;row-gap:4px}
+.srcard.sat.rpk .srsat{width:76px;height:76px;grid-row:1 / 4}
+.rpk .rpksay{grid-column:1 !important;grid-row:3;align-self:start}
 .rpkcat{font-size:12px;font-weight:600;color:var(--mint2);word-break:keep-all}
 .rpk .srmeta{flex-direction:column;align-items:flex-start;gap:4px}
-.rpk .rpksay{font-weight:500;font-size:13px;color:var(--ink);padding-left:29px}
+.rpk .rpksay{font-weight:500;font-size:13px;color:var(--ink);padding-left:29px;margin:0}
 .rpkpills{grid-column:1 / 3;display:flex;flex-wrap:wrap;gap:5px;padding-left:29px}
 .rpk.star{border-color:#e0a400}
 .rcard.l{background:transparent;border:0;border-bottom:1px solid #e1e8e5;border-radius:0;margin:0;padding:11px 2px}
@@ -1523,7 +1527,7 @@ function recoItem(c, k, cls, why){      // 카드(가로)·리스트 줄 공통 
     const brand = p.star ? `<span class="srgrp">★${p.brand ? ' ' + esc0(p.brand) : ''}</span>` : '';
     return `<div class="srcard sat rpk${p.star ? ' star' : ''}" data-k="${k}" role="button" tabindex="0"${why ? ` title="${why}"` : ''} aria-label="${k + 1}순위 ${esc0(title)}">
       <div class="srtop"><span class="srno">${k + 1}</span><b>${esc0(title)}</b></div>
-      <div class="srsat rpktile" aria-hidden="true">${illo(ic, 104)}</div>
+      <div class="srsat rpktile" aria-hidden="true">${illo(ic, 76)}</div>
       <div class="srmeta"><span class="rpkcat">${esc0(sub)}</span>${brand}${fb}${kid}${ochk}</div>
       <div class="srwhy rpksay">${esc0(phraseOf(c))}</div>
       <div class="rpkpills"><span class="srbusy na">🚶 편도 약 ${walkMinOf(p.wm)}분</span>${vm ? `<span class="srbusy na">방문 포함 약 ${vm}분</span>` : ''}<span class="srbusy ${/빠듯|불가/.test(c.time) ? 'mid' : 'lo'}"><i></i>${c.time}</span></div></div>`;
