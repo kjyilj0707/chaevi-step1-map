@@ -91,6 +91,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .sheet{position:fixed;z-index:1100;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;box-shadow:0 -4px 20px rgba(74,52,28,.20);
   height:var(--sheet-h,190px);max-height:calc(100vh - 150px);display:flex;flex-direction:column;transition:height .32s cubic-bezier(.2,.85,.25,1);padding-bottom:env(safe-area-inset-bottom)}
 #locate,.maplibregl-ctrl-bottom-left{transition:bottom .32s cubic-bezier(.2,.85,.25,1)}
+body.sheethigh #locate,body.sheethigh .listbtn,body.sheethigh .maplibregl-ctrl-bottom-left{opacity:0;pointer-events:none}
 body.dragging .sheet,body.dragging #locate,body.dragging .maplibregl-ctrl-bottom-left{transition:none}
 body.dragging #map{pointer-events:none}
 .handle,.tabs{touch-action:none;user-select:none;-webkit-user-select:none}
@@ -1144,7 +1145,13 @@ const sheetEl = $('#sheet');
 const baseH = () => wide() ? 250 : 190;
 const maxH = () => innerHeight - (wide() ? 230 : 150);
 const snaps = () => [96, baseH(), Math.round(innerHeight * .6), maxH()];      // 멈추는 높이: 최소 / 기본 / 중간 / 최대
-function setSheetH(h){ sheetH = h; document.documentElement.style.setProperty('--sheet-h', h + 'px'); }
+function setSheetH(h){ sheetH = h; document.documentElement.style.setProperty('--sheet-h', h + 'px'); fitFloat(); }
+/* 서랍을 높이 올리면 서랍 위에 뜨는 '목록 보기'·'내 위치' 버튼(서랍 위 14px, 높이 약 50px)이 위쪽 띠(검색·도보 슬라이더·칩)와 겹침 → 그 높이부터 숨김(11/23) */
+function fitFloat(){
+  const t = document.querySelector('.top'); if (!t) return;
+  const topB = t.getBoundingClientRect().bottom, btnTop = innerHeight - sheetH - 14 - 52;
+  document.body.classList.toggle('sheethigh', btnTop < topB + 6);
+}
 function setSheet(open){ sheetOpen = open; setSheetH(open ? Math.round(innerHeight * .6) : baseH()); }
 $('#handle').onclick = () => { setSheet(!sheetOpen); if (D) renderPoi(); };
 addEventListener('resize', () => setSheetH(Math.min(sheetH, maxH())));
@@ -1560,7 +1567,7 @@ function renderPoi(){
   const m = D.meta.poi, on = !!selected && poi.s === selected && poi.state === 'ok', walk = !!(poi.data && poi.data.walk);
   const cats = walk ? wcats() : m.cats, rng = walk ? `도보 편도 ${fmtMin(walkEff())}분` : `주변 ${poiR}m`;
   document.body.classList.toggle('infra', on && !route);
-  document.body.classList.toggle('wbox', on && !route && walk);
+  document.body.classList.toggle('wbox', on && !route && walk); fitFloat();      // 위쪽 띠 높이가 바뀌면 버튼 숨김 다시 판단
   $('#infraR').style.display = walk ? 'none' : '';
   if (on && walk){ walkUI(); const v0 = poiView(); if (v0 && poi.drawn !== poiDrawKey(v0, poiTop())) drawPoi(); }      // 상한·키워드·페르소나가 바뀌면 지도도 다시      // 타이머·날씨로 상한이 바뀌면 지도 핀도 다시
   if (on){      // 위쪽 띠와 종류 단추
