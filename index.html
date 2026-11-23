@@ -281,6 +281,25 @@ body.infra.placeon .listbtn{display:none}
 .rcard .nm .sbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:#6b4a00;background:#ffe9a8;vertical-align:1px}
 /* 11/22 v2 '주변' 탭: 슬롯 카드 가로 한 줄 → 키워드 칩 → 리스트 */
 .reco2{margin:0 0 4px}
+/* 두 추천 구역(11/23). 페르소나 색 = --pc. 이미지 받으면 여기 값만 바꾸면 되게 한곳에 모음 */
+.rsec{border-radius:16px;padding:10px 12px 10px;margin:0 -4px 10px}
+.rper{--pc:var(--mint2);background:linear-gradient(180deg, color-mix(in srgb, var(--pc) 13%, #fff) 0, var(--surface) 140px);border-top:4px solid var(--pc)}
+.rper[data-p="P1"]{--pc:#d9822b}.rper[data-p="P2"]{--pc:#17a99a}.rper[data-p="P3"]{--pc:#3d7fd1}.rper[data-p="P4a"]{--pc:#8a63d2}.rper[data-p="P4b"]{--pc:#5f7484}
+.rkw{background:#f3f1ec;border:1px solid var(--grid)}
+.rsech{display:flex;align-items:center;gap:8px;margin:0 0 2px !important;font-size:15px !important;color:var(--navy)}
+.rper .rsech span:first-child{color:color-mix(in srgb, var(--pc) 70%, #1b2b33)}
+.rmap{margin-left:auto;font-size:10.5px;font-weight:700;color:#fff;background:var(--navy);border-radius:99px;padding:2px 8px;white-space:nowrap}
+.rsecsub{font-size:11px !important;color:var(--ink2) !important;margin:0 0 8px !important;line-height:1.4}
+.rkw .rrow{margin-top:6px}
+/* 큰 카드: 412px에서 1장 반 */
+.rcard.h.rbig{flex:0 0 64% !important;max-width:280px;flex-direction:column !important;align-items:stretch !important;gap:3px !important;padding:10px 11px;background:var(--surface);border-color:color-mix(in srgb, var(--pc) 35%, var(--grid));min-height:0}
+.rbtop{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;margin-bottom:3px}
+.rbwalk{display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-size:12.5px;color:var(--navy)}
+.rbname{font-size:15px;line-height:1.3;color:var(--ink);word-break:keep-all;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rbig .rh2{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rbwhy{font-size:11.5px;font-weight:700;color:color-mix(in srgb, var(--pc) 75%, #1b2b33);background:color-mix(in srgb, var(--pc) 10%, #fff);border-radius:8px;padding:3px 7px;line-height:1.35}
+.rbtime{font-size:11px;color:var(--ink2)}
+.rbig a.kmap{align-self:flex-start;margin-top:2px}
 .rstrip{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding:0 14px;margin:0 -14px;padding:0 14px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .rstrip::-webkit-scrollbar{display:none}
 .rcard.h{flex:0 0 70%;max-width:280px;scroll-snap-align:start;flex-direction:column;align-items:stretch;gap:2px;margin:0;min-height:84px;padding:7px 10px;background:var(--mintbg)}
@@ -1382,7 +1401,7 @@ let rlistShow = RLIST_FIRST;
 /* 카카오맵 장소 링크(API 호출 없음, 새 탭): https://map.kakao.com/link/map/이름,위도,경도 */
 const kakaoLink = row => row ? `<a class="kmap" href="https://map.kakao.com/link/map/${encodeURIComponent(String(row[0]).replace(/,/g, ' '))},${(+row[3]).toFixed(6)},${(+row[4]).toFixed(6)}" target="_blank" rel="noopener noreferrer" aria-label="${String(row[0]).replace(/"/g, '')} 카카오맵에서 보기">카카오맵에서 보기</a>` : '';
 const illo = (ic, px) => `<span class="illo" style="--c:${POI_COL[ic]};--s:${px}px" aria-hidden="true">${picon(ic, Math.round(px * 0.58))}</span>`;
-function recoItem(c, k, cls){      // 카드(가로)·리스트 줄 공통 내용: ★·복합시설·화장실 개방·어린이공원·대체 표시
+function recoItem(c, k, cls, why){      // 카드(가로)·리스트 줄 공통 내용: ★·복합시설·화장실 개방·어린이공원·대체 표시. why = 큰 카드의 '왜 추천' 한 줄
   const p = c.p, ic = BIG_SHAPE[c.group] != null ? BIG_SHAPE[c.group] : 7, row = recoCardRow(c), r = recoMemo;
   const kid = p.kind === 'park' && p.child ? '<span class="kbadge">어린이공원</span>' : '';
   const tags = [c.group, c.unit && c.unit !== c.group && !(row && row[2].includes(c.unit)) ? c.unit : '', row && !kid ? row[2] : '', p.mall ? `건물 안 이동 +${p.mall}분` : ''].filter(Boolean).join(' · ');
@@ -1390,6 +1409,16 @@ function recoItem(c, k, cls){      // 카드(가로)·리스트 줄 공통 내�
   const fb = c.fb ? `<span class="fbadge" title="원래 자리(${c.slotBig.replace(/\|/g, '·')})에 다녀올 곳이 없어 대신 넣음">대체</span>` : '';
   const star = p.star ? `<span class="sbadge">★${p.brand ? ' ' + p.brand : ''}</span>` : '';
   const tb = `<span class="tbadge${/빠듯|불가/.test(c.time) ? ' tight' : ''}">${c.time}</span>`;
+  if (cls === 'big'){      // 11/23 준엽: 페르소나 맞춤 구역의 큰 카드(업종 그림 위, 이름, 업종, 도보·가능, 왜 추천, 예상 활동 시간, ★, 카카오맵)
+    const t = RT.time && RT.time[c.act], tm = t ? (t[0] === t[1] ? `${t[0]}분` : `${t[0]}~${t[1]}분`) : '';
+    return `<div class="rcard h rbig${p.star ? ' star' : ''}" data-k="${k}" role="button" tabindex="0">
+      <div class="rbtop">${illo(ic, 60)}<span class="rbwalk"><b>도보 ${walkMinOf(p.wm)}분</b>${tb}</span></div>
+      <b class="rbname">${star}${row ? row[0] : ''}</b>
+      <span class="rh2">${fb}${kid}${ochk}${tags}</span>
+      ${why ? `<span class="rbwhy">${why}</span>` : ''}
+      ${tm ? `<span class="rbtime">예상 활동 ${tm}${c.act ? ` · ${c.act}` : ''}</span>` : ''}
+      ${kakaoLink(row)}</div>`;
+  }
   if (cls === 'h') return `<div class="rcard h${p.star ? ' star' : ''}" data-k="${k}" role="button" tabindex="0">${illo(ic, 54)}<div class="rhc">
       <div class="rh1"><b>${star}${row ? row[0] : ''}</b></div>
       <span class="rh2">${fb}${kid}${ochk}${tags}</span>
@@ -1422,7 +1451,12 @@ function recoBuild(){
   const tb = RT.trash && RT.trash[s[C.id]], tcov = (RT.trashCovered || []).includes(s[C.id]);
   const trash = tb ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 14)}</span><span class="tx">가까운 쓰레기통 <b>${walkMinOf(tb[0])}분</b> (${tb[1]}) · 10분 안 ${tb[2]}곳</span><button type="button" id="trashBtn" aria-pressed="${RS.trashMap}">지도에 보기</button></p>`
       : tcov ? `<p class="rtrash"><span class="ti" style="color:${POI_COL[15]}">${picon(15, 14)}</span><span class="tx">10분 안 가로쓰레기통 없음(서울시 목록 기준)</span></p>` : '';
-  const cards = r.cards.map((c, k) => recoItem(c, k, 'h')).join('');
+  /* 왜 추천 한 줄: 슬롯 카드 = '외출·산책형: 카페·음료·디저트·간식 2자리 중 1', 대체 카드 = '원래 ○○ 자리에 다녀올 곳이 없어 대신' (추천 로직은 그대로, 표시만) */
+  const pn0 = window.ONB ? ONB.name(RS.persona) : RS.persona, sd = (RT.slotDef || {})[RS.persona] || [];
+  const whyOf = (c, k) => { const sl = sd.find(x => x.n === c.slot), nth = r.cards.slice(0, k + 1).filter(x => x.slot === c.slot).length;
+    if (c.fb) return `${pn0}: 원래 ${c.slotBig.replace(/\|/g, '·')} 자리에 다녀올 곳이 없어 대신`;
+    return `${pn0}: ${c.slotBig.replace(/\|/g, '·')}${sl && sl.count > 1 ? ` ${sl.count}자리 중 ${nth}` : ' 자리'}`; };
+  const cards = r.cards.map((c, k) => recoItem(c, k, 'big', whyOf(c, k))).join('');
   /* 카드가 슬롯 수(5장)보다 적을 때 이유 한 줄(11/23 v5e, tables.json shortfall_reasons). 예전 D37 안내('시간이 부족해 다녀올 곳이 없어요'·'다녀올 곳이 적어요')를 대체.
      0장도 같은 규칙. 카드 줄 아래에 둠 */
   const sf = shortfallReason(r);
@@ -1434,13 +1468,21 @@ function recoBuild(){
   const pn = window.ONB ? ONB.name(RS.persona) : RS.persona;
   basisWx = wxName + (RS.wx ? '(가정)' : '(지금)');
   const basis = basisTxt();
+  /* 11/23 준엽: 두 추천을 구역으로 나눔. 위 = 페르소나 맞춤(페르소나 색 띠), 아래 = 키워드 추천(다른 바탕). 지도 큰 아이콘이 어느 구역 기준인지 표시 */
+  const onMap = '<span class="rmap">지도 큰 아이콘</span>';
   const html = `<div class="reco2">
-    ${cards ? `<div class="rstrip" role="list">${cards}</div>` : ''}${short}
-    <p class="rq">지금 뭐 하고 싶으세요?</p>
-    <div class="rrow" role="group" aria-label="하고 싶은 것">${kws}</div>
-    <h4 class="rlh">${r.kw ? `'${r.kw}'` : '전체 후보(아무거나!)'} <small>점수순 ${r.list.length}곳</small></h4>
+    <section class="rsec rper" data-p="${RS.persona}">
+      <h4 class="rsech"><span>${pn0} 맞춤 추천</span>${!r.kw ? onMap : ''}</h4>
+      <p class="rsecsub">${pn0} 카드 틀(${sd.map(x => x.big.join('·') + (x.count > 1 ? ' ' + x.count : '')).join(' / ')})에 맞춰 고른 곳</p>
+      ${cards ? `<div class="rstrip" role="list">${cards}</div>` : ''}${short}
+    </section>
+    <section class="rsec rkw">
+      <h4 class="rsech"><span>지금 뭐 하고 싶으세요?</span>${r.kw ? onMap : ''}</h4>
+      <div class="rrow" role="group" aria-label="하고 싶은 것">${kws}</div>
+      <h4 class="rlh">${r.kw ? `'${r.kw}'` : '전체 후보(아무거나!)'} <small>점수순 ${r.list.length}곳</small></h4>
     ${lst.length ? lst.map((c, k) => recoItem(c, k, 'l')).join('') : (noWalk ? '<p class="hint">비·심야에는 산책을 추천하지 않아요</p>' : `<p class="hint">남은 ${remainLab()} 안에 다녀올 곳 없음${r.kw ? ' (키워드: ' + r.kw + ')' : ''}</p>`)}
     ${rest > 0 ? `<button class="pmore" id="rlMore" type="button">더보기 (나머지 ${rest}곳)</button>` : r.list.length > RLIST_FIRST ? '<button class="pmore" id="rlMore" type="button">접기</button>' : ''}
+    </section>
     ${trash}
     ${why ? `<p class="rnote">${why}</p>` : ''}
     <p class="rfoot" id="recoBasis">${basis}</p>
