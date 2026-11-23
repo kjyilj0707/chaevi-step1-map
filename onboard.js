@@ -411,13 +411,16 @@
     Object.assign({grp:'b', skip:true, d:'시작값에 조금 반영돼요(건너뛰어도 돼요).'}, B[4], {t:'주로 언제 충전하세요?'}), Object.assign({grp:'b', skip:true, d:'시작값에 조금 반영돼요(건너뛰어도 돼요).'}, B[2], {t:'어떤 차를 타세요?'})];
   let qz = null;
   function showQuiz(){ lockOpen(); qz = {i:0, a:{q1:null, q2:null, q3:null, acts:[], skipped:false}, b:{}}; drawQuiz(); }
+  const tileCol = t => t.col || (typeof POI_COL !== 'undefined' && t.ic != null ? POI_COL[t.ic] : '#1B4965');
+  const tileIcon = t => t.svg ? t.svg.replace(/width="30" height="30"/, 'width="22" height="22"') : typeof picon === 'function' ? picon(t.ic, 22) : '';
   const tileArt = t => { const c = t.col || (typeof POI_COL !== 'undefined' && t.ic != null ? POI_COL[t.ic] : '#3d9a7f');
     return t.svg ? `<span class="illo" style="--c:${c};--s:64px" aria-hidden="true">${t.svg}</span>` : typeof illo === 'function' ? illo(t.ic, 64).replace(/--c:[^;]+;/, `--c:${c};`) : ''; };
   function drawQuiz(){
     if (qz.i >= QZ.length) return drawResult();
     const q = QZ[qz.i], multi = !!q.multi, cur = q.grp === 'a' ? qz.a[q.k] : qz.b[q.k];
     const n = multi ? cur.length : cur != null ? 1 : 0, ok = multi ? n >= q.multi : n === 1 || q.skip;
-    const body = multi ? `<div class="qz-grid">${ACTS.map(t => `<button type="button" class="qz-tile" data-v="${t.id}" aria-pressed="${cur.includes(t.id)}">${tileArt(t)}<i class="qz-chk" aria-hidden="true"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span>${esc(t.t)}</span></button>`).join('')}</div>`
+    /* 11/24 준엽: 1번도 2번처럼 둥근 사각 타일(작은 아이콘 왼쪽 위 + 이름 왼쪽 아래, 고르면 남색 테두리 + 옅은 민트 바탕 + 오른쪽 위 체크). 12개라 3열(412×860에서 한 화면에 다 보임) */
+    const body = multi ? `<div class="qz-grid3">${ACTS.map(t => `<button type="button" class="qz-opt qz-act" data-v="${t.id}" aria-pressed="${cur.includes(t.id)}"><span class="qz-ic" style="color:${tileCol(t)}">${tileIcon(t)}</span><span class="qz-lb">${esc(t.t)}</span><i class="qz-ck" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i></button>`).join('')}</div>`
       : `<div class="qz-grid2">${q.o.map(([v, t]) => `<button type="button" class="qz-opt" data-v="${esc(v)}" aria-pressed="${cur === v}">${esc(t)}</button>`).join('')}</div>`;
     el.innerHTML = `<div class="onb-in qz">
       <div class="qz-top">${qz.i ? '<button type="button" class="qz-back" data-act="back" aria-label="이전">←</button>' : ''}
@@ -431,7 +434,7 @@
       if (b.dataset.act === 'cancel'){ el.onclick = null; qz = null; return close(); }      // '이전 답으로 계속' = 저장된 MY 그대로 지도로
       if (b.dataset.act === 'next'){ if (!b.disabled){ qz.i++; drawQuiz(); } return; }
       const v = q.k === 'q3' ? +b.dataset.v : b.dataset.v;
-      if (b.classList.contains('qz-tile')){ const k = qz.a.acts.indexOf(v); if (k >= 0) qz.a.acts.splice(k, 1); else qz.a.acts.push(v); return keepScroll(drawQuiz); }
+      if (b.classList.contains('qz-act')){ const k = qz.a.acts.indexOf(v); if (k >= 0) qz.a.acts.splice(k, 1); else qz.a.acts.push(v); return keepScroll(drawQuiz); }
       if (b.classList.contains('qz-opt')){ const o = q.grp === 'a' ? qz.a : qz.b; o[q.k] = o[q.k] === v ? null : v; keepScroll(drawQuiz); } };
   }
   const keepScroll = fn => { const y = el.querySelector('.onb-in') ? el.querySelector('.onb-in').scrollTop : 0; fn(); const n = el.querySelector('.onb-in'); if (n) n.scrollTop = y; };
