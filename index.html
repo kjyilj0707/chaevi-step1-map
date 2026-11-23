@@ -27,12 +27,12 @@ if (window.top === window.self && matchMedia('(min-width: 821px)').matches) loca
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <!-- 버전 꼬리표(11/24): GitHub Pages 캐시(max-age 600) 때문에 새 index.html + 옛 onboard.js가 섞이지 않게. 화면 코드를 바꾸면 BUILD와 꼬리표를 함께 올림 -->
-<script>window.CHAEVI_BUILD = '20261124b';</script>
-<script src="reco.js?v=20261124b"></script>
-<script src="station_reco.js?v=20261124b"></script>
-<script src="charge.js?v=20261124b"></script>
-<link rel="stylesheet" href="onboard.css?v=20261124b">
-<script src="onboard.js?v=20261124b"></script>
+<script>window.CHAEVI_BUILD = '20261124c';</script>
+<script src="reco.js?v=20261124c"></script>
+<script src="station_reco.js?v=20261124c"></script>
+<script src="charge.js?v=20261124c"></script>
+<link rel="stylesheet" href="onboard.css?v=20261124c">
+<script src="onboard.js?v=20261124c"></script>
 <script>
 /* 그래도 옛 onboard.js가 왔으면(BUILD가 다르면) 한 번만 꼬리표를 바꿔 다시 불러옴 */
 (function () { try {
@@ -1361,12 +1361,25 @@ function poiView(){            // 고른 범위 안의 가게와 종류별 개�
   const p = d.p.filter(x => x[5] <= lim && !(night && x[12] != null && !x[12].startsWith('상시'))), n = d.n.map(() => 0); p.forEach(x => (x[9] || [x[1]]).forEach(c => n[c]++));
   return d.v = {r:key, p, n, sum:p.length, more:!d.walk && d.total > d.p.length && p.length === d.p.length};
 }
-function poiFit(s){              // 반경 원이 화면에 들어오도록 맞춤(100m면 약 17.5, 50m면 약 18.5). 도보 범위는 범위 안 가게가 다 들어오게
-  if (poi.data && poi.data.walk){ const v = poiView();
-    if (v && v.sum){ fit(v.p.map(x => [x[3], x[4]]).concat([[s[C.lat], s[C.lng]]]), 18); return; } }
-  const R = poi.data && poi.data.walk ? walkLim() : poiR, kx = Math.cos(s[C.lat] * Math.PI / 180) * 111320;
+function poiFit(s){              // 반경 원이 화면에 들어오도록 맞춤(100m면 약 17.5, 50m면 약 18.5). 도보 범위는 아래 walkFit(편도 상한 반경)
+  if (poi.data && poi.data.walk){ walkFit(s, 700); return; }
+  const R = poiR, kx = Math.cos(s[C.lat] * Math.PI / 180) * 111320;
   fit([[s[C.lat] + R / 110540, s[C.lng] - R / kx], [s[C.lat] - R / 110540, s[C.lng] + R / kx]], 18.5);
 }
+/* 도보 범위 맞춤(11/23 준엽): 충전소 중심, 반경 = 실제 편도 상한(min(슬라이더, 비·심야 상한)) × 78m × 1.08(여백)이 위쪽 띠 아래 ~ 서랍 위 사이에 꽉 차게.
+   슬라이더를 움직이면 짧게 미뤄(120ms) 부드럽게(400ms) 맞춤. 손으로 지도를 옮기거나 확대하면 walkFitUser = true → 자동값(타이머·날씨)으로 바뀔 때는 끌어가지 않고, 다음 슬라이더 조작 때 다시 맞춤 */
+let walkFitUser = false, walkFitT = null, walkFitR = null;
+function walkFit(s, dur){
+  s = s || poi.s; if (!s || !ready) return;
+  const R = walkLim() * 1.08, kx = Math.cos(s[C.lat] * Math.PI / 180) * 111320, t = document.querySelector('.top');
+  const top = Math.round((t ? t.getBoundingClientRect().bottom : 150) + 10), bottom = Math.round(sheetH + 16);
+  walkFitR = walkLim(); walkFitUser = false;
+  map.fitBounds([[s[C.lng] - R / kx, s[C.lat] - R / 110540], [s[C.lng] + R / kx, s[C.lat] + R / 110540]],
+    {padding:{top, bottom, left:wide() ? 440 : 18, right:wide() ? 60 : 18}, maxZoom:18.5, duration:dur == null ? 400 : dur, bearing:map.getBearing()});
+}
+const walkFitSoon = () => { clearTimeout(walkFitT); walkFitT = setTimeout(() => walkFit(null, 400), 120); };
+map.on('dragstart', e => { if (e.originalEvent) walkFitUser = true; });
+map.on('zoomstart', e => { if (e.originalEvent) walkFitUser = true; });
 function setPoiR(r){
   const walk = poi.data && poi.data.walk;
   if (walk) return;      // 도보는 슬라이더(walkSet)
@@ -1376,7 +1389,7 @@ function setPoiR(r){
 $('#infraR').onclick = e => { const b = e.target.closest('button'); if (b) setPoiR(+b.dataset.r); };
 /* 슬라이더: v = 분(직접) 또는 null(자동) */
 function walkSet(v){
-  WALK.manual = v; poi.cat = -1; poi.show = POI_FIRST; hidePlace(); drawPoi(); renderPoi();
+  WALK.manual = v; poi.cat = -1; poi.show = POI_FIRST; hidePlace(); drawPoi(); renderPoi(); walkFitSoon();      // 슬라이더 조작 = 다시 맞춤
 }
 $('#walkRange').addEventListener('input', e => walkSet(+e.target.value));
 $('#walkAuto').onclick = () => walkSet(null);
@@ -1387,7 +1400,7 @@ function walkUI(){
   $('#walkVal').innerHTML = `편도 <b>${fmtMin(eff)}분</b> · 약 ${Math.round(eff * walkMpm())}m`;
   $('#walkAuto').setAttribute('aria-pressed', WALK.manual == null);
   const why = WALK.manual == null ? `자동: ${remainNote()} 기준 편도 ${fmtMin(au)}분` : `직접 고름 · 자동이면 편도 ${fmtMin(au)}분(${remainNote()})`;
-  $('#walkWhy').innerHTML = why + (ec < sl ? ` · <span class="lim">${en || '날씨'}: ${fmtMin(ec)}분까지</span>` : '');
+  $('#walkWhy').innerHTML = why + (ec < sl ? ` · <span class="lim">${en || '날씨'}: ${fmtMin(ec)}분까지</span>` : '') + ' · 점선 원 = 대략 범위';
 }
 function clearPoi(){ if (!poi.s && !poi.data) return; poi = {s:null, data:null, cat:-1, state:'', show:POI_FIRST};
   document.body.classList.remove('infra'); hidePlace();
@@ -1401,7 +1414,7 @@ function poiTop(){
 const poiDrawKey = (v, top) => (v ? v.r : '') + '|' + poi.cat + '|' + (top ? top.map(x => x.row[10]).join(',') : '*');
 function drawPoi(){
   if (!ready || !poi.s) return; const s = poi.s, v = poiView(), walk = poi.data && poi.data.walk;
-  map.getSource('ring').setData(walk || poi.walk ? EMPTY : circlePoly([s[C.lat], s[C.lng]], poiR));
+  map.getSource('ring').setData(walk ? circlePoly([s[C.lat], s[C.lng]], walkLim()) : poi.walk ? EMPTY : circlePoly([s[C.lat], s[C.lng]], poiR));      // 도보 = 편도 상한 × 78m 대략 범위(길 따라 잰 거리라 실제 경계와 다름, 11/23)
   const items = v ? v.p.filter(x => inCat(x, poi.cat)) : [], top = v ? poiTop() : null;
   poi.drawn = poiDrawKey(v, top);     // 도보 범위는 원으로 그리지 않음(길 따라 잰 거리라 모양이 원이 아님)
   const feat = (x, c) => ({type:'Feature', geometry:{type:'Point', coordinates:[x[4], x[3]]},
@@ -1616,7 +1629,8 @@ function renderPoi(){
   document.body.classList.toggle('infra', on && !route);
   document.body.classList.toggle('wbox', on && !route && walk); fitFloat();      // 위쪽 띠 높이가 바뀌면 버튼 숨김 다시 판단
   $('#infraR').style.display = walk ? 'none' : '';
-  if (on && walk){ walkUI(); const v0 = poiView(); if (v0 && poi.drawn !== poiDrawKey(v0, poiTop())) drawPoi(); }      // 상한·키워드·페르소나가 바뀌면 지도도 다시      // 타이머·날씨로 상한이 바뀌면 지도 핀도 다시
+  if (on && walk){ walkUI(); const v0 = poiView(); if (v0 && poi.drawn !== poiDrawKey(v0, poiTop())) drawPoi();      // 상한·키워드·페르소나가 바뀌면 지도도 다시
+    if (walkFitR != null && Math.abs(walkLim() - walkFitR) > 1 && !walkFitUser) walkFitSoon(); }      // 자동값(타이머·날씨)으로 상한이 바뀌면, 손으로 안 움직였을 때만 다시 맞춤      // 타이머·날씨로 상한이 바뀌면 지도 핀도 다시
   if (on){      // 위쪽 띠와 종류 단추
     const d = poiView(), plus = d.more ? '+' : '';
     $('#infraTitle').textContent = selected[C.name];
