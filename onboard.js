@@ -332,7 +332,6 @@
     <span class="chs-mark" aria-hidden="true"><svg viewBox="0 0 32 32" width="30" height="30"><path d="M16 3C9 7 5.5 13 6.5 20.5 7.2 25.6 11 29 16 29s8.8-3.4 9.5-8.5C26.5 13 23 7 16 3z" fill="#3d9a7f"/><path d="M17.6 9.5 11.8 18h4l-1.4 6.8 6-9h-4.1z" fill="#fff"/></svg></span>
     <span class="chs-word">채소</span>
     <span class="chs-line"><em>채</em>비에서 보내는 <em>소</em>중한 시간</span></div>`;
-  const emptyMy = p => { const a = p.answers || {}; return !(a.acts && a.acts.length) && !a.q1 && !a.q2 && !a.q3 && !IDS.some(id => +p.learn[id] > 0); };
   function lockOpen(){ build(); first = true; el.hidden = false; open = true; document.body.classList.add('onb-on'); }      // first = Esc로 닫히지 않게
   function loginDemo(id){
     const d = DEMO.find(x => x.id === id); if (!d) return;
@@ -371,15 +370,15 @@
     const body = multi ? `<div class="qz-grid">${ACTS.map(t => `<button type="button" class="qz-tile" data-v="${t.id}" aria-pressed="${cur.includes(t.id)}">${tileArt(t)}<i class="qz-chk" aria-hidden="true"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span>${esc(t.t)}</span></button>`).join('')}</div>`
       : `<div class="qz-grid2">${q.o.map(([v, t]) => `<button type="button" class="qz-opt" data-v="${esc(v)}" aria-pressed="${cur === v}">${esc(t)}</button>`).join('')}</div>`;
     el.innerHTML = `<div class="onb-in qz">
-      <div class="qz-top">${qz.i ? '<button type="button" class="qz-back" data-act="back" aria-label="이전">←</button>' : prof ? '<button type="button" class="qz-back" data-act="cancel" aria-label="닫기">×</button>' : ''}
+      <div class="qz-top">${qz.i ? '<button type="button" class="qz-back" data-act="back" aria-label="이전">←</button>' : ''}
         <div class="qz-bar" role="progressbar" aria-valuemin="1" aria-valuemax="${QZ.length}" aria-valuenow="${qz.i + 1}"><i style="width:${(qz.i + 1) / QZ.length * 100}%"></i></div><span class="qz-n">${qz.i + 1}/${QZ.length}</span></div>
-      ${qz.i === 0 && !prof ? LOGO : ''}<h2 class="qz-t">${esc(q.t)}</h2><p class="qz-d">${esc(q.d || '')}</p>
+      ${qz.i === 0 ? LOGO : ''}<h2 class="qz-t">${esc(q.t)}</h2><p class="qz-d">${esc(q.d || '')}${qz.i === 0 && prof ? ` <button type="button" class="qz-keep" data-act="cancel">이전 답으로 계속 (${NAME[top(prof)]})</button>` : ''}</p>
       ${body}
       <div class="qz-foot"><span>${multi ? `<b>${n}</b>개 선택 <small>(${q.multi}개 이상)</small>` : q.skip && !n ? '건너뛸 수 있어요' : n ? '골랐어요' : '하나 골라 주세요'}</span>
         <button type="button" class="qz-next" data-act="next"${ok ? '' : ' disabled'}>${q.skip && !n ? '건너뛰기' : '다음'}</button></div></div>`;
     el.onclick = e => { const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.act === 'back'){ qz.i--; return drawQuiz(); }
-      if (b.dataset.act === 'cancel'){ el.onclick = null; qz = null; return close(); }      // MY에서 '질문 다시 하기'를 그만둠(기존 MY 그대로)
+      if (b.dataset.act === 'cancel'){ el.onclick = null; qz = null; return close(); }      // '이전 답으로 계속' = 저장된 MY 그대로 지도로
       if (b.dataset.act === 'next'){ if (!b.disabled){ qz.i++; drawQuiz(); } return; }
       const v = q.k === 'q3' ? +b.dataset.v : b.dataset.v;
       if (b.classList.contains('qz-tile')){ const k = qz.a.acts.indexOf(v); if (k >= 0) qz.a.acts.splice(k, 1); else qz.a.acts.push(v); return keepScroll(drawQuiz); }
@@ -416,7 +415,9 @@
     apply(); fabBtn(); fabLabel();
     if (MODE === 'demo'){ if (!sess()) showLogin(); }      // 시연판: 인물 고르기(질문 흐름 없음)
     /* 실사용판: MY가 없거나, 예전 판에서 '나중에 입력'으로 건너뛴 빈 MY(답 없음·카드 선택 없음)면 질문부터. 답이 있는 MY면 바로 지도(MY → '질문 다시 하기') */
-    else if (!prof || emptyMy(prof)){ lockOpen(); setTimeout(showQuiz, 0); }      // 실사용판: MY 없으면 바로 질문 → 결과 → 지도. 그림(index.html의 illo)이 정의된 뒤 그리려고 한 박자 뒤
+    /* 실사용판(11/23 준엽): 페이지를 열 때마다(새로고침 포함) 질문부터, 빈 상태로 시작. MY가 있으면 첫 화면에 '이전 답으로 계속' 작은 링크.
+       질문은 이 init에서만 띄움 → 경로 안내·타이머 등 같은 로드 안의 다시 그리기로는 다시 안 뜸. 충전 타이머는 그대로 돎(질문 뒤에서) */
+    else { lockOpen(); setTimeout(showQuiz, 0); }      // 그림(index.html의 illo)이 정의된 뒤 그리려고 한 박자 뒤
     /* 하고 싶은 것 점수표(tables.json pw): 오면 acts가 있는 프로필의 시작 점수를 다시 계산(learn 유지) */
     fetch(opt && opt.tables || 'data/reco/tables.json').then(r => r.ok ? r.json() : null).then(t => {
       if (!t || !t.pw) return; PW = t.pw;
@@ -454,7 +455,7 @@
   ONB.persona = () => prof ? top(prof) : null;      // 시험용
   ONB.isDemo = () => !!demoOf();
   ONB.mode = () => MODE;
-  ONB.build = '20261124a';      // index.html CHAEVI_BUILD와 같아야 함(다르면 index.html이 다시 불러옴)
+  ONB.build = '20261124b';      // index.html CHAEVI_BUILD와 같아야 함(다르면 index.html이 다시 불러옴)
   ONB.who = () => { const d = demoOf(); return d ? {id:d.id, name:d.name, p:d.p} : null; };      // 시연판 지도 위 '다른 사람으로 보기' 버튼용
   ONB.userName = () => { const d = demoOf(); return d ? d.name : ''; };
   ONB.demos = () => DEMO.map(d => Object.assign({}, d));      // 시험용
