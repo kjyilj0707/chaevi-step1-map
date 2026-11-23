@@ -457,7 +457,7 @@ body.nav .chgbadge,body.onb-on .chgbadge{display:none}
 /* 추천 1~3순위 지도 표시 */
 .top3{cursor:pointer;z-index:2}
 /* 주변 상위 5곳(11/24): 업종 원 + 카드와 같은 순위 번호 */
-.ptop{width:34px;height:34px;cursor:pointer;z-index:3}      /* position은 maplibre 표시가 absolute로 줌(relative를 주면 표시끼리 쌓여 자리가 밀림) */
+.ptop{width:34px;height:34px;cursor:pointer;z-index:3;border-radius:50%}      /* 둥글게: 네모 모서리(투명)가 옆 표시의 번호 배지 누름을 가로채지 않게 */      /* position은 maplibre 표시가 absolute로 줌(relative를 주면 표시끼리 쌓여 자리가 밀림) */
 .ptop-ic{display:flex;width:34px;height:34px;border-radius:50%;align-items:center;justify-content:center;color:#fff;border:2.5px solid #fff;box-sizing:border-box;box-shadow:0 2px 6px rgba(27,73,101,.35)}
 .ptop-no{position:absolute;top:-7px;right:-8px;min-width:18px;height:18px;border-radius:9px;background:var(--navy);color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center;border:2px solid #fff;box-sizing:content-box}
 .t3in{position:relative;display:flex;flex-direction:column;align-items:center;animation:t3bounce 1.6s ease-in-out infinite}
@@ -1430,6 +1430,7 @@ function drawTopMarks(list, walk){
   clearTopMarks();
   list.forEach(({t, rank, c}) => { const x = t.row;
     const el = document.createElement('div'); el.className = 'ptop'; el.setAttribute('role', 'button'); el.setAttribute('aria-label', `${rank}순위 ${x[0]}`);
+    el.style.zIndex = 3 + 5 - Math.min(rank, 5);      // 겹치면 순위가 높은 표시가 위(1위가 맨 위)
     el.innerHTML = `<span class="ptop-ic" style="background:${POI_COL[c]}">${picon(c, 18)}</span><b class="ptop-no">${rank}</b>`;
     el.onclick = e => { e.stopPropagation(); showPlace(x[0], c, x[2], x[5], [x[4], x[3]], walk ? x[6] : 0); };
     const m = new maplibregl.Marker({element:el, anchor:'center'}).setLngLat([x[4], x[3]]).addTo(map); m._rank = rank; topMarks.push(m); });
@@ -1437,7 +1438,7 @@ function drawTopMarks(list, walk){
   topFitN = 0; topFitSoon();      // UI에 가린 표시가 있으면 맞춤이 끝난 뒤 옮김
 }
 function spreadTop(){
-  /* 화면 좌표에서 서로 36px(표시 34px)보다 가까운 쌍을 밀어 떼는 것을 몇 번 반복. 같은 자리면 순위 순서로 정한 방향으로 뗌. 원래 자리에서 떨어진 만큼을 offset으로 */
+  /* 화면 좌표에서 서로 36px(표시 34px)보다 가까운 쌍(+ 아래 배지 규칙)을 밀어 떼는 것을 몇 번 반복. 같은 자리면 순위 순서로 정한 방향으로 뗌. 원래 자리에서 떨어진 만큼을 offset으로 */
   if (!topMarks.length) return;
   const P = topMarks.map(m => map.project(m.getLngLat())), Q = P.map(p => ({x:p.x, y:p.y})), D = 36;
   for (let it = 0; it < 40; it++){ let moved = false;
@@ -1447,6 +1448,14 @@ function spreadTop(){
       if (d < 0.5){ const t = -Math.PI / 2 + (topMarks[b]._rank - 1) * 2 * Math.PI / 5; dx = Math.cos(t); dy = Math.sin(t); d = 1; }
       const push = (D - d) / 2 + 0.5, ux = dx / d, uy = dy / d;
       Q[a].x -= ux * push; Q[a].y -= uy * push; Q[b].x += ux * push; Q[b].y += uy * push; moved = true; }
+    /* 순위 번호 배지(표시 오른쪽 위, 중심에서 +14, −13px)가 위에 그려지는 더 높은 순위 표시의 원(반지름 17)에 가리지 않게: 배지 중심과 그 원 중심을 26px 이상 뗌(11/24 밤) */
+    for (let a = 0; a < Q.length; a++) for (let b = a + 1; b < Q.length; b++){
+      const [h, l] = topMarks[a]._rank < topMarks[b]._rank ? [a, b] : [b, a];
+      let ex = Q[l].x + 14 - Q[h].x, ey = Q[l].y - 13 - Q[h].y, e = Math.hypot(ex, ey);
+      if (e >= 26) continue;
+      if (e < 0.5){ ex = 1; ey = -1; e = Math.SQRT2; }
+      const push = (26 - e) / 2 + 0.5, ux = ex / e, uy = ey / e;
+      Q[h].x -= ux * push; Q[h].y -= uy * push; Q[l].x += ux * push; Q[l].y += uy * push; moved = true; }
     if (!moved) break; }
   topMarks.forEach((m, k) => m.setOffset([Math.round(Q[k].x - P[k].x), Math.round(Q[k].y - P[k].y)]));
 }
