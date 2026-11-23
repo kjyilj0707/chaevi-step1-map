@@ -292,6 +292,7 @@ body.infra.placeon .listbtn{display:none}
 .rpills{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
 .rpill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--ink2);background:var(--pill);border-radius:99px;padding:5px 11px;white-space:nowrap}
 .rpill.wx{background:var(--pickbg);color:#2c6e5b;border:1px solid #bfe3d6}
+.rpill.demo{font-size:11px;padding:4px 9px;background:#fff;border:1px dashed #cfc8bc;color:var(--ink2)}
 .rsech{display:flex;align-items:center;gap:8px;margin:0 0 8px}
 .rsech b{font-size:15.5px;color:#22323b}
 .rsech b.big{font-size:18px}
@@ -1521,7 +1522,7 @@ function recoBuild(){
       <p class="rpick">CHAEVI PICK · 지금 내 취향에 맞게</p>
       <h3 class="rtitle">${who ? esc0(who) + '님이' : '지금'} 들르기 좋은 곳을 골랐어요.</h3>
       <p class="rlead">평소 취향과 남은 충전시간을 고려했어요.</p>
-      <div class="rpills"><span class="rpill">⚡ ${remainLab()} 남음</span><span class="rpill wx">${esc0(basisWx)}${demo ? ' · 시연 중' : ''}</span><span class="rpill">${pn0}</span></div>
+      <div class="rpills"><span class="rpill">⚡ ${remainLab()} 남음</span>${r.wx ? `<span class="rpill wx">${esc0(basisWx)}</span>` : ''}${demo ? '<span class="rpill demo">시연 중</span>' : ''}<span class="rpill">${pn0}</span></div>
       <div class="rsech"><b>✨ 지금 추천하는 ${r.cards.length}곳</b>${!r.kw ? onMap : ''}${r.cards.length > 1 ? '<span class="rswipe">옆으로 넘겨 보기 →</span>' : ''}</div>
       ${cards ? `<div class="rstrip" role="list">${cards}</div>` : ''}
       <p class="rband">편도 ${fmtMin(capNow)}분 이내 · 왕복 이동시간과 복귀 여유 ${buf}분을 고려한 추천이에요.</p>${short}
