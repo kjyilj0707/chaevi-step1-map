@@ -69,9 +69,6 @@ body.nav #onbFab{display:none}
 .qz-bar i{display:block;height:100%;background:#3d9a7f;border-radius:99px;transition:width .25s}
 .qz-n{flex:none;font-size:12px;font-weight:700;color:var(--ink2)}
 .qz-t{margin:0 0 16px;font-size:22px;line-height:1.35;color:#22323b;word-break:keep-all}
-.qz-opts{display:flex;flex-direction:column;gap:9px;margin:0 0 10px}
-.qz-opt{text-align:left;border:1.5px solid #ece8e1;background:var(--surface);border-radius:14px;padding:15px 16px;font-size:15px;font-weight:600;color:var(--ink)}
-.qz-opt[aria-pressed="true"]{border-color:#3d9a7f;background:#eaf6f1}
 .qz-res{margin:0 0 8px;font-size:26px;color:#22323b}
 .qz-res em{font-style:normal;color:#3d9a7f}
 .qz-bars{display:flex;flex-direction:column;gap:8px;margin:6px 0 4px}
@@ -86,4 +83,26 @@ body.nav #onbFab{display:none}
 .my-switch{border:1.5px solid var(--axis);background:var(--surface);color:var(--navy);font-size:12.5px;font-weight:700;border-radius:99px;padding:6px 12px;margin:0 0 10px}
 #onbFab.demo span{font-size:9.5px;max-width:46px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 #onbFab.demo svg{color:var(--pc)}
+/* 질문 타일(11/23 참고 이미지: 그림 격자 + 체크, 2열 둥근 타일, 아래 고정 띠). 색은 지금 테마 */
+.qz{padding-bottom:calc(96px + env(safe-area-inset-bottom)) !important}
+.qz-t{margin-bottom:6px}
+.qz-d{margin:0 0 16px;font-size:13.5px;color:var(--ink2);line-height:1.5;border-bottom:1px solid var(--grid);padding-bottom:14px}
+.qz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 8px}
+.qz-tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;border:0;background:transparent;padding:4px 0;font:inherit;color:var(--ink)}
+.qz-tile .illo{--s:72px !important;width:72px;height:72px;border-radius:50%;transition:transform .12s}
+.qz-tile .illo svg{width:34px;height:34px}
+.qz-tile span{font-size:12.5px;font-weight:600;text-align:center;line-height:1.3;word-break:keep-all}
+.qz-chk{position:absolute;top:4px;left:50%;width:72px;height:72px;margin-left:-36px;border-radius:50%;display:none;align-items:center;justify-content:center;font-style:normal;z-index:3;background:rgba(27,73,101,.62)}
+.qz-tile[aria-pressed="true"] .qz-chk{display:flex}
+.qz-tile[aria-pressed="true"] span{color:var(--navy);font-weight:800}
+.qz-tile:active .illo{transform:scale(.95)}
+.qz-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qz-opt{display:flex;align-items:flex-end;min-height:84px;text-align:left;border:1.5px solid #e3ded5;background:var(--surface);border-radius:16px;padding:12px 14px;font:inherit;font-size:15px;font-weight:700;color:var(--ink);line-height:1.3;word-break:keep-all}
+.qz-opt[aria-pressed="true"]{border-color:var(--navy);background:var(--mintbg);box-shadow:inset 0 0 0 1.5px var(--navy)}
+.qz-foot{position:fixed;left:0;right:0;bottom:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:480px;margin:0 auto;padding:12px 18px calc(12px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--grid)}
+.qz-foot span{font-size:13.5px;color:var(--ink2)}
+.qz-foot b{color:var(--navy);font-size:15px}
+.qz-foot small{color:var(--muted)}
+.qz-next{border:0;background:var(--navy);color:#fff;font-size:15px;font-weight:700;border-radius:99px;padding:11px 22px}
+.qz-next:disabled{background:#c9c4bb;color:#f6f3ee}
 

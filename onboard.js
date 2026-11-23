@@ -25,6 +25,41 @@
     {k:'q2', t:'충전하는 동안 보통 하는 일', o:[['P1', '밥·화장실 해결'], ['P2', '밖에 나가 카페·산책'], ['P3', '장보기'], ['P4a', '차 안에서 쉬거나 영상'], ['P4b', '잠깐 기다리기만']]},
     {k:'q3', t:'보통 머무는 시간', o:[[15, '15분 이하'], [30, '15~30분'], [45, '30~60분'], [60, '1시간 이상']]}];
   const Q1P = {hwy:'P1', mart:'P3', home:'P4b', town:'P2'};
+  /* 충전하는 동안 하고 싶은 것(여러 개, 11/23 준엽): 예전 Q2(단일, +3점) 자리. 타일 → 대분류(big) 또는 페르소나 직접 대응(to)
+     점수: 타일마다 페르소나 벡터 v(대분류면 tables.json pw[페르소나][대분류]를 페르소나 합 1로 나눔, 직접 대응이면 표 값) → 고른 타일 평균 m
+           → Q2 점수 = 3 × m_p / max(m) (가장 맞는 페르소나 3점, 나머지는 비율. 예전 Q2처럼 기본 정보 π(<1)보다 항상 큼)
+     ic = 업종 그림 번호(index.html PICON) 또는 svg(그림 없는 타일) */
+  const SVG_CAR = '<svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><path d="M5 11l1.6-4.2A2 2 0 0 1 8.5 5.5h7a2 2 0 0 1 1.9 1.3L19 11a2 2 0 0 1 1.5 1.9V17a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0h-5a2 2 0 0 1-4 0h-1a1 1 0 0 1-1-1v-4.1A2 2 0 0 1 5 11zm2.2 0h9.6l-1.2-3.2a.6.6 0 0 0-.6-.4H9a.6.6 0 0 0-.6.4z"/></svg>';
+  const SVG_CLOCK = '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
+  const ACTS = [
+    {id:'cafe', t:'커피·카페', big:'카페·음료', ic:12},
+    {id:'dessert', t:'디저트·간식', big:'디저트·간식', ic:16},
+    {id:'meal', t:'밥 먹기', big:'식사', ic:13},
+    {id:'snack', t:'분식·포장', big:'간편식', ic:11},
+    {id:'cvs', t:'편의점', big:'식품·편의', ic:7},
+    {id:'mart', t:'마트 장보기', to:{P3:1}, ic:7, col:'#3d7fd1'},
+    {id:'walk', t:'산책·공원', to:{P2:1}, ic:22},
+    {id:'shop', t:'옷·잡화 구경', to:{P2:0.6, P3:0.4}, ic:10},
+    {id:'fun', t:'취미·오락·운동', to:{P2:1}, ic:20},
+    {id:'toilet', t:'화장실만', big:'화장실', ic:14},
+    {id:'car', t:'차 안에서 쉬기', to:{P4a:1}, svg:SVG_CAR, col:'#8a63d2'},
+    {id:'wait', t:'그냥 기다리기', to:{P4b:1}, svg:SVG_CLOCK, col:'#5f7484'}];
+  let PW = null;      // tables.json pw (페르소나 × 대분류 가중치 weight_mapped)
+  function actVec(t){
+    const v = {}; IDS.forEach(p => v[p] = 0);
+    if (t.to){ IDS.forEach(p => v[p] = t.to[p] || 0); return v; }
+    if (!PW) return null;
+    const sum = IDS.reduce((x, p) => x + ((PW[p] || {})[t.big] || 0), 0) || 1;
+    IDS.forEach(p => v[p] = ((PW[p] || {})[t.big] || 0) / sum); return v;
+  }
+  /* 고른 타일 → 페르소나별 Q2 점수(최고 3). 표가 없어 계산 못 하면 null */
+  function actScores(ids){
+    const ts = (ids || []).map(id => ACTS.find(x => x.id === id)).filter(Boolean); if (!ts.length) return null;
+    const vs = ts.map(actVec); if (vs.some(v => !v)) return null;
+    const m = {}; IDS.forEach(p => m[p] = vs.reduce((x, v) => x + v[p], 0) / vs.length);
+    const mx = Math.max(...IDS.map(p => m[p])) || 1, out = {}; IDS.forEach(p => out[p] = 3 * m[p] / mx); return out;
+  }
+  const actTop = ids => { const s = actScores(ids); return s ? IDS.reduce((b, p) => s[p] > s[b] + 1e-12 ? p : b, IDS[0]) : null; };
   const GU = ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구',
     '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'];
   /* 기본 정보 선택지 값 = prior_v1.json factors 키(시간대 time, 충전 방식 speed, 차종 군 car, 나이 age, 성별 gender). 표에 없는 값은 중립 */
@@ -77,10 +112,11 @@
   }
   /* 시작 점수. J 없으면 예전 규칙(Q2 3점, 없으면 Q1 대신 3점, 둘 다 없으면 P2 3점) */
   function startScores(a, b, J){
-    a = a || {}; const sc = {}, q2 = IDS.includes(a.q2) ? a.q2 : null, q1p = !q2 ? Q1P[a.q1] || null : null;
-    if (!J){ IDS.forEach(p => sc[p] = 0); sc[q2 || q1p || 'P2'] = 3; return sc; }
+    a = a || {}; const sc = {}, as = a.acts && a.acts.length ? actScores(a.acts) : null;      // 여러 개 고른 '하고 싶은 것'이 있으면 그것이 Q2 자리
+    const q2 = !as && IDS.includes(a.q2) ? a.q2 : null, q1p = !q2 && !as ? Q1P[a.q1] || null : null;
+    if (!J){ IDS.forEach(p => sc[p] = as ? as[p] : 0); if (!as) sc[q2 || q1p || 'P2'] = 3; return sc; }
     const w2 = +J.rules.w_q2 || 3, lam = J.rules.lambda != null ? +J.rules.lambda : 1, pi = prior(J, b).pi;
-    IDS.forEach(p => sc[p] = rd(lam * pi[p] + (p === q2 ? w2 : 0) + (p === q1p ? Q1_PTS : 0)));
+    IDS.forEach(p => sc[p] = rd(lam * pi[p] + (as ? as[p] * w2 / 3 : p === q2 ? w2 : 0) + (p === q1p ? Q1_PTS : 0)));
     return sc;
   }
   const argmax = s => IDS.reduce((best, p) => (+s[p] || 0) > (+s[best] || 0) + 1e-9 ? p : best, IDS[0]);      // 같으면 IDS 앞쪽(파이썬 max와 같음)
@@ -117,13 +153,15 @@
   let el = null, f = null, first = false, resetArm = false;      // f = 폼에서 고치는 중인 값(저장 전)
   function draft(){
     const a = (prof && prof.answers) || {}, b = (prof && prof.basic) || {};
-    return {q1:a.q1 || null, q2:a.q2 || null, q3:a.q3 || null, pick:null,
+    return {q1:a.q1 || null, q2:a.acts && a.acts.length ? null : a.q2 || null, q3:a.q3 || null, acts:(a.acts || []).slice(), pick:null,
       age:b.age || null, gender:b.gender || null, car:B[2].o.some(o => o[0] === b.car) ? b.car : null, speed:b.speed || null, time:b.time || null, freq:b.freq || null,
       gu:b.gu || '', bat:b.bat || '', batUnknown:!!b.batUnknown};
   }
   /* 저장하면 될 프로필(폼 값으로 미리 계산): 시작 점수 + (Q1·Q2가 그대로면 지금까지의 learn) + 직접 고름 */
   function trial(){
-    const a = {q1:f.q1, q2:f.q2, q3:f.q3, skipped:false}, keep = prof && prof.answers && !prof.answers.skipped && prof.answers.q1 === a.q1 && prof.answers.q2 === a.q2;
+    const acts = f.acts && f.acts.length ? f.acts.slice() : null;
+    const a = {q1:f.q1, q2:acts ? actTop(acts) || f.q2 : f.q2, q3:f.q3, acts, skipped:false};      // acts가 있으면 q2 = 그 1위(MY 단일 선택과 호환)
+    const keep = prof && prof.answers && !prof.answers.skipped && prof.answers.q1 === a.q1 && prof.answers.q2 === a.q2 && String(prof.answers.acts || '') === String(a.acts || '');
     const p = makeProfile(a, basicOf(), keep ? Object.assign(zeros(), prof.learn) : null);
     if (f.pick) boost(p, f.pick);
     return p;
@@ -132,7 +170,7 @@
     const p = trial(), t = top(p);
     if (f.pick) return [t, '직접 고름', p];
     if (IDS.some(id => (+p.learn[id] || 0) > 0) && t !== startOf(p)) return [t, '추천 카드 선택으로 바뀜', p];
-    return [t, f.q2 ? '충전하는 동안 하는 일 기준' : f.q1 ? '주로 충전하는 곳 기준' : PJ && hasBasic() ? '기본 정보 시작값 기준' : '기본값', p];
+    return [t, f.acts && f.acts.length ? '하고 싶은 것 기준' : f.q2 ? '충전하는 동안 하는 일 기준' : f.q1 ? '주로 충전하는 곳 기준' : PJ && hasBasic() ? '기본 정보 시작값 기준' : '기본값', p];
   }
   const hasBasic = () => ['time', 'speed', 'car', 'age', 'gender'].some(k => f[k]);
   /* '시작값 근거' 한 줄: 지금 페르소나를 올리고 내린 기본 정보 입력(배수) + 시작 점수 */
@@ -161,7 +199,8 @@
         const k = row.dataset.k, raw = b.dataset.v, v = k === 'q3' ? +raw : raw;
         if (row.dataset.multi){ const i = f[k].indexOf(v); if (i >= 0) f[k].splice(i, 1); else f[k].push(v); }
         else f[k] = f[k] === v ? null : v;
-        if (k === 'q1' || k === 'q2') f.pick = null;      // 습관 답을 바꾸면 직접 고른 페르소나는 풂
+        if (k === 'q1' || k === 'q2' || k === 'acts') f.pick = null;      // 습관 답을 바꾸면 직접 고른 페르소나는 풂
+        if (k === 'q2' && f.q2) f.acts = []; if (k === 'acts' && f.acts.length) f.q2 = null;      // 하고 싶은 것(여러 개)과 하는 일(하나) 중 하나만 씀
         draw(); return;
       }
       const act = b.dataset.act;
@@ -199,7 +238,8 @@
       </section>
       <section class="my-card">
         <h4>충전 습관 <small>추천에 씀</small></h4>
-        ${Q.map(q => `<p class="my-lab">${esc(q.t)}</p>${chipRow(q.k, q.o, false, f[q.k])}`).join('')}
+        <p class="my-lab">충전하는 동안 하고 싶은 것 <small>여러 개 · 고르면 아래 '하는 일' 대신 씀</small></p>${chipRow('acts', ACTS.map(t => [t.id, t.t]), true, f.acts)}
+        ${Q.map(q => `<p class="my-lab">${esc(q.t)}${q.k === 'q2' ? ' <small>하나 · 고르면 위 선택은 풂</small>' : ''}</p>${chipRow(q.k, q.o, false, f[q.k])}`).join('')}
         <p class="my-note">보통 머무는 시간은 충전 타이머를 켜지 않았을 때 추천의 '남은 시간' 기본값이 돼요.</p>
       </section>
       <section class="my-card">
@@ -308,30 +348,43 @@
       if (b.dataset.act === 'new'){ setSess({mode:'me'}); prof = load(); if (prof){ apply(); el.onclick = null; close(); redraw(); } else showQuiz(); }
       if (b.dataset.act === 'newq'){ setSess({mode:'me'}); showQuiz(); } };
   }
-  /* 새 사용자 질문: MY 폼 문항 재사용(새 문항 없음). Q1 주로 충전하는 곳 · Q2 충전 중 하는 일(+3점) · Q3 보통 머무는 시간 · 시간대 · 차종(prior_v1 배수) */
-  const QZ = [Object.assign({grp:'a'}, Q[0]), Object.assign({grp:'a'}, Q[1]), Object.assign({grp:'a'}, Q[2]), Object.assign({grp:'b'}, B[4]), Object.assign({grp:'b'}, B[2])];
+  /* 새 사용자 질문(11/23 준엽 참고 이미지: 타일 격자 + 아래 고정 띠). 1 하고 싶은 것(여러 개, 2개 이상) · 2 주로 충전하는 곳 · 3 보통 머무는 시간 · 4 시간대 · 5 차종(4·5 건너뛰기 가능) */
+  const QZ = [{k:'acts', grp:'a', multi:2, t:'충전하는 동안 무엇을 하고 싶으세요?', d:'2개 이상 골라 주세요. 고른 것으로 맞춤 추천을 정해요.'},
+    Object.assign({grp:'a', d:'하나만 골라 주세요.'}, Q[0], {t:'주로 어디서 충전하세요?'}), Object.assign({grp:'a', d:'충전 타이머를 켜지 않았을 때 추천 기준이 돼요.'}, Q[2], {t:'보통 얼마나 머무세요?'}),
+    Object.assign({grp:'b', skip:true, d:'시작값에 조금 반영돼요(건너뛰어도 돼요).'}, B[4], {t:'주로 언제 충전하세요?'}), Object.assign({grp:'b', skip:true, d:'시작값에 조금 반영돼요(건너뛰어도 돼요).'}, B[2], {t:'어떤 차를 타세요?'})];
   let qz = null;
-  function showQuiz(){ lockOpen(); qz = {i:0, a:{q1:null, q2:null, q3:null, skipped:false}, b:{}}; drawQuiz(); }
+  function showQuiz(){ lockOpen(); qz = {i:0, a:{q1:null, q2:null, q3:null, acts:[], skipped:false}, b:{}}; drawQuiz(); }
+  const tileArt = t => { const c = t.col || (typeof POI_COL !== 'undefined' && t.ic != null ? POI_COL[t.ic] : '#3d9a7f');
+    return t.svg ? `<span class="illo" style="--c:${c};--s:64px" aria-hidden="true">${t.svg}</span>` : typeof illo === 'function' ? illo(t.ic, 64).replace(/--c:[^;]+;/, `--c:${c};`) : ''; };
   function drawQuiz(){
     if (qz.i >= QZ.length) return drawResult();
-    const q = QZ[qz.i], cur = q.grp === 'a' ? qz.a[q.k] : qz.b[q.k];
+    const q = QZ[qz.i], multi = !!q.multi, cur = q.grp === 'a' ? qz.a[q.k] : qz.b[q.k];
+    const n = multi ? cur.length : cur != null ? 1 : 0, ok = multi ? n >= q.multi : n === 1 || q.skip;
+    const body = multi ? `<div class="qz-grid">${ACTS.map(t => `<button type="button" class="qz-tile" data-v="${t.id}" aria-pressed="${cur.includes(t.id)}">${tileArt(t)}<i class="qz-chk" aria-hidden="true"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span>${esc(t.t)}</span></button>`).join('')}</div>`
+      : `<div class="qz-grid2">${q.o.map(([v, t]) => `<button type="button" class="qz-opt" data-v="${esc(v)}" aria-pressed="${cur === v}">${esc(t)}</button>`).join('')}</div>`;
     el.innerHTML = `<div class="onb-in qz">
-      <div class="qz-top">${qz.i ? '<button type="button" class="qz-back" data-act="back" aria-label="이전">←</button>' : '<button type="button" class="qz-back" data-act="login" aria-label="로그인 화면">←</button>'}
+      <div class="qz-top"><button type="button" class="qz-back" data-act="${qz.i ? 'back' : 'login'}" aria-label="이전">←</button>
         <div class="qz-bar" role="progressbar" aria-valuemin="1" aria-valuemax="${QZ.length}" aria-valuenow="${qz.i + 1}"><i style="width:${(qz.i + 1) / QZ.length * 100}%"></i></div><span class="qz-n">${qz.i + 1}/${QZ.length}</span></div>
-      <h2 class="qz-t">${esc(q.t)}${q.k === 'q2' ? '은(는) 무엇인가요?' : q.k === 'q1' ? '는 어디인가요?' : '은(는)?'}</h2>
-      <div class="qz-opts">${q.o.map(([v, t]) => `<button type="button" class="qz-opt" data-v="${esc(v)}" aria-pressed="${cur === v}">${esc(t)}</button>`).join('')}</div>
-      <button type="button" class="onb-link" data-act="skip">건너뛰기</button></div>`;
+      <h2 class="qz-t">${esc(q.t)}</h2><p class="qz-d">${esc(q.d || '')}</p>
+      ${body}
+      <div class="qz-foot"><span>${multi ? `<b>${n}</b>개 선택 <small>(${q.multi}개 이상)</small>` : q.skip && !n ? '건너뛸 수 있어요' : n ? '골랐어요' : '하나 골라 주세요'}</span>
+        <button type="button" class="qz-next" data-act="next"${ok ? '' : ' disabled'}>${q.skip && !n ? '건너뛰기' : '다음'}</button></div></div>`;
     el.onclick = e => { const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.act === 'back'){ qz.i--; return drawQuiz(); }
       if (b.dataset.act === 'login') return showLogin();
-      if (b.dataset.act === 'skip'){ qz.i++; return drawQuiz(); }
-      if (b.classList.contains('qz-opt')){ const v = q.k === 'q3' ? +b.dataset.v : b.dataset.v; if (q.grp === 'a') qz.a[q.k] = v; else qz.b[q.k] = v; qz.i++; drawQuiz(); } };
+      if (b.dataset.act === 'next'){ if (!b.disabled){ qz.i++; drawQuiz(); } return; }
+      const v = q.k === 'q3' ? +b.dataset.v : b.dataset.v;
+      if (b.classList.contains('qz-tile')){ const k = qz.a.acts.indexOf(v); if (k >= 0) qz.a.acts.splice(k, 1); else qz.a.acts.push(v); return keepScroll(drawQuiz); }
+      if (b.classList.contains('qz-opt')){ const o = q.grp === 'a' ? qz.a : qz.b; o[q.k] = o[q.k] === v ? null : v; keepScroll(drawQuiz); } };
   }
+  const keepScroll = fn => { const y = el.querySelector('.onb-in') ? el.querySelector('.onb-in').scrollTop : 0; fn(); const n = el.querySelector('.onb-in'); if (n) n.scrollTop = y; };
   function drawResult(){
-    const p = makeProfile(qz.a, qz.b), t = top(p), st = p.start, sum = IDS.reduce((x, id) => x + (+st[id] || 0), 0) || 1;
+    const a = Object.assign({}, qz.a, {acts:qz.a.acts.slice()}); a.q2 = actTop(a.acts) || null;      // MY 단일 선택과 호환: q2 = 하고 싶은 것 1위
+    const p = makeProfile(a, qz.b), t = top(p), st = p.start, sum = IDS.reduce((x, id) => x + (+st[id] || 0), 0) || 1;
     const rank = IDS.slice().sort((x, y) => (+st[y] || 0) - (+st[x] || 0)).slice(0, 3);
     const q2t = (Q[1].o.find(o => o[0] === qz.a.q2) || [])[1], q1t = (Q[0].o.find(o => o[0] === qz.a.q1) || [])[1];
-    const why = qz.a.q2 ? `충전하는 동안 '${q2t}'을(를) 고르셨어요.` : qz.a.q1 && Q1P[qz.a.q1] ? `주로 '${q1t}'에서 충전한다고 하셨어요.` : '답이 적어 시간대·차종과 충전 후기 비율로 정했어요.';
+    const at = a.acts.map(id => (ACTS.find(x => x.id === id) || {}).t).filter(Boolean);
+    const why = at.length ? `충전하는 동안 ${at.slice(0, 3).join('·')}${at.length > 3 ? ` 외 ${at.length - 3}개` : ''}을(를) 고르셨어요.` : qz.a.q2 ? `충전하는 동안 '${q2t}'을(를) 고르셨어요.` : qz.a.q1 && Q1P[qz.a.q1] ? `주로 '${q1t}'에서 충전한다고 하셨어요.` : '답이 적어 시간대·차종과 충전 후기 비율로 정했어요.';
     el.innerHTML = `<div class="onb-in qz">
       <p class="lg-brand">결과</p>
       <h2 class="qz-res">당신은 <em>${NAME[t]}</em></h2>
@@ -342,7 +395,7 @@
       <button type="button" class="onb-link" data-act="back">답 다시 고르기</button></div>`;
     el.onclick = e => { const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.act === 'back'){ qz.i = QZ.length - 1; return drawQuiz(); }
-      if (b.dataset.act === 'go'){ setSess({mode:'me'}); prof = p; save(prof); apply(); el.onclick = null; qz = null; close(); redraw();
+      if (b.dataset.act === 'go'){ setSess({mode:'me'}); prof = p; save(prof);      // answers.acts(여러 개)와 q2(1위) 함께 저장 apply(); el.onclick = null; qz = null; close(); redraw();
         if (typeof g.toast === 'function') g.toast(`${NAME[t]}(으)로 시작해요 · MY에서 바꿀 수 있어요`); } };
   }
 
@@ -355,6 +408,12 @@
     apply(); fabBtn(); fabLabel();
     if (!sess()) showLogin();                 // 세션 없음 → 시연 로그인 화면(앱 첫 화면)
     else if (!prof) showQuiz();               // '나'로 들어왔는데 MY 없음 → 질문
+    /* 하고 싶은 것 점수표(tables.json pw): 오면 acts가 있는 프로필의 시작 점수를 다시 계산(learn 유지) */
+    fetch(opt && opt.tables || 'data/reco/tables.json').then(r => r.ok ? r.json() : null).then(t => {
+      if (!t || !t.pw) return; PW = t.pw;
+      if (prof && prof.answers && prof.answers.acts && prof.answers.acts.length && PJ){ const before = top(prof); prof.start = startScores(prof.answers, prof.basic, PJ); sumUp(prof); save(prof); apply(); if (top(prof) !== before) redraw(); }
+      if (open && el && !el.hidden && qz) drawQuiz();
+    }).catch(() => {});
     /* 시작값 표(prior_v1.json): 오면 저장된 프로필의 시작 점수를 다시 계산(learn 유지)하고, 폼이 열려 있으면 다시 그림. 못 읽으면 예전 규칙 */
     fetch(opt && opt.prior || 'data/reco/prior_v1.json').then(r => r.ok ? r.json() : null).then(j => {
       if (!j || !j.base || !j.factors) return; PJ = j;
@@ -364,6 +423,8 @@
   };
   ONB.prior = (J, b) => prior(J, b);                    // 시험용(node 대조)
   ONB.start = (a, b, J) => startScores(a, b, J);
+  ONB.acts = () => ACTS.map(t => ({id:t.id, t:t.t, big:t.big || null, to:t.to || null, v:actVec(t)}));      // 시험용
+  ONB.actScores = ids => actScores(ids);
   ONB.conds = () => [];          // 동승 조건 없음(팀 결정)
   ONB.chips = () => '';
   ONB.bind = () => {};
