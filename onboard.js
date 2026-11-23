@@ -38,16 +38,16 @@
   const LAB = {}; B.forEach(q => q.o.forEach(([v, t]) => LAB[q.k + ':' + v] = t));
   const Q1_PTS = 1.5;
 
-  /* ---------- 시연 로그인(11/23 준엽): 진짜 로그인이 아님. 가상 인물 5명 중 하나를 고르면 그 사람 값으로 들어감. 비밀번호·서버 없음 ----------
+  /* ---------- 시연 로그인(11/23 준엽): 진짜 로그인이 아님. 가상 인물 5명(A~E, 11/23 준엽: 이름 대신 알파벳) 중 하나를 고르면 그 사람 값으로 들어감. 비밀번호·서버 없음 ----------
      세션 localStorage 'chaeviSession' = {mode:'demo', id} | {mode:'me'}. 시연 프로필은 'chaeviDemo:<id>'에 따로 저장(내 MY 'chaeviProfile'과 섞이지 않음).
      인물 값 = MY 폼의 Q1~Q3·기본 정보 칸 그대로. Q2(충전 중 하는 일, +3점)가 그 페르소나라 시작 점수 1위가 그 페르소나(prior_v1 규칙, π < 1) */
   const SKEY = 'chaeviSession', DKEY = 'chaeviDemo:';
   const DEMO = [
-    {id:'demo_p1', name:'한도윤', ini:'도', p:'P1', intro:'주말 장거리, 휴게소에서 점심 겸 충전', a:{q1:'hwy', q2:'P1', q3:30}, b:{age:'40s', gender:'male', car:'egmp', speed:'fast', time:'lunch', freq:'1'}},
-    {id:'demo_p2', name:'서지아', ini:'지', p:'P2', intro:'주말 낮 도심 외출 중 충전', a:{q1:'town', q2:'P2', q3:45}, b:{age:'30s', gender:'female', car:'tesla', speed:'fast', time:'afternoon', freq:'2_3'}},
-    {id:'demo_p3', name:'박은솔', ini:'은', p:'P3', intro:'퇴근길 마트 장보며 충전', a:{q1:'mart', q2:'P3', q3:45}, b:{age:'40s', gender:'female', car:'other', speed:'slow', time:'evening', freq:'2_3'}},
-    {id:'demo_p4a', name:'최현우', ini:'현', p:'P4a', intro:'밤에 차 안에서 영상 보며 충전', a:{q1:'home', q2:'P4a', q3:30}, b:{age:'20s', gender:'male', car:'small_old', speed:'fast', time:'night', freq:'4_6'}},
-    {id:'demo_p4b', name:'윤태오', ini:'태', p:'P4b', intro:'출근 전 잠깐 급속 충전', a:{q1:'home', q2:'P4b', q3:15}, b:{age:'50s', gender:'male', car:'egmp', speed:'fast', time:'morning', freq:'daily'}}];
+    {id:'demo_p1', name:'A', ini:'A', p:'P1', intro:'주말 장거리, 휴게소에서 점심 겸 충전', a:{q1:'hwy', q2:'P1', q3:30}, b:{age:'40s', gender:'male', car:'egmp', speed:'fast', time:'lunch', freq:'1'}},
+    {id:'demo_p2', name:'B', ini:'B', p:'P2', intro:'주말 낮 도심 외출 중 충전', a:{q1:'town', q2:'P2', q3:45}, b:{age:'30s', gender:'female', car:'tesla', speed:'fast', time:'afternoon', freq:'2_3'}},
+    {id:'demo_p3', name:'C', ini:'C', p:'P3', intro:'퇴근길 마트 장보며 충전', a:{q1:'mart', q2:'P3', q3:45}, b:{age:'40s', gender:'female', car:'other', speed:'slow', time:'evening', freq:'2_3'}},
+    {id:'demo_p4a', name:'D', ini:'D', p:'P4a', intro:'밤에 차 안에서 영상 보며 충전', a:{q1:'home', q2:'P4a', q3:30}, b:{age:'20s', gender:'male', car:'small_old', speed:'fast', time:'night', freq:'4_6'}},
+    {id:'demo_p4b', name:'E', ini:'E', p:'P4b', intro:'출근 전 잠깐 급속 충전', a:{q1:'home', q2:'P4b', q3:15}, b:{age:'50s', gender:'male', car:'egmp', speed:'fast', time:'morning', freq:'daily'}}];
   const sess = () => { try { const v = JSON.parse(localStorage.getItem(SKEY)); return v && (v.mode === 'me' || (v.mode === 'demo' && DEMO.some(d => d.id === v.id))) ? v : null; } catch (e) { return null; } };
   const setSess = v => { try { if (v) localStorage.setItem(SKEY, JSON.stringify(v)); else localStorage.removeItem(SKEY); } catch (e) {} };
   const demoOf = () => { const v = sess(); return v && v.mode === 'demo' ? DEMO.find(d => d.id === v.id) : null; };
