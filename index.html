@@ -411,6 +411,12 @@ a.kmap{font-size:10.5px;font-weight:700;color:var(--mint2);text-decoration:none;
 .chgbadge[hidden]{display:none}
 .modetag{flex:none;font-size:10.5px;font-weight:800;color:#a2620a;background:#fff4dc;border:1px solid #f1d9a6;border-radius:99px;padding:2px 7px;letter-spacing:.02em}
 .modetag[hidden]{display:none}
+.whobtn{flex:none;display:inline-flex;align-items:center;gap:5px;border:1px solid #f1d9a6;background:#fff8e8;border-radius:99px;padding:3px 9px 3px 7px;font:inherit;color:var(--ink2)}
+.whobtn[hidden]{display:none}
+.whobtn i{font-style:normal;font-size:10px;font-weight:800;color:#a2620a}
+.whobtn b{font-size:11.5px;font-weight:700;color:var(--navy)}
+.whoav{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;background:var(--pc,#5f7484)}
+.whobtn[data-p="P1"]{--pc:#d9822b}.whobtn[data-p="P2"]{--pc:#17a99a}.whobtn[data-p="P3"]{--pc:#3d7fd1}.whobtn[data-p="P4a"]{--pc:#8a63d2}.whobtn[data-p="P4b"]{--pc:#5f7484}
 /* 길찾기(11/23): 충전소를 고르면 서랍 탭 줄 오른쪽. 누르면 화면 안 경로 안내(startRoute, Worker /route). 카카오맵은 실패했을 때만 보조 링크. 새 탭 link/to = 출발지는 카카오맵이 정하는 현재 위치, API·키 없음 */
 /* 11/23 준엽: 서랍 위쪽 탭 줄 오른쪽(서랍 안이라 높이가 바뀌어도 함께 움직이고 카드·지도 버튼 줄을 가리지 않음) */
 .tabrow{flex:none;display:flex;align-items:center;gap:8px}
@@ -559,6 +565,7 @@ img.car{display:block;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(20,5
     <input id="q" type="search" placeholder="충전소 이름·주소 검색" autocomplete="off">
     <button class="wx" id="wx" type="button" hidden aria-label="지도 가운데 날씨"></button>
     <span class="modetag" id="modeTag" hidden>시연</span>
+    <button class="whobtn" id="whoBtn" type="button" hidden aria-label="다른 사람으로 보기"><i>시연</i><span class="whoav" id="whoAv"></span><b>다른 사람</b></button>
     <button id="home" type="button">처음</button>
   </div>
   <div class="infrabar" id="infraBar">
@@ -758,7 +765,13 @@ const SEOUL = [37.5665, 126.978];
 const EMPTY = {type:'FeatureCollection', features:[]};
 
 /* 지도: OSM 바탕(또는 브이월드 위성). 확대·회전·기울이기가 끊김 없이 이어짐 */
-if (window.CHAEVI_MODE === 'demo') document.getElementById('modeTag').hidden = false;      // 버전 표시는 시연판에만
+/* 시연판: 검색줄에 '시연 · 지금 인물 아바타 · 다른 사람' 버튼(누르면 로그아웃과 같은 초기화 → 인물 고르기 화면). 로그인 전에는 '시연' 표시만. 실사용판에는 없음 */
+if (window.CHAEVI_MODE === 'demo'){
+  const who = window.ONB && ONB.who && ONB.who();
+  if (who){ const b = document.getElementById('whoBtn'); b.hidden = false; b.dataset.p = who.p; document.getElementById('whoAv').textContent = who.name;
+    b.setAttribute('aria-label', `시연 중 ${who.name} · 다른 사람으로 보기`); b.onclick = () => ONB.logout(); document.getElementById('q').placeholder = '충전소 검색'; }      // 칸이 좁아져 짧은 안내 글
+  else document.getElementById('modeTag').hidden = false;
+}
 const SAT_URL = 'https://xdworld.vworld.kr/2d/Satellite/service/{z}/{x}/{y}.jpeg';
 const map = new maplibregl.Map({container:'map', center:[SEOUL[1], SEOUL[0]], zoom:11.5, minZoom:8.5, maxZoom:19, maxPitch:60, attributionControl:false,
   style:{version:8, sources:{osm:{type:'raster', tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize:256, maxzoom:19,
