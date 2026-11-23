@@ -45,3 +45,45 @@ body.nav #onbFab{display:none}
 .my-why{margin:8px 0 0;font-size:12px;color:var(--ink)}
 .my-why summary{cursor:pointer;font-weight:700;color:var(--navy);font-size:12px}
 .my-why p{margin:5px 0 0;line-height:1.5}
+
+/* 시연 로그인·새 사용자 질문(11/23). 페르소나 색 = --pc (index.html 주변 화면과 같은 값) */
+.lg-card[data-p="P1"],#onbFab[data-p="P1"]{--pc:#d9822b}.lg-card[data-p="P2"],#onbFab[data-p="P2"]{--pc:#17a99a}.lg-card[data-p="P3"],#onbFab[data-p="P3"]{--pc:#3d7fd1}
+.lg-card[data-p="P4a"],#onbFab[data-p="P4a"]{--pc:#8a63d2}.lg-card[data-p="P4b"],#onbFab[data-p="P4b"]{--pc:#5f7484}
+.lg-brand{margin:18px 0 4px;font-size:12px;font-weight:800;letter-spacing:.04em;color:#3d9a7f}
+.lg-t{margin:0 0 6px;font-size:24px;color:#22323b}
+.lg-lead{margin:0 0 14px;font-size:13px;color:var(--ink2);line-height:1.55}
+.lg-list{display:flex;flex-direction:column;gap:10px;margin:0 0 16px}
+.lg-card{display:flex;align-items:center;gap:12px;text-align:left;border:1.5px solid #ece8e1;background:var(--surface);border-radius:18px;padding:12px 14px;box-shadow:0 1px 3px rgba(60,50,30,.05);font:inherit;color:inherit}
+.lg-card:active{border-color:var(--pc)}
+.lg-av{flex:none;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;background:var(--pc)}
+.lg-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.lg-body b{font-size:16px;color:#22323b}
+.lg-id{font-size:11.5px;font-weight:700;color:var(--pc)}
+.lg-in{font-size:13px;color:var(--ink)}
+.lg-meta{font-size:11px;color:var(--muted)}
+.lg-new{margin-top:4px}
+.lgn .onb-link,.qz .onb-link{display:block;margin:6px auto 0}
+.qz-top{display:flex;align-items:center;gap:10px;margin:8px 0 22px}
+.qz-back{flex:none;border:0;background:var(--mintbg);color:var(--navy);width:38px;height:38px;border-radius:50%;font-size:18px;font-weight:700}
+.qz-bar{flex:1;height:6px;border-radius:99px;background:var(--grid);overflow:hidden}
+.qz-bar i{display:block;height:100%;background:#3d9a7f;border-radius:99px;transition:width .25s}
+.qz-n{flex:none;font-size:12px;font-weight:700;color:var(--ink2)}
+.qz-t{margin:0 0 16px;font-size:22px;line-height:1.35;color:#22323b;word-break:keep-all}
+.qz-opts{display:flex;flex-direction:column;gap:9px;margin:0 0 10px}
+.qz-opt{text-align:left;border:1.5px solid #ece8e1;background:var(--surface);border-radius:14px;padding:15px 16px;font-size:15px;font-weight:600;color:var(--ink)}
+.qz-opt[aria-pressed="true"]{border-color:#3d9a7f;background:#eaf6f1}
+.qz-res{margin:0 0 8px;font-size:26px;color:#22323b}
+.qz-res em{font-style:normal;color:#3d9a7f}
+.qz-bars{display:flex;flex-direction:column;gap:8px;margin:6px 0 4px}
+.qz-row{display:grid;grid-template-columns:84px 1fr 40px;align-items:center;gap:8px;font-size:13px;color:var(--ink2)}
+.qz-row i{height:10px;border-radius:99px;background:var(--grid);overflow:hidden}
+.qz-row b{display:block;height:100%;background:#b9d9cd;border-radius:99px}
+.qz-row.on{color:#22323b;font-weight:700}
+.qz-row.on b{background:#3d9a7f}
+.qz-row em{font-style:normal;text-align:right}
+.qz .onb-go{margin-top:16px}
+.my-who{font-size:12px;font-weight:600;color:var(--ink2);margin-left:6px;letter-spacing:0}
+.my-switch{border:1.5px solid var(--axis);background:var(--surface);color:var(--navy);font-size:12.5px;font-weight:700;border-radius:99px;padding:6px 12px;margin:0 0 10px}
+#onbFab.demo span{font-size:9.5px;max-width:46px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#onbFab.demo svg{color:var(--pc)}
+

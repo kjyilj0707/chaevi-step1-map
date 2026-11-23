@@ -38,8 +38,24 @@
   const LAB = {}; B.forEach(q => q.o.forEach(([v, t]) => LAB[q.k + ':' + v] = t));
   const Q1_PTS = 1.5;
 
-  const load = () => { try { const p = JSON.parse(localStorage.getItem(KEY)); return p && p.persona_scores ? upgrade(p) : null; } catch (e) { return null; } };
-  const save = p => { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch (e) {} };
+  /* ---------- 시연 로그인(11/23 준엽): 진짜 로그인이 아님. 가상 인물 5명 중 하나를 고르면 그 사람 값으로 들어감. 비밀번호·서버 없음 ----------
+     세션 localStorage 'chaeviSession' = {mode:'demo', id} | {mode:'me'}. 시연 프로필은 'chaeviDemo:<id>'에 따로 저장(내 MY 'chaeviProfile'과 섞이지 않음).
+     인물 값 = MY 폼의 Q1~Q3·기본 정보 칸 그대로. Q2(충전 중 하는 일, +3점)가 그 페르소나라 시작 점수 1위가 그 페르소나(prior_v1 규칙, π < 1) */
+  const SKEY = 'chaeviSession', DKEY = 'chaeviDemo:';
+  const DEMO = [
+    {id:'demo_p1', name:'한도윤', ini:'도', p:'P1', intro:'주말 장거리, 휴게소에서 점심 겸 충전', a:{q1:'hwy', q2:'P1', q3:30}, b:{age:'40s', gender:'male', car:'egmp', speed:'fast', time:'lunch', freq:'1'}},
+    {id:'demo_p2', name:'서지아', ini:'지', p:'P2', intro:'주말 낮 도심 외출 중 충전', a:{q1:'town', q2:'P2', q3:45}, b:{age:'30s', gender:'female', car:'tesla', speed:'fast', time:'afternoon', freq:'2_3'}},
+    {id:'demo_p3', name:'박은솔', ini:'은', p:'P3', intro:'퇴근길 마트 장보며 충전', a:{q1:'mart', q2:'P3', q3:45}, b:{age:'40s', gender:'female', car:'other', speed:'slow', time:'evening', freq:'2_3'}},
+    {id:'demo_p4a', name:'최현우', ini:'현', p:'P4a', intro:'밤에 차 안에서 영상 보며 충전', a:{q1:'home', q2:'P4a', q3:30}, b:{age:'20s', gender:'male', car:'small_old', speed:'fast', time:'night', freq:'4_6'}},
+    {id:'demo_p4b', name:'윤태오', ini:'태', p:'P4b', intro:'출근 전 잠깐 급속 충전', a:{q1:'home', q2:'P4b', q3:15}, b:{age:'50s', gender:'male', car:'egmp', speed:'fast', time:'morning', freq:'daily'}}];
+  const sess = () => { try { const v = JSON.parse(localStorage.getItem(SKEY)); return v && (v.mode === 'me' || (v.mode === 'demo' && DEMO.some(d => d.id === v.id))) ? v : null; } catch (e) { return null; } };
+  const setSess = v => { try { if (v) localStorage.setItem(SKEY, JSON.stringify(v)); else localStorage.removeItem(SKEY); } catch (e) {} };
+  const demoOf = () => { const v = sess(); return v && v.mode === 'demo' ? DEMO.find(d => d.id === v.id) : null; };
+  const profKey = () => { const d = demoOf(); return d ? DKEY + d.id : KEY; };
+  const load = () => { try { const p = JSON.parse(localStorage.getItem(profKey())); return p && p.persona_scores ? upgrade(p) : null; } catch (e) { return null; } };
+  const save = p => { try { localStorage.setItem(profKey(), JSON.stringify(p)); } catch (e) {} };
+  /* 사람이 바뀔 때 남으면 안 되는 이 기기 값: 충전 타이머, 예전 추천 기억 */
+  const clearTransient = () => { try { ['chaeviCharge', 'recoP', 'recoR'].forEach(k => localStorage.removeItem(k)); DEMO.forEach(d => localStorage.removeItem(DKEY + d.id)); } catch (e) {} };
   let PJ = null;      // prior_v1.json
   /* 파이썬 round(x, 3)과 같은 반올림(정확히 가운데면 짝수 쪽, station_reco.js와 같은 방식) */
   const rd = x => { const t = Math.abs(x).toFixed(60), rest = t.slice(t.indexOf('.') + 4);
@@ -94,7 +110,7 @@
   }
 
   let prof = load(), RS = null, REM = [15, 30, 45, 60], redraw = () => {}, open = false, queue = [], about = () => '';
-  const need = () => !prof;
+  const need = () => !sess() || !prof;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c]));
 
   /* ---------- 폼 ---------- */
@@ -152,6 +168,7 @@
       if (act === 'save') finish(true);
       else if (act === 'later') finish(false);
       else if (act === 'close') close();
+      else if (act === 'logout') logout();
       else if (act === 'reset'){ if (!resetArm){ resetArm = true; b.textContent = '한 번 더 누르면 초기화'; b.classList.add('arm'); } else reset(); }
     });
     el.addEventListener('input', e => {
@@ -168,7 +185,8 @@
     const [pp, why, tp] = preview();
     const bat = f.bat === '' || f.bat == null ? '' : f.bat;
     const html = `<div class="onb-in my">
-      <div class="my-top"><h2 id="myT">MY</h2>${first ? '<span></span>' : '<button type="button" class="my-x" data-act="close" aria-label="닫기">×</button>'}</div>
+      <div class="my-top"><h2 id="myT">MY${demoOf() ? ` <small class="my-who">${esc(demoOf().name)} · ${demoOf().id}</small>` : ''}</h2>${first ? '<span></span>' : '<button type="button" class="my-x" data-act="close" aria-label="닫기">×</button>'}</div>
+      ${first ? '' : '<button type="button" class="my-switch" data-act="logout">다른 사람으로 보기</button>'}
       <p class="my-lead">${first ? '충전 습관을 알려 주시면 충전하는 동안 다녀올 곳을 먼저 보여 드려요. ' : ''}이름·연락처는 받지 않고, 답은 이 기기에만 저장돼요(서버로 보내지 않음).</p>
       <section class="my-card my-persona">
         <p class="my-sub">현재 페르소나</p>
@@ -209,6 +227,7 @@
   }
   // 'pick' 줄은 위 click 처리에서 f.pick 으로 들어감(같은 걸 다시 누르면 풂)
   function show(isFirst){
+    if (el) el.onclick = null;      // 로그인·질문 화면의 클릭 처리 해제(MY 폼은 addEventListener 쪽)
     first = !!isFirst; f = draft(); resetArm = false; open = true; build(); draw(); el.hidden = false; document.body.classList.add('onb-on');
     const fab = document.getElementById('onbFab'); if (fab) fab.setAttribute('aria-pressed', 'true');
     const x = el.querySelector(first ? '.onb-go' : '.my-x'); if (x) try { x.focus({preventScroll:true}); } catch (e) {}
@@ -252,12 +271,80 @@
       if (lb) lb.classList.remove('on'); if (lbb) lbb.setAttribute('aria-pressed', 'false');
       show(false); };
   }
+  function fabLabel(){ const b = document.getElementById('onbFab'), d = demoOf(); if (!b || !d) return;
+    b.classList.add('demo'); b.setAttribute('data-p', d.p); b.querySelector('span').textContent = d.name; b.setAttribute('aria-label', `MY · 시연 ${d.name}`); }
   function reset(){
-    prof = null; try { localStorage.removeItem(KEY); localStorage.removeItem('recoP'); localStorage.removeItem('recoR'); } catch (e) {}
+    prof = null; try { localStorage.removeItem(profKey()); localStorage.removeItem('recoP'); localStorage.removeItem('recoR'); } catch (e) {}
     apply(); close(); redraw();
     if (typeof g.toast === 'function') g.toast('내 정보·페르소나를 초기화함. 다음에 열 때 MY 입력 화면이 다시 나옴');
   }
   // pick 줄 처리: 공통 click 처리기가 f.pick 에 값/해제를 넣음(k='pick')
+
+  /* ---------- 시연 로그인 화면 + 새 사용자 질문 ---------- */
+  function lockOpen(){ build(); first = true; el.hidden = false; open = true; document.body.classList.add('onb-on'); }      // first = Esc로 닫히지 않게
+  function loginDemo(id){
+    const d = DEMO.find(x => x.id === id); if (!d) return;
+    clearTransient(); setSess({mode:'demo', id});
+    prof = makeProfile(Object.assign({skipped:false}, d.a), Object.assign({}, d.b)); save(prof);
+    location.reload();      // 지도·추천·키워드·슬라이더 상태를 깨끗하게(이전 사람 상태가 남지 않게)
+  }
+  function logout(){ clearTransient(); setSess(null); location.reload(); }
+  function showLogin(){
+    lockOpen();
+    const mine = (() => { try { return !!JSON.parse(localStorage.getItem(KEY)); } catch (e) { return false; } })();
+    el.innerHTML = `<div class="onb-in lgn">
+      <p class="lg-brand">CHAEVI · 시연</p>
+      <h2 class="lg-t">누구로 둘러볼까요?</h2>
+      <p class="lg-lead">시연용 가상 인물이에요. 실제 로그인이 아니고, 고른 값은 이 기기에만 저장돼요.</p>
+      <div class="lg-list">${DEMO.map(d => `<button type="button" class="lg-card" data-demo="${d.id}" data-p="${d.p}">
+        <span class="lg-av" aria-hidden="true">${esc(d.ini)}</span>
+        <span class="lg-body"><b>${esc(d.name)}</b><span class="lg-id">${d.id} · ${NAME[d.p]}</span><span class="lg-in">${esc(d.intro)}</span>
+          <span class="lg-meta">${esc(LAB['car:' + d.b.car] || '')} · ${esc(LAB['time:' + d.b.time] || '')} 충전 · 보통 ${d.a.q3}분</span></span></button>`).join('')}</div>
+      <button type="button" class="onb-go lg-new" data-act="new">${mine ? '내 정보로 계속' : '새 사용자로 시작'}</button>
+      ${mine ? '<button type="button" class="onb-link" data-act="newq">새 사용자로 다시 답하기</button>' : ''}
+    </div>`;
+    el.onclick = e => { const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.demo) return loginDemo(b.dataset.demo);
+      if (b.dataset.act === 'new'){ setSess({mode:'me'}); prof = load(); if (prof){ apply(); el.onclick = null; close(); redraw(); } else showQuiz(); }
+      if (b.dataset.act === 'newq'){ setSess({mode:'me'}); showQuiz(); } };
+  }
+  /* 새 사용자 질문: MY 폼 문항 재사용(새 문항 없음). Q1 주로 충전하는 곳 · Q2 충전 중 하는 일(+3점) · Q3 보통 머무는 시간 · 시간대 · 차종(prior_v1 배수) */
+  const QZ = [Object.assign({grp:'a'}, Q[0]), Object.assign({grp:'a'}, Q[1]), Object.assign({grp:'a'}, Q[2]), Object.assign({grp:'b'}, B[4]), Object.assign({grp:'b'}, B[2])];
+  let qz = null;
+  function showQuiz(){ lockOpen(); qz = {i:0, a:{q1:null, q2:null, q3:null, skipped:false}, b:{}}; drawQuiz(); }
+  function drawQuiz(){
+    if (qz.i >= QZ.length) return drawResult();
+    const q = QZ[qz.i], cur = q.grp === 'a' ? qz.a[q.k] : qz.b[q.k];
+    el.innerHTML = `<div class="onb-in qz">
+      <div class="qz-top">${qz.i ? '<button type="button" class="qz-back" data-act="back" aria-label="이전">←</button>' : '<button type="button" class="qz-back" data-act="login" aria-label="로그인 화면">←</button>'}
+        <div class="qz-bar" role="progressbar" aria-valuemin="1" aria-valuemax="${QZ.length}" aria-valuenow="${qz.i + 1}"><i style="width:${(qz.i + 1) / QZ.length * 100}%"></i></div><span class="qz-n">${qz.i + 1}/${QZ.length}</span></div>
+      <h2 class="qz-t">${esc(q.t)}${q.k === 'q2' ? '은(는) 무엇인가요?' : q.k === 'q1' ? '는 어디인가요?' : '은(는)?'}</h2>
+      <div class="qz-opts">${q.o.map(([v, t]) => `<button type="button" class="qz-opt" data-v="${esc(v)}" aria-pressed="${cur === v}">${esc(t)}</button>`).join('')}</div>
+      <button type="button" class="onb-link" data-act="skip">건너뛰기</button></div>`;
+    el.onclick = e => { const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.act === 'back'){ qz.i--; return drawQuiz(); }
+      if (b.dataset.act === 'login') return showLogin();
+      if (b.dataset.act === 'skip'){ qz.i++; return drawQuiz(); }
+      if (b.classList.contains('qz-opt')){ const v = q.k === 'q3' ? +b.dataset.v : b.dataset.v; if (q.grp === 'a') qz.a[q.k] = v; else qz.b[q.k] = v; qz.i++; drawQuiz(); } };
+  }
+  function drawResult(){
+    const p = makeProfile(qz.a, qz.b), t = top(p), st = p.start, sum = IDS.reduce((x, id) => x + (+st[id] || 0), 0) || 1;
+    const rank = IDS.slice().sort((x, y) => (+st[y] || 0) - (+st[x] || 0)).slice(0, 3);
+    const q2t = (Q[1].o.find(o => o[0] === qz.a.q2) || [])[1], q1t = (Q[0].o.find(o => o[0] === qz.a.q1) || [])[1];
+    const why = qz.a.q2 ? `충전하는 동안 '${q2t}'을(를) 고르셨어요.` : qz.a.q1 && Q1P[qz.a.q1] ? `주로 '${q1t}'에서 충전한다고 하셨어요.` : '답이 적어 시간대·차종과 충전 후기 비율로 정했어요.';
+    el.innerHTML = `<div class="onb-in qz">
+      <p class="lg-brand">결과</p>
+      <h2 class="qz-res">당신은 <em>${NAME[t]}</em></h2>
+      <p class="lg-lead">${esc(why)} ${esc(DESC[t])}</p>
+      <div class="qz-bars">${rank.map(id => { const v = (+st[id] || 0) / sum; return `<div class="qz-row${id === t ? ' on' : ''}"><span>${NAME[id]}</span><i><b style="width:${(v * 100).toFixed(1)}%"></b></i><em>${Math.round(v * 100)}%</em></div>`; }).join('')}</div>
+      <p class="my-note">막대 = 시작 점수 비율(질문 답 + 충전 후기 비율·시간대·차종 배수). 결과는 MY에서 언제든 바꿀 수 있어요.</p>
+      <button type="button" class="onb-go" data-act="go">시작하기</button>
+      <button type="button" class="onb-link" data-act="back">답 다시 고르기</button></div>`;
+    el.onclick = e => { const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.act === 'back'){ qz.i = QZ.length - 1; return drawQuiz(); }
+      if (b.dataset.act === 'go'){ setSess({mode:'me'}); prof = p; save(prof); apply(); el.onclick = null; qz = null; close(); redraw();
+        if (typeof g.toast === 'function') g.toast(`${NAME[t]}(으)로 시작해요 · MY에서 바꿀 수 있어요`); } };
+  }
 
   /* ---------- index.html 에서 부르는 것 ---------- */
   const ONB = {};
@@ -265,8 +352,9 @@
   ONB.init = (rs, remains, re, opt) => {
     RS = rs; if (Array.isArray(remains)) REM = remains; if (typeof re === 'function') redraw = () => { try { re(); } catch (e) {} };
     if (opt && typeof opt.about === 'function') about = opt.about;
-    apply(); fabBtn();
-    if (need()) show(true);
+    apply(); fabBtn(); fabLabel();
+    if (!sess()) showLogin();                 // 세션 없음 → 시연 로그인 화면(앱 첫 화면)
+    else if (!prof) showQuiz();               // '나'로 들어왔는데 MY 없음 → 질문
     /* 시작값 표(prior_v1.json): 오면 저장된 프로필의 시작 점수를 다시 계산(learn 유지)하고, 폼이 열려 있으면 다시 그림. 못 읽으면 예전 규칙 */
     fetch(opt && opt.prior || 'data/reco/prior_v1.json').then(r => r.ok ? r.json() : null).then(j => {
       if (!j || !j.base || !j.factors) return; PJ = j;
@@ -294,5 +382,10 @@
   ONB.name = id => NAME[id] || id;
   ONB.open = () => show(false);
   ONB.persona = () => prof ? top(prof) : null;      // 시험용
+  ONB.isDemo = () => !!demoOf();
+  ONB.userName = () => { const d = demoOf(); return d ? d.name : ''; };
+  ONB.demos = () => DEMO.map(d => Object.assign({}, d));      // 시험용
+  ONB.login = id => loginDemo(id);
+  ONB.logout = () => logout();
   g.ONB = ONB;
 })(window);
