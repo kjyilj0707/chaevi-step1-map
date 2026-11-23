@@ -31,12 +31,13 @@
      ic = 업종 그림 번호(index.html PICON) 또는 svg(그림 없는 타일) */
   const SVG_CAR = '<svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><path d="M5 11l1.6-4.2A2 2 0 0 1 8.5 5.5h7a2 2 0 0 1 1.9 1.3L19 11a2 2 0 0 1 1.5 1.9V17a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0h-5a2 2 0 0 1-4 0h-1a1 1 0 0 1-1-1v-4.1A2 2 0 0 1 5 11zm2.2 0h9.6l-1.2-3.2a.6.6 0 0 0-.6-.4H9a.6.6 0 0 0-.6.4z"/></svg>';
   const SVG_CLOCK = '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
+  const SVG_SHOP = '<svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><path d="M3.2 3.5h17.6l1.7 5.2a3 3 0 0 1-5.5 1.6 3.1 3.1 0 0 1-5 0 3.1 3.1 0 0 1-5 0A3 3 0 0 1 1.5 8.7z"/><path d="M4 12.4V21h6v-5.2h4V21h6v-8.6a4.4 4.4 0 0 1-3.4-.9 4.6 4.6 0 0 1-4.6 1 4.6 4.6 0 0 1-4.6-1 4.4 4.4 0 0 1-3.4.9z"/></svg>';      // 편의점(차양 있는 가게, 11/24: 마트 장바구니와 구분)
   const ACTS = [
     {id:'cafe', t:'커피·카페', big:'카페·음료', ic:12},
     {id:'dessert', t:'디저트·간식', big:'디저트·간식', ic:16},
     {id:'meal', t:'밥 먹기', big:'식사', ic:13},
     {id:'snack', t:'분식·포장', big:'간편식', ic:11},
-    {id:'cvs', t:'편의점', big:'식품·편의', ic:7},
+    {id:'cvs', t:'편의점', big:'식품·편의', svg:SVG_SHOP, col:'#2a78d6'},
     {id:'mart', t:'마트 장보기', to:{P3:1}, ic:7, col:'#3d7fd1'},
     {id:'walk', t:'산책·공원', to:{P2:1}, ic:22},
     {id:'shop', t:'옷·잡화 구경', to:{P2:0.6, P3:0.4}, ic:10},
