@@ -336,19 +336,26 @@
   /* 스플래시·웰컴(11/23 시안). 스플래시 = 탭 한 번 열 때 한 번(이 탭에서 처음, 1.3초 또는 누르면 넘어감), 웰컴 = 같은 탭에서 한 번(실사용판 질문 앞·시연판 인물 고르기 앞) */
   const ssGet = k => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
   const ssSet = k => { try { sessionStorage.setItem(k, '1'); } catch (e) {} };
-  const WELCOME_ART = `<svg class="wl-art" viewBox="0 0 320 210" aria-hidden="true">
-    <ellipse cx="160" cy="186" rx="150" ry="16" fill="#e6f7f4"/>
-    <path d="M58 150 A102 102 0 0 1 238 82" fill="none" stroke="#58DDD0" stroke-width="5" stroke-linecap="round" opacity=".55"/>
-    <g stroke="#58DDD0" stroke-width="3" stroke-linecap="round" opacity=".6"><path d="M70 104l9 5"/><path d="M104 66l6 8"/><path d="M152 50v10"/><path d="M200 58l-5 8"/></g>
-    <rect x="236" y="20" width="84" height="10" rx="5" fill="#e3e9e6"/><rect x="292" y="30" width="8" height="150" fill="#eef2f0"/>
-    <g><rect x="246" y="78" width="40" height="100" rx="8" fill="#fff" stroke="#c9d4d0" stroke-width="2"/><rect x="246" y="78" width="40" height="20" rx="8" fill="#58DDD0"/><polyline points="259,85 266,92 273,85" fill="none" stroke="#1B4965" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <rect x="254" y="106" width="24" height="16" rx="3" fill="#1B4965"/><rect x="258" y="110" width="9" height="3" rx="1.5" fill="#58DDD0"/></g>
-    <path d="M250 132c-22 4-26 20-46 22" fill="none" stroke="#1B4965" stroke-width="4" stroke-linecap="round"/>
-    <g><path d="M30 160c0-12 6-20 18-24l26-10c10-12 24-20 42-20h44c16 0 28 8 38 20l20 8c14 4 22 12 22 24v6c0 4-3 6-6 6H36c-4 0-6-2-6-6z" fill="#fff" stroke="#c9d4d0" stroke-width="2.5"/>
-      <path d="M84 126c8-9 18-14 32-14h22v18H78z" fill="#d6ecf0"/><path d="M146 112h14c12 0 21 5 29 14l3 4h-46z" fill="#d6ecf0"/>
-      <path d="M40 150h16" stroke="#58DDD0" stroke-width="4" stroke-linecap="round"/><path d="M200 146h20" stroke="#c9d4d0" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="78" cy="170" r="17" fill="#1B4965"/><circle cx="78" cy="170" r="7" fill="#c9d4d0"/><circle cx="196" cy="170" r="17" fill="#1B4965"/><circle cx="196" cy="170" r="7" fill="#c9d4d0"/></g>
-    <g fill="#9fd8b8"><circle cx="18" cy="160" r="10"/><circle cx="8" cy="168" r="8"/><circle cx="306" cy="172" r="9"/></g></svg>`;
+  /* 웰컴 그림(직접 그린 SVG, 11/24 시안에 가깝게): 민트 시계 호·눈금, 지붕(캐노피)·기둥, 민트 화면 + V 충전기, SUV 실루엣, 바닥 민트 선 */
+  const WELCOME_ART = `<svg class="wl-art" viewBox="0 0 340 260" aria-hidden="true">
+    <path d="M14 214H330" stroke="#58DDD0" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+    <path d="M30 222c60 14 220 14 290 0" fill="none" stroke="#c9eee9" stroke-width="10" stroke-linecap="round"/>
+    <path d="M48 176A118 118 0 0 1 250 70" fill="none" stroke="#58DDD0" stroke-width="6" stroke-linecap="round" opacity=".5"/>
+    <g stroke="#58DDD0" stroke-width="3.5" stroke-linecap="round" opacity=".65"><path d="M58 128l11 5"/><path d="M84 88l9 8"/><path d="M124 62l5 11"/><path d="M168 54v12"/><path d="M212 60l-5 11"/></g>
+    <path d="M222 24h118v14H222z" fill="#e6ece9"/><path d="M222 38h118" stroke="#d3ddd9" stroke-width="2"/><rect x="306" y="38" width="12" height="176" fill="#eef2f0"/>
+    <g><rect x="252" y="92" width="46" height="122" rx="10" fill="#fff" stroke="#c8d3cf" stroke-width="2.5"/>
+      <rect x="252" y="92" width="46" height="26" rx="10" fill="#58DDD0"/><rect x="252" y="106" width="46" height="12" fill="#58DDD0"/>
+      <polyline points="267,101 275,109 283,101" fill="none" stroke="#1B4965" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="262" y="128" width="26" height="20" rx="4" fill="#1B4965"/><rect x="267" y="133" width="10" height="3.5" rx="1.75" fill="#58DDD0"/><rect x="267" y="139" width="16" height="3" rx="1.5" fill="#58DDD0" opacity=".6"/>
+      <circle cx="275" cy="164" r="6" fill="#e6ece9" stroke="#c8d3cf" stroke-width="2"/></g>
+    <path d="M269 164c-12 0-20 6-26 16-6 10-14 14-26 14" fill="none" stroke="#1B4965" stroke-width="4.5" stroke-linecap="round"/>
+    <g><path d="M20 192v-20c0-10 6-17 16-19l30-6 22-30c6-8 14-12 24-12h76c10 0 18 4 24 11l25 30 15 4c10 3 16 11 16 21v21c0 4-3 7-7 7H27c-4 0-7-3-7-7z" fill="#fff" stroke="#c8d3cf" stroke-width="3"/>
+      <path d="M108 102h92" stroke="#c8d3cf" stroke-width="4" stroke-linecap="round"/>
+      <path d="M92 146l17-24c4-6 10-8 17-8h24v32z" fill="#d7ecf0"/><path d="M158 114h30c7 0 12 2 16 7l21 25h-67z" fill="#d7ecf0"/>
+      <path d="M28 170h22" stroke="#58DDD0" stroke-width="5" stroke-linecap="round"/><path d="M226 166h22" stroke="#c8d3cf" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M56 158h186" stroke="#e1e8e5" stroke-width="2"/><path d="M20 188h28M234 188h30" stroke="#1B4965" stroke-width="3" stroke-linecap="round" opacity=".35"/>
+      <circle cx="76" cy="198" r="21" fill="#1B4965"/><circle cx="76" cy="198" r="9" fill="#c8d3cf"/><circle cx="212" cy="198" r="21" fill="#1B4965"/><circle cx="212" cy="198" r="9" fill="#c8d3cf"/></g>
+    <g fill="#9fd8b8"><circle cx="16" cy="200" r="11"/><circle cx="6" cy="208" r="8"/><circle cx="330" cy="204" r="9"/></g></svg>`;
   function showSplash(next){
     lockOpen(); ssSet('chaeviSplash');
     el.innerHTML = `<div class="sp" role="img" aria-label="채소, 채비와의 소중한 시간">
@@ -364,7 +371,7 @@
       <div class="wl-top"><b>채소</b><button type="button" class="wl-skip" data-act="wgo">건너뛰기</button></div>
       <h1 class="wl-t">충전하는 동안,<br>나를 위한 시간.</h1>
       <p class="wl-d">채비와 함께하는 소중한 순간을<br>채소에서 시작해보세요.</p>
-      ${WELCOME_ART}
+      <div class="wl-artbox">${WELCOME_ART}</div>
       <button type="button" class="onb-go wl-go" data-act="wgo">채소 시작하기 <span aria-hidden="true">→</span></button>
       <p class="wl-foot">채비와의 소중한 시간</p></div>`;
     el.onclick = e => { const b = e.target.closest('button'); if (b && b.dataset.act === 'wgo'){ el.onclick = null; next(); } };
@@ -496,7 +503,7 @@
   ONB.persona = () => prof ? top(prof) : null;      // 시험용
   ONB.isDemo = () => !!demoOf();
   ONB.mode = () => MODE;
-  ONB.build = '20261124e';      // index.html CHAEVI_BUILD와 같아야 함(다르면 index.html이 다시 불러옴)
+  ONB.build = '20261124f';      // index.html CHAEVI_BUILD와 같아야 함(다르면 index.html이 다시 불러옴)
   ONB.who = () => { const d = demoOf(); return d ? {id:d.id, name:d.name, p:d.p} : null; };      // 시연판 지도 위 '다른 사람으로 보기' 버튼용
   ONB.userName = () => { const d = demoOf(); return d ? d.name : ''; };
   ONB.demos = () => DEMO.map(d => Object.assign({}, d));      // 시험용
