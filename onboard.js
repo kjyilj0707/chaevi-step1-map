@@ -328,10 +328,52 @@
 
   /* ---------- 시연 로그인 화면 + 새 사용자 질문 ---------- */
   /* '채소' 로고·슬로건(11/23 준엽): 채소 = 채비 + 소중한 시간. 시연판 로그인 화면·실사용판 질문 첫 화면에만(지도 화면에는 넣지 않음) */
-  const LOGO = `<div class="chs" aria-label="채소 — 채비에서 보내는 소중한 시간">
-    <span class="chs-mark" aria-hidden="true"><svg viewBox="0 0 32 32" width="30" height="30"><path d="M16 3C9 7 5.5 13 6.5 20.5 7.2 25.6 11 29 16 29s8.8-3.4 9.5-8.5C26.5 13 23 7 16 3z" fill="#3d9a7f"/><path d="M17.6 9.5 11.8 18h4l-1.4 6.8 6-9h-4.1z" fill="#fff"/></svg></span>
-    <span class="chs-word">채소</span>
-    <span class="chs-line"><em>채</em>비에서 보내는 <em>소</em>중한 시간</span></div>`;
+  /* '채소' 브랜드(11/23 준엽 시안): 로고 = 민트 열린 원 + 남색 V + 플러그(번개). 채소 = 채비와의 소중한 시간 */
+  const LOGO_SVG = (px, ring) => `<svg viewBox="0 0 100 100" width="${px}" height="${px}" aria-hidden="true"><path class="lg-ring" d="M75.6 40.5 A32 32 0 1 1 54.3 23.1" fill="none" stroke="${ring || '#58DDD0'}" stroke-width="9" stroke-linecap="round"/>
+    <polyline points="33,45 46,60 59,45" fill="none" stroke="#1B4965" stroke-width="9.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="rotate(28 77 21)"><rect x="69" y="7" width="16" height="22" rx="4.5" fill="#1B4965"/><rect x="75" y="28" width="4" height="9" rx="2" fill="#1B4965"/><path d="M78.6 11 72.8 19.4h4.2l-1.6 6.4 6-8.6h-4.2z" fill="#fff"/></g></svg>`;
+  const LOGO = `<div class="chs" aria-label="채소 — 채비와의 소중한 시간"><span class="chs-mark">${LOGO_SVG(40)}</span><span class="chs-word">채소</span><span class="chs-line">채비와의 소중한 시간</span></div>`;
+  /* 스플래시·웰컴(11/23 시안). 스플래시 = 탭 한 번 열 때 한 번(이 탭에서 처음, 1.3초 또는 누르면 넘어감), 웰컴 = 같은 탭에서 한 번(실사용판 질문 앞·시연판 인물 고르기 앞) */
+  const ssGet = k => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
+  const ssSet = k => { try { sessionStorage.setItem(k, '1'); } catch (e) {} };
+  const WELCOME_ART = `<svg class="wl-art" viewBox="0 0 320 210" aria-hidden="true">
+    <ellipse cx="160" cy="186" rx="150" ry="16" fill="#e6f7f4"/>
+    <path d="M58 150 A102 102 0 0 1 238 82" fill="none" stroke="#58DDD0" stroke-width="5" stroke-linecap="round" opacity=".55"/>
+    <g stroke="#58DDD0" stroke-width="3" stroke-linecap="round" opacity=".6"><path d="M70 104l9 5"/><path d="M104 66l6 8"/><path d="M152 50v10"/><path d="M200 58l-5 8"/></g>
+    <rect x="236" y="20" width="84" height="10" rx="5" fill="#e3e9e6"/><rect x="292" y="30" width="8" height="150" fill="#eef2f0"/>
+    <g><rect x="246" y="78" width="40" height="100" rx="8" fill="#fff" stroke="#c9d4d0" stroke-width="2"/><rect x="246" y="78" width="40" height="20" rx="8" fill="#58DDD0"/><polyline points="259,85 266,92 273,85" fill="none" stroke="#1B4965" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="254" y="106" width="24" height="16" rx="3" fill="#1B4965"/><rect x="258" y="110" width="9" height="3" rx="1.5" fill="#58DDD0"/></g>
+    <path d="M250 132c-22 4-26 20-46 22" fill="none" stroke="#1B4965" stroke-width="4" stroke-linecap="round"/>
+    <g><path d="M30 160c0-12 6-20 18-24l26-10c10-12 24-20 42-20h44c16 0 28 8 38 20l20 8c14 4 22 12 22 24v6c0 4-3 6-6 6H36c-4 0-6-2-6-6z" fill="#fff" stroke="#c9d4d0" stroke-width="2.5"/>
+      <path d="M84 126c8-9 18-14 32-14h22v18H78z" fill="#d6ecf0"/><path d="M146 112h14c12 0 21 5 29 14l3 4h-46z" fill="#d6ecf0"/>
+      <path d="M40 150h16" stroke="#58DDD0" stroke-width="4" stroke-linecap="round"/><path d="M200 146h20" stroke="#c9d4d0" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="78" cy="170" r="17" fill="#1B4965"/><circle cx="78" cy="170" r="7" fill="#c9d4d0"/><circle cx="196" cy="170" r="17" fill="#1B4965"/><circle cx="196" cy="170" r="7" fill="#c9d4d0"/></g>
+    <g fill="#9fd8b8"><circle cx="18" cy="160" r="10"/><circle cx="8" cy="168" r="8"/><circle cx="306" cy="172" r="9"/></g></svg>`;
+  function showSplash(next){
+    lockOpen(); ssSet('chaeviSplash');
+    el.innerHTML = `<div class="sp" role="img" aria-label="채소, 채비와의 소중한 시간">
+      <div class="sp-mid">${LOGO_SVG(132)}<b class="sp-word">채소</b><span class="sp-line">채비와의 소중한 시간</span></div>
+      <svg class="sp-wave" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 110 C120 70 220 90 400 10" fill="none" stroke="#58DDD0" stroke-width="2" opacity=".55"/><path d="M196 72 189 84h6l-2 8 9-12h-6l2-8z" fill="#58DDD0"/></svg>
+      <p class="sp-foot">소중한 시간을 충전해요</p></div>`;
+    let done = false; const go = () => { if (done) return; done = true; el.onclick = null; next(); };
+    el.onclick = go; setTimeout(go, 1300);
+  }
+  function showWelcome(next){
+    lockOpen(); ssSet('chaeviWelcome');
+    el.innerHTML = `<div class="onb-in wl">
+      <div class="wl-top"><b>채소</b><button type="button" class="wl-skip" data-act="wgo">건너뛰기</button></div>
+      <h1 class="wl-t">충전하는 동안,<br>나를 위한 시간.</h1>
+      <p class="wl-d">채비와 함께하는 소중한 순간을<br>채소에서 시작해보세요.</p>
+      ${WELCOME_ART}
+      <button type="button" class="onb-go wl-go" data-act="wgo">채소 시작하기 <span aria-hidden="true">→</span></button>
+      <p class="wl-foot">채비와의 소중한 시간</p></div>`;
+    el.onclick = e => { const b = e.target.closest('button'); if (b && b.dataset.act === 'wgo'){ el.onclick = null; next(); } };
+  }
+  /* 첫 흐름: (이 탭에서 처음이면) 스플래시 → (이 탭에서 처음이면) 웰컴 → next(질문 또는 인물 고르기) */
+  function startFlow(next){
+    const afterSplash = () => ssGet('chaeviWelcome') ? next() : showWelcome(next);
+    if (!ssGet('chaeviSplash')) showSplash(afterSplash); else { lockOpen(); setTimeout(afterSplash, 0); }
+  }
   function lockOpen(){ build(); first = true; el.hidden = false; open = true; document.body.classList.add('onb-on'); }      // first = Esc로 닫히지 않게
   function loginDemo(id){
     const d = DEMO.find(x => x.id === id); if (!d) return;
@@ -413,11 +455,10 @@
     RS = rs; if (Array.isArray(remains)) REM = remains; if (typeof re === 'function') redraw = () => { try { re(); } catch (e) {} };
     if (opt && typeof opt.about === 'function') about = opt.about;
     apply(); fabBtn(); fabLabel();
-    if (MODE === 'demo'){ if (!sess()) showLogin(); }      // 시연판: 인물 고르기(질문 흐름 없음)
-    /* 실사용판: MY가 없거나, 예전 판에서 '나중에 입력'으로 건너뛴 빈 MY(답 없음·카드 선택 없음)면 질문부터. 답이 있는 MY면 바로 지도(MY → '질문 다시 하기') */
+    if (MODE === 'demo'){ if (!sess()) startFlow(showLogin); }      // 시연판: (스플래시·웰컴) → 인물 고르기(질문 흐름 없음). 이미 인물로 들어와 있으면 바로 지도
     /* 실사용판(11/23 준엽): 페이지를 열 때마다(새로고침 포함) 질문부터, 빈 상태로 시작. MY가 있으면 첫 화면에 '이전 답으로 계속' 작은 링크.
        질문은 이 init에서만 띄움 → 경로 안내·타이머 등 같은 로드 안의 다시 그리기로는 다시 안 뜸. 충전 타이머는 그대로 돎(질문 뒤에서) */
-    else { lockOpen(); setTimeout(showQuiz, 0); }      // 그림(index.html의 illo)이 정의된 뒤 그리려고 한 박자 뒤
+    else startFlow(showQuiz);      // (스플래시·웰컴) → 질문. 질문 그림(index.html의 illo)은 최소 한 박자 뒤에 그려짐
     /* 하고 싶은 것 점수표(tables.json pw): 오면 acts가 있는 프로필의 시작 점수를 다시 계산(learn 유지) */
     fetch(opt && opt.tables || 'data/reco/tables.json').then(r => r.ok ? r.json() : null).then(t => {
       if (!t || !t.pw) return; PW = t.pw;

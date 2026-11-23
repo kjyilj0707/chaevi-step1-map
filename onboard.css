@@ -106,10 +106,36 @@ body.nav #onbFab{display:none}
 .qz-next{border:0;background:var(--navy);color:#fff;font-size:15px;font-weight:700;border-radius:99px;padding:11px 22px}
 .qz-next:disabled{background:#c9c4bb;color:#f6f3ee}
 .lg-real{display:block;text-align:center;margin:4px auto 0}
-/* '채소' 로고 1개 + 슬로건 1줄 */
-.chs{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:9px;align-items:center;margin:14px 0 14px}
-.chs-mark{grid-row:1 / 3;display:flex;width:42px;height:42px;border-radius:13px;background:#eaf6f1;align-items:center;justify-content:center}
-.chs-word{font-size:21px;font-weight:900;letter-spacing:.06em;color:#22323b;line-height:1.1}
-.chs-line{font-size:12.5px;color:var(--ink2);line-height:1.3}
-.chs-line em{font-style:normal;font-weight:800;color:#3d9a7f}
+/* '채소' 로고 + 태그라인(11/23 시안) */
+.chs{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;margin:14px 0 14px}
+.chs-mark{grid-row:1 / 3;display:flex;width:44px;height:44px;align-items:center;justify-content:center}
+.chs-word{font-size:22px;font-weight:900;letter-spacing:.04em;color:#1B4965;line-height:1.1}
+.chs-line{font-size:12.5px;font-weight:600;color:#1B4965;opacity:.8;line-height:1.3}
 .qz-keep{display:inline;border:0;background:none;padding:0;margin-left:4px;font:inherit;font-size:12.5px;font-weight:700;color:var(--navy);text-decoration:underline;text-underline-offset:3px}
+/* 스플래시: 흰 바탕 가운데 로고·채소·태그라인, 아래 옅은 민트 곡선과 번개, 맨 아래 한 줄 */
+.sp{position:relative;width:100%;max-width:480px;height:100%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+.sp-mid{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:-60px}
+.sp-word{font-size:54px;font-weight:900;color:#1B4965;letter-spacing:.04em;line-height:1.05}
+.sp-line{font-size:16px;font-weight:700;color:#1B4965}
+.sp-wave{position:absolute;left:0;right:0;bottom:120px;width:100%;height:120px}
+.sp-foot{position:absolute;bottom:calc(46px + env(safe-area-inset-bottom));margin:0;font-size:14px;color:#1B4965;opacity:.85}
+@media (prefers-reduced-motion: no-preference){
+  .sp-mid svg{animation:spIn .7s ease-out both}
+  .sp-mid svg .lg-ring{stroke-dasharray:180;stroke-dashoffset:180;animation:spRing .9s .1s ease-out forwards}
+  .sp-word,.sp-line{animation:spUp .6s .25s ease-out both}
+}
+@keyframes spIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+@keyframes spRing{to{stroke-dashoffset:0}}
+@keyframes spUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* 웰컴 */
+.wl{display:flex;flex-direction:column;background:#fff}
+.wl-top{display:flex;align-items:center;justify-content:space-between;margin:10px 0 18px}
+.wl-top b{font-size:22px;font-weight:900;color:#1B4965;letter-spacing:.04em}
+.wl-skip{border:0;background:none;font:inherit;font-size:13px;color:#4f5f66;padding:6px}
+.wl-t{margin:0 0 12px;font-size:30px;line-height:1.3;font-weight:900;color:#1B4965;letter-spacing:-.01em}
+.wl-d{margin:0 0 10px;font-size:14.5px;line-height:1.55;color:#1B4965;opacity:.85}
+.wl-art{width:100%;height:auto;margin:auto 0 28px}
+.wl-go{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:0;border-radius:16px;background:#1B4965}
+.wl-go span{font-size:20px;line-height:1}
+.wl-foot{margin:10px 0 0;text-align:center;font-size:12.5px;color:#1B4965;opacity:.75}
+
