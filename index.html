@@ -281,25 +281,47 @@ body.infra.placeon .listbtn{display:none}
 .rcard .nm .sbadge{display:inline-block;font-size:10px;font-weight:700;border-radius:99px;padding:0 6px;margin-right:4px;color:#6b4a00;background:#ffe9a8;vertical-align:1px}
 /* 11/22 v2 '주변' 탭: 슬롯 카드 가로 한 줄 → 키워드 칩 → 리스트 */
 .reco2{margin:0 0 4px}
-/* 두 추천 구역(11/23). 페르소나 색 = --pc. 이미지 받으면 여기 값만 바꾸면 되게 한곳에 모음 */
-.rsec{border-radius:16px;padding:10px 12px 10px;margin:0 -4px 10px}
-.rper{--pc:var(--mint2);background:linear-gradient(180deg, color-mix(in srgb, var(--pc) 13%, #fff) 0, var(--surface) 140px);border-top:4px solid var(--pc)}
-.rper[data-p="P1"]{--pc:#d9822b}.rper[data-p="P2"]{--pc:#17a99a}.rper[data-p="P3"]{--pc:#3d7fd1}.rper[data-p="P4a"]{--pc:#8a63d2}.rper[data-p="P4b"]{--pc:#5f7484}
-.rkw{background:#f3f1ec;border:1px solid var(--grid)}
-.rsech{display:flex;align-items:center;gap:8px;margin:0 0 2px !important;font-size:15px !important;color:var(--navy)}
-.rper .rsech span:first-child{color:color-mix(in srgb, var(--pc) 70%, #1b2b33)}
-.rmap{margin-left:auto;font-size:10.5px;font-weight:700;color:#fff;background:var(--navy);border-radius:99px;padding:2px 8px;white-space:nowrap}
-.rsecsub{font-size:11px !important;color:var(--ink2) !important;margin:0 0 8px !important;line-height:1.4}
-.rkw .rrow{margin-top:6px}
-/* 큰 카드: 412px에서 1장 반 */
-.rcard.h.rbig{flex:0 0 64% !important;max-width:280px;flex-direction:column !important;align-items:stretch !important;gap:3px !important;padding:10px 11px;background:var(--surface);border-color:color-mix(in srgb, var(--pc) 35%, var(--grid));min-height:0}
-.rbtop{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;margin-bottom:3px}
-.rbwalk{display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-size:12.5px;color:var(--navy)}
-.rbname{font-size:15px;line-height:1.3;color:var(--ink);word-break:keep-all;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.rbig .rh2{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.rbwhy{font-size:11.5px;font-weight:700;color:color-mix(in srgb, var(--pc) 75%, #1b2b33);background:color-mix(in srgb, var(--pc) 10%, #fff);border-radius:8px;padding:3px 7px;line-height:1.35}
-.rbtime{font-size:11px;color:var(--ink2)}
-.rbig a.kmap{align-self:flex-start;margin-top:2px}
+/* 두 추천 구역(11/23, 준엽 참고 이미지): 흰 바탕·연초록 포인트·둥근 카드. 색·크기는 여기 한곳에 모음 */
+.reco2{--pick:#3d9a7f;--pickbg:#eaf6f1;--pill:#f1eee8}
+.rsec{margin:0 -14px;padding:14px 16px 14px}
+.rper{background:var(--surface)}
+.rkw{background:#fbfaf7;border-top:10px solid #eeebe5}
+.rpick{margin:0 0 4px !important;font-size:11.5px !important;font-weight:800;letter-spacing:.02em;color:var(--pick) !important}
+.rtitle{margin:0 0 4px;font-size:20px;line-height:1.3;color:#22323b;word-break:keep-all}
+.rlead{margin:0 0 10px !important;font-size:12.5px !important;color:var(--ink2) !important;line-height:1.45}
+.rpills{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.rpill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--ink2);background:var(--pill);border-radius:99px;padding:5px 11px;white-space:nowrap}
+.rpill.wx{background:var(--pickbg);color:#2c6e5b;border:1px solid #bfe3d6}
+.rsech{display:flex;align-items:center;gap:8px;margin:0 0 8px}
+.rsech b{font-size:15.5px;color:#22323b}
+.rsech b.big{font-size:18px}
+.rswipe{margin-left:auto;font-size:11.5px;color:var(--ink2);white-space:nowrap}
+.rmap{font-size:10px;font-weight:700;color:#fff;background:var(--navy);border-radius:99px;padding:2px 7px;white-space:nowrap}
+.rsech .rmap + .rswipe{margin-left:auto}
+.rband{margin:10px 0 0 !important;font-size:12px !important;color:#2c6e5b !important;background:var(--pickbg);border-radius:12px;padding:9px 12px;line-height:1.45}
+.rper .rshort{margin-top:8px}
+.rkw .rrow{margin:2px 0 4px}
+.rkw .rchip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border-color:#e3ded5;padding:8px 13px;font-size:12.5px}
+.rkw .rchip .ic{display:inline-flex}
+/* 큰 카드: 412px에서 1장 + 다음 카드 일부 */
+.rcard.h.rbig{flex:0 0 76% !important;max-width:320px;flex-direction:column !important;align-items:stretch !important;gap:6px !important;padding:14px 14px 12px;background:var(--surface);border:1.5px solid #ece8e1;border-radius:18px;min-height:0;box-shadow:0 1px 3px rgba(60,50,30,.05)}
+.rcard.h.rbig.star{border-color:#e0a400}
+.rbtop{display:flex;align-items:center;gap:11px}
+.rbtop .illo{border-radius:16px}
+.rbhd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rbname{font-size:15.5px;line-height:1.3;color:#22323b;word-break:keep-all;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rbcat{font-size:11.5px;font-weight:600;color:var(--pick);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rbsay{margin:4px 0 0 !important;font-size:13.5px !important;color:var(--ink) !important;line-height:1.45;min-height:2.9em}
+.rbtags{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-height:0}
+.rbtags:empty{display:none}
+.rbpills{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.rbig a.kmap{align-self:flex-end;margin-top:0}
+.rcard.l{background:transparent;border:0;border-bottom:1px solid #ece8e1;border-radius:0;margin:0;padding:11px 2px}
+.rcard.l .illo{border-radius:14px}
+.rcard.l .nm b{font-size:14.5px;color:#22323b}
+.rcard.l .oc b{font-size:12.5px;font-weight:600;color:var(--ink2)}
+.rst{font-size:10.5px;font-weight:700;color:var(--mint2)}
+.rst.tight{color:#d07a00}
 .rstrip{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding:0 14px;margin:0 -14px;padding:0 14px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .rstrip::-webkit-scrollbar{display:none}
 .rcard.h{flex:0 0 70%;max-width:280px;scroll-snap-align:start;flex-direction:column;align-items:stretch;gap:2px;margin:0;min-height:84px;padding:7px 10px;background:var(--mintbg)}
@@ -1401,6 +1423,24 @@ let rlistShow = RLIST_FIRST;
 /* 카카오맵 장소 링크(API 호출 없음, 새 탭): https://map.kakao.com/link/map/이름,위도,경도 */
 const kakaoLink = row => row ? `<a class="kmap" href="https://map.kakao.com/link/map/${encodeURIComponent(String(row[0]).replace(/,/g, ' '))},${(+row[3]).toFixed(6)},${(+row[4]).toFixed(6)}" target="_blank" rel="noopener noreferrer" aria-label="${String(row[0]).replace(/"/g, '')} 카카오맵에서 보기">카카오맵에서 보기</a>` : '';
 const illo = (ic, px) => `<span class="illo" style="--c:${POI_COL[ic]};--s:${px}px" aria-hidden="true">${picon(ic, Math.round(px * 0.58))}</span>`;
+const esc0 = t => String(t == null ? '' : t).replace(/[&<>"]/g, x => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[x]);
+/* 카드의 업종 줄: '대분류 · 소분류'(가게 줄 row[2] = '세원 중분류 · 소분류' 또는 '공중화장실 · 개방시간' 등) */
+const subOf = (c, row) => { const t = row && row[2] ? String(row[2]).split(' · ').pop() : ''; return t && t !== c.group ? `${c.group} · ${t}` : c.group; };
+/* 제안 한 줄(11/23, 화면 문구 표): 대분류 우선 → 활동 → 기본 */
+const PHRASE_BIG = {'디저트·간식':'달콤한 간식 하나 어때요?', '공원':'가볍게 한 바퀴 걷고 오기 좋아요.', '화장실':'출발 전에 화장실 들러 가세요.', '쓰레기통':'차 안 쓰레기를 정리하고 와요.',
+  '뷰티·건강':'필요한 것만 금방 사 오세요.', '패션·잡화':'잠깐 둘러보고 오기 좋아요.', '생활·리빙':'생활용품 하나 챙겨 오기 좋아요.', '취미·문화':'잠깐 구경하고 오기 좋아요.',
+  '유원지·오락':'시간 여유가 있으면 즐기고 와요.', '스포츠 서비스':'몸을 풀고 오기 좋아요.'};
+const PHRASE_ACT = {'카페 테이크아웃':'커피 한 잔 챙겨오는 건 어때요?', '카페 착석':'잠깐 앉아 커피 한 잔 하고 와요.', '일반 식당':'든든하게 한 끼 먹고 오기 좋아요.',
+  '빠른 식사(포장)':'간단히 포장해 차에서 먹어도 좋아요.', '빠른 식사(매장)':'빠르게 한 끼 해결하고 와요.', '편의점':'필요한 것만 금방 사 오세요.', '마트 장보기':'장보기 하고 오기 좋은 시간이에요.',
+  '식료품 구매':'간단한 장보기 어때요?', '약국':'필요한 약을 챙겨 오세요.', '쇼핑':'잠깐 둘러보고 오기 좋아요.', '담배 구매':'금방 다녀올 수 있어요.', '오락·운동':'시간 여유가 있으면 즐기고 와요.',
+  '화장실':'출발 전에 화장실 들러 가세요.', '산책':'가볍게 한 바퀴 걷고 오기 좋아요.', '쓰레기 버리기':'차 안 쓰레기를 정리하고 와요.'};
+const phraseOf = c => PHRASE_BIG[c.group] || PHRASE_ACT[c.act] || '잠깐 다녀오기 좋아요.';
+/* 방문 포함 시간(분) = 왕복 도보 + 지하주차장 출구 α + 건물 안 왕복 + 활동 시간(가능 = 상한, 빠듯 = 하한), 올림. reco.js 가용 시간 식과 같은 항목(여유 5분은 뺌) */
+function visitMin(c){
+  const t = RT.time && RT.time[c.act]; if (!t || c.ow == null) return null;
+  const s = poi.s, a = s && RT.alpha[s[C.id]] != null ? RT.alpha[s[C.id]] : (RT.alphaDefault || 0);
+  return Math.ceil(2 * c.ow + a + 2 * (c.p.mall || 0) + (c.time === '가능' ? t[1] : t[0]) - 1e-9);
+}
 function recoItem(c, k, cls, why){      // 카드(가로)·리스트 줄 공통 내용: ★·복합시설·화장실 개방·어린이공원·대체 표시. why = 큰 카드의 '왜 추천' 한 줄
   const p = c.p, ic = BIG_SHAPE[c.group] != null ? BIG_SHAPE[c.group] : 7, row = recoCardRow(c), r = recoMemo;
   const kid = p.kind === 'park' && p.child ? '<span class="kbadge">어린이공원</span>' : '';
@@ -1409,23 +1449,22 @@ function recoItem(c, k, cls, why){      // 카드(가로)·리스트 줄 공통 
   const fb = c.fb ? `<span class="fbadge" title="원래 자리(${c.slotBig.replace(/\|/g, '·')})에 다녀올 곳이 없어 대신 넣음">대체</span>` : '';
   const star = p.star ? `<span class="sbadge">★${p.brand ? ' ' + p.brand : ''}</span>` : '';
   const tb = `<span class="tbadge${/빠듯|불가/.test(c.time) ? ' tight' : ''}">${c.time}</span>`;
-  if (cls === 'big'){      // 11/23 준엽: 페르소나 맞춤 구역의 큰 카드(업종 그림 위, 이름, 업종, 도보·가능, 왜 추천, 예상 활동 시간, ★, 카카오맵)
-    const t = RT.time && RT.time[c.act], tm = t ? (t[0] === t[1] ? `${t[0]}분` : `${t[0]}~${t[1]}분`) : '';
-    return `<div class="rcard h rbig${p.star ? ' star' : ''}" data-k="${k}" role="button" tabindex="0">
-      <div class="rbtop">${illo(ic, 60)}<span class="rbwalk"><b>도보 ${walkMinOf(p.wm)}분</b>${tb}</span></div>
-      <b class="rbname">${star}${row ? row[0] : ''}</b>
-      <span class="rh2">${fb}${kid}${ochk}${tags}</span>
-      ${why ? `<span class="rbwhy">${why}</span>` : ''}
-      ${tm ? `<span class="rbtime">예상 활동 ${tm}${c.act ? ` · ${c.act}` : ''}</span>` : ''}
+  if (cls === 'big'){      // 11/23 준엽 참고 이미지: 그림 타일 + '1. 이름' + 업종 · 소분류(초록) + 제안 한 줄 + 회색 알약(편도·방문 포함) + 가능/빠듯·★·카카오맵
+    const vm = visitMin(c);
+    return `<div class="rcard h rbig${p.star ? ' star' : ''}" data-k="${k}" role="button" tabindex="0"${why ? ` title="${why}"` : ''}>
+      <div class="rbtop">${illo(ic, 56)}<div class="rbhd"><b class="rbname">${k + 1}. ${row ? row[0] : ''}</b><span class="rbcat">${esc0(subOf(c, row))}</span></div></div>
+      <p class="rbsay">${esc0(phraseOf(c))}</p>
+      <div class="rbtags">${star}${fb}${kid}${ochk}</div>
+      <div class="rbpills"><span class="rpill">🚶 편도 약 ${walkMinOf(p.wm)}분</span>${vm ? `<span class="rpill">방문 포함 약 ${vm}분</span>` : ''}${tb}</div>
       ${kakaoLink(row)}</div>`;
   }
   if (cls === 'h') return `<div class="rcard h${p.star ? ' star' : ''}" data-k="${k}" role="button" tabindex="0">${illo(ic, 54)}<div class="rhc">
       <div class="rh1"><b>${star}${row ? row[0] : ''}</b></div>
       <span class="rh2">${fb}${kid}${ochk}${tags}</span>
       <span class="rh3"><b>도보 ${walkMinOf(p.wm)}분</b>${tb}${kakaoLink(row)}</span></div></div>`;
-  return `<div class="rcard l${p.star ? ' star' : ''}" data-l="${k}">${illo(ic, 42)}
-      <div class="nm"><b>${star}${row ? row[0] : ''}</b><span>${fb}${kid}${ochk}${tags}</span>${kakaoLink(row)}</div>
-      <div class="oc"><b>도보 ${walkMinOf(p.wm)}분</b>${tb}</div></div>`;
+  return `<div class="rcard l${p.star ? ' star' : ''}" data-l="${k}">${illo(ic, 46)}
+      <div class="nm"><b>${star}${row ? row[0] : ''}</b><span>${fb}${kid}${ochk}${esc0(subOf(c, row))}</span>${kakaoLink(row)}</div>
+      <div class="oc"><b>🚶 약 ${walkMinOf(p.wm)}분</b><small class="rst${/빠듯|불가/.test(c.time) ? ' tight' : ''}">${c.time}</small></div></div>`;
 }
 /* 추천 기준 줄(11/22 점검 3: 타이머가 돌면 매 분 갱신, chgSync 'tick'에서 글자만 다시 씀) */
 let basisWx = '';
@@ -1462,26 +1501,38 @@ function recoBuild(){
   const sf = shortfallReason(r);
   const short = sf ? `<p class="hint rshort" data-code="${sf.code}">${sf.text}${!r.cards.length && tb ? ' · 가까운 쓰레기통은 아래에' : ''}</p>` : '';
   const noWalk = r.kw && RT.kw[r.kw].big.includes('공원') && r.eff.mult['산책'] === 0;     // '산책하고 싶어요' + 비·심야(산책 ×0)
-  const lst = r.list.slice(0, rlistShow), rest = r.list.length - lst.length;
+  /* 둘러보기 리스트: 추천 카드 5곳은 뺌. 키워드가 없으면 가까운 순(도보 m), 있으면 키워드 점수순(지도 큰 아이콘 5곳과 같은 순서) */
+  const cardIds = new Set(r.cards.map(c => c.p.pid));
+  const browse = (r.kw ? r.list : r.list.slice().sort((a, b) => a.p.wm - b.p.wm || (a.p.pid < b.p.pid ? -1 : 1))).filter(c => !cardIds.has(c.p.pid));
+  const nList = browse.length, lst = browse.slice(0, rlistShow), rest = nList - lst.length;
   const why = [night ? '심야: 편도 5분 안, 화장실은 24시간 개방(상시)만, 편의점 우선' : '', wet ? `${wxName}: 편도 5분 안` : '',
     morning ? '아침: 테이크아웃 커피·포장 식사 우선' : '', RT.alpha[s[C.id]] ? `지하주차장 출구 ${RT.alpha[s[C.id]]}분 포함` : ''].filter(Boolean).join(' · ');
   const pn = window.ONB ? ONB.name(RS.persona) : RS.persona;
-  basisWx = wxName + (RS.wx ? '(가정)' : '(지금)');
+  basisWx = (r.wx === 'rain' ? '🌧 ' : r.wx === 'snow' ? '❄ ' : r.wx === 'clear' ? '☀ ' : '') + wxName + (RS.wx ? '(가정)' : '(지금)');
   const basis = basisTxt();
-  /* 11/23 준엽: 두 추천을 구역으로 나눔. 위 = 페르소나 맞춤(페르소나 색 띠), 아래 = 키워드 추천(다른 바탕). 지도 큰 아이콘이 어느 구역 기준인지 표시 */
+  /* 11/23 준엽 참고 이미지: 위 = CHAEVI PICK(페르소나 맞춤 5곳, 가로 큰 카드), 굵은 회색 띠, 아래 = 주변 장소 더 둘러보기(키워드 칩 + 리스트, 추천 5곳은 뺌) */
   const onMap = '<span class="rmap">지도 큰 아이콘</span>';
+  const who = window.ONB && ONB.userName && ONB.userName(), demo = !!(window.ONB && ONB.isDemo && ONB.isDemo());
+  const capNow = walkEff(), buf = RT.params && RT.params.buffer_min != null ? RT.params.buffer_min : 5;
+  const kwIcon = k => { const b = RT.kw[k] && RT.kw[k].big && RT.kw[k].big[0]; const ic = BIG_SHAPE[b]; return ic != null ? `<span class="ic" style="color:${POI_COL[ic]}">${picon(ic, 15)}</span>` : ''; };
+  const kws2 = Object.keys(RT.kw).map(k => `<button class="rchip kw" type="button" data-k="${k}" aria-pressed="${RT.kw[k] ? r.kw === k : !r.kw}">${kwIcon(k)}${k}</button>`).join('');
   const html = `<div class="reco2">
     <section class="rsec rper" data-p="${RS.persona}">
-      <h4 class="rsech"><span>${pn0} 맞춤 추천</span>${!r.kw ? onMap : ''}</h4>
-      <p class="rsecsub">${pn0} 카드 틀(${sd.map(x => x.big.join('·') + (x.count > 1 ? ' ' + x.count : '')).join(' / ')})에 맞춰 고른 곳</p>
-      ${cards ? `<div class="rstrip" role="list">${cards}</div>` : ''}${short}
+      <p class="rpick">CHAEVI PICK · 지금 내 취향에 맞게</p>
+      <h3 class="rtitle">${who ? esc0(who) + '님이' : '지금'} 들르기 좋은 곳을 골랐어요.</h3>
+      <p class="rlead">평소 취향과 남은 충전시간을 고려했어요.</p>
+      <div class="rpills"><span class="rpill">⚡ ${remainLab()} 남음</span><span class="rpill wx">${esc0(basisWx)}${demo ? ' · 시연 중' : ''}</span><span class="rpill">${pn0}</span></div>
+      <div class="rsech"><b>✨ 지금 추천하는 ${r.cards.length}곳</b>${!r.kw ? onMap : ''}${r.cards.length > 1 ? '<span class="rswipe">옆으로 넘겨 보기 →</span>' : ''}</div>
+      ${cards ? `<div class="rstrip" role="list">${cards}</div>` : ''}
+      <p class="rband">편도 ${fmtMin(capNow)}분 이내 · 왕복 이동시간과 복귀 여유 ${buf}분을 고려한 추천이에요.</p>${short}
     </section>
     <section class="rsec rkw">
-      <h4 class="rsech"><span>지금 뭐 하고 싶으세요?</span>${r.kw ? onMap : ''}</h4>
-      <div class="rrow" role="group" aria-label="하고 싶은 것">${kws}</div>
-      <h4 class="rlh">${r.kw ? `'${r.kw}'` : '전체 후보(아무거나!)'} <small>점수순 ${r.list.length}곳</small></h4>
+      <div class="rsech"><b class="big">주변 장소 더 둘러보기</b>${r.kw ? onMap : ''}</div>
+      <p class="rlead">${r.kw ? `'${esc0(r.kw)}' 결과를 추천 순서로, 추천한 5곳은 빼고 보여 드려요.` : '추천한 5곳 외에 다녀올 만한 장소를 가까운 순서로 살펴보세요.'}</p>
+      <div class="rrow" role="group" aria-label="하고 싶은 것">${kws2}</div>
+      <h4 class="rlh">${r.kw ? `'${r.kw}'` : '전체'} <small>${nList}곳</small></h4>
     ${lst.length ? lst.map((c, k) => recoItem(c, k, 'l')).join('') : (noWalk ? '<p class="hint">비·심야에는 산책을 추천하지 않아요</p>' : `<p class="hint">남은 ${remainLab()} 안에 다녀올 곳 없음${r.kw ? ' (키워드: ' + r.kw + ')' : ''}</p>`)}
-    ${rest > 0 ? `<button class="pmore" id="rlMore" type="button">더보기 (나머지 ${rest}곳)</button>` : r.list.length > RLIST_FIRST ? '<button class="pmore" id="rlMore" type="button">접기</button>' : ''}
+    ${rest > 0 ? `<button class="pmore" id="rlMore" type="button">더보기 (나머지 ${rest}곳)</button>` : nList > RLIST_FIRST ? '<button class="pmore" id="rlMore" type="button">접기</button>' : ''}
     </section>
     ${trash}
     ${why ? `<p class="rnote">${why}</p>` : ''}
