@@ -27,12 +27,12 @@ if (window.top === window.self && matchMedia('(min-width: 821px)').matches) loca
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <!-- 버전 꼬리표(11/24): GitHub Pages 캐시(max-age 600) 때문에 새 index.html + 옛 onboard.js가 섞이지 않게. 화면 코드를 바꾸면 BUILD와 꼬리표를 함께 올림 -->
-<script>window.CHAEVI_BUILD = '20261124c';</script>
-<script src="reco.js?v=20261124c"></script>
-<script src="station_reco.js?v=20261124c"></script>
-<script src="charge.js?v=20261124c"></script>
-<link rel="stylesheet" href="onboard.css?v=20261124c">
-<script src="onboard.js?v=20261124c"></script>
+<script>window.CHAEVI_BUILD = '20261124d';</script>
+<script src="reco.js?v=20261124d"></script>
+<script src="station_reco.js?v=20261124d"></script>
+<script src="charge.js?v=20261124d"></script>
+<link rel="stylesheet" href="onboard.css?v=20261124d">
+<script src="onboard.js?v=20261124d"></script>
 <script>
 /* 그래도 옛 onboard.js가 왔으면(BUILD가 다르면) 한 번만 꼬리표를 바꿔 다시 불러옴 */
 (function () { try {
@@ -1288,7 +1288,8 @@ const walkActLo = () => RT && RT.time ? Math.min(...Object.values(RT.time).map(t
 const walkBuf = () => RT && RT.params ? +RT.params.buffer_min : 5;
 function walkAuto(){ syncRemain(); const raw = (RS.remain - walkActLo() - walkBuf()) / 2;
   return Math.min(WALK_HI, Math.max(WALK_LO, Math.ceil(raw * 2 - 1e-9) / 2)); }
-const walkSlider = () => WALK.manual != null ? WALK.manual : walkAuto();
+/* 11/24 준엽: 지도(확대·보이는 점·값 글자)는 슬라이더 값 그대로, 추천(카드·키워드)은 min(슬라이더, 비·심야 상한). 자동일 때 슬라이더 위치 = min(자동값, 비·심야 상한) */
+const walkSlider = () => WALK.manual != null ? WALK.manual : Math.min(walkAuto(), walkEnv(poi.s)[0]);
 /* 추천과 같은 조건(시각·지금 날씨·MY 조건) */
 function walkConds(s){ const wx = recoWx(s); return RECO.conditions(recoHour(), wx === 'clear' ? null : wx).concat(window.ONB ? ONB.conds() : []); }
 /* 날씨·심야 상한과 그 이름(예: [5, '비']). 표가 없으면 심야만 5분 */
@@ -1352,10 +1353,10 @@ function sk(c){               // 칩 번호 → 모양 번호(POI_COL·PICON·�
   const k = BIG_SHAPE[wcats()[c]]; return k != null ? k : 7 + c % 7;
 }
 const shownCat = x => poi.cat >= 0 ? poi.cat : x[1];     // 칩을 골랐으면 그 칩 모양으로 보임(카페를 '카페 착석'으로 고르면 착석 색)
-const walkLim = () => walkEff() * walkMpm();      // 고른 편도 분 → m (11/23 슬라이더)
+const walkLim = () => walkSlider() * walkMpm();      // 지도 범위(m) = 슬라이더 값 그대로(비·심야여도 넓혀 볼 수 있음, 추천은 walkEff)
 function poiView(){            // 고른 범위 안의 가게와 종류별 개수. 직선 파일이 상한(400곳)에 걸렸고 그 400곳이 다 반경 안이면 실제는 더 많음(more)
   const d = poi.data; if (!d) return null;
-  const night = d.walk && isNight(), key = d.walk ? 'w' + walkEff() + (night ? 'n' : '') : poiR;
+  const night = d.walk && isNight(), key = d.walk ? 'w' + walkSlider() + (night ? 'n' : '') : poiR;
   if (d.v && d.v.r === key) return d.v;
   const lim = d.walk ? walkLim() : poiR;
   const p = d.p.filter(x => x[5] <= lim && !(night && x[12] != null && !x[12].startsWith('상시'))), n = d.n.map(() => 0); p.forEach(x => (x[9] || [x[1]]).forEach(c => n[c]++));
@@ -1397,10 +1398,10 @@ $('#walkAuto').onclick = () => walkSet(null);
 function walkUI(){
   const sl = walkSlider(), au = walkAuto(), [ec, en] = walkEnv(poi.s), eff = Math.min(sl, ec);
   const r = $('#walkRange'); if (document.activeElement !== r || WALK.manual == null) r.value = sl;
-  $('#walkVal').innerHTML = `편도 <b>${fmtMin(eff)}분</b> · 약 ${Math.round(eff * walkMpm())}m`;
+  $('#walkVal').innerHTML = `편도 <b>${fmtMin(sl)}분</b> · 약 ${Math.round(sl * walkMpm())}m`;      // 지도 범위 = 슬라이더 값
   $('#walkAuto').setAttribute('aria-pressed', WALK.manual == null);
   const why = WALK.manual == null ? `자동: ${remainNote()} 기준 편도 ${fmtMin(au)}분` : `직접 고름 · 자동이면 편도 ${fmtMin(au)}분(${remainNote()})`;
-  $('#walkWhy').innerHTML = why + (ec < sl ? ` · <span class="lim">${en || '날씨'}: ${fmtMin(ec)}분까지</span>` : '') + ' · 점선 원 = 대략 범위';
+  $('#walkWhy').innerHTML = why + (ec < WALK_HI ? ` · <span class="lim">${en || '날씨'}: 추천은 ${fmtMin(Math.min(ec, sl))}분 안에서만</span>` : '');
 }
 function clearPoi(){ if (!poi.s && !poi.data) return; poi = {s:null, data:null, cat:-1, state:'', show:POI_FIRST};
   document.body.classList.remove('infra'); hidePlace();
@@ -1414,7 +1415,7 @@ function poiTop(){
 const poiDrawKey = (v, top) => (v ? v.r : '') + '|' + poi.cat + '|' + (top ? top.map(x => x.row[10]).join(',') : '*');
 function drawPoi(){
   if (!ready || !poi.s) return; const s = poi.s, v = poiView(), walk = poi.data && poi.data.walk;
-  map.getSource('ring').setData(walk ? circlePoly([s[C.lat], s[C.lng]], walkLim()) : poi.walk ? EMPTY : circlePoly([s[C.lat], s[C.lng]], poiR));      // 도보 = 편도 상한 × 78m 대략 범위(길 따라 잰 거리라 실제 경계와 다름, 11/23)
+  map.getSource('ring').setData(walk || poi.walk ? EMPTY : circlePoly([s[C.lat], s[C.lng]], poiR));      // 도보 범위는 원을 그리지 않음(11/24 준엽: 점선 원 삭제)
   const items = v ? v.p.filter(x => inCat(x, poi.cat)) : [], top = v ? poiTop() : null;
   poi.drawn = poiDrawKey(v, top);     // 도보 범위는 원으로 그리지 않음(길 따라 잰 거리라 모양이 원이 아님)
   const feat = (x, c) => ({type:'Feature', geometry:{type:'Point', coordinates:[x[4], x[3]]},
@@ -1454,7 +1455,7 @@ function loadPoi(s){
         t[4] <= WKM.m5 ? 1 : 0, 0, null, 'park:' + t[0], t[4], null]));
       if ((toi && toi.length) || (park && park.length)) p.sort((a, b) => a[11] - b[11] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
       d = {walk:true, n:cats.map(() => 0), fail:d.fail, p, raw, toilets:toi || [], trash:trash || null, parks:park || null}; }
-    poi.data = d; poi.state = 'ok'; if (walk) poiFit(s); drawPoi(); renderPoi(); })
+    poi.data = d; poi.state = 'ok'; drawPoi(); renderPoi(); if (walk) requestAnimationFrame(() => poiFit(s)); })      // 도보 슬라이더 칸이 뜬 뒤 높이로 맞춤(위로 치우침 고침)
     .catch(() => { if (poi.s === s){ poi.state = 'error'; renderPoi(); } });
 }
 /* 추천 계산: 충전소·페르소나·남은 시간·날씨·시각·키워드가 같으면 다시 계산하지 않음 */
@@ -1625,7 +1626,7 @@ function recoBind(el, rc){
 }
 function renderPoi(){
   const m = D.meta.poi, on = !!selected && poi.s === selected && poi.state === 'ok', walk = !!(poi.data && poi.data.walk);
-  const cats = walk ? wcats() : m.cats, rng = walk ? `도보 편도 ${fmtMin(walkEff())}분` : `주변 ${poiR}m`;
+  const cats = walk ? wcats() : m.cats, rng = walk ? `도보 편도 ${fmtMin(walkSlider())}분` : `주변 ${poiR}m`;
   document.body.classList.toggle('infra', on && !route);
   document.body.classList.toggle('wbox', on && !route && walk); fitFloat();      // 위쪽 띠 높이가 바뀌면 버튼 숨김 다시 판단
   $('#infraR').style.display = walk ? 'none' : '';
@@ -1646,7 +1647,7 @@ function renderPoi(){
     $('#listBtnTxt').textContent = sheetH > baseH() ? '지도 보기' : '목록 보기';
   }
   const el = $('#poiBox'); if (!el || !selected || poi.s !== selected) return;
-  const head = poi.walk ? `주변 인프라 (도보 편도 ${fmtMin(walkEff())}분)` : `주변 인프라 (반경 ${poiR}m)`;
+  const head = poi.walk ? `주변 인프라 (도보 편도 ${fmtMin(walkSlider())}분)` : `주변 인프라 (반경 ${poiR}m)`;
   if (poi.state === 'none'){ el.innerHTML = ''; return; }
   if (poi.state === 'stay'){ el.innerHTML = `<div class="staynote"><b>채비스테이 라운지에서 쉬어 가세요</b><span>이 충전소는 주변 장소를 추천하지 않아요</span>
     <button type="button" id="stayNow">지금 충전소 보기</button></div>`; $('#stayNow').onclick = () => setStab('now'); return; }
@@ -1661,13 +1662,13 @@ function renderPoi(){
   const lowTxt = !low ? '' : wk.pending ? `<b>${wk.lowWhy}</b> (주변 길 정보로 계산했으나 카카오 표본이 없어 확인 못 함) · `
       : '<b>도보 시간 추정 정확도 낮음</b>' + (wk.lowWhy ? ` (${wk.lowWhy})` : '') + ' · ';
   const excl = !walk && WKM && WKM.excluded && WKM.excluded[selected[C.id]];
-  const note = walk ? `<p class="w9note">${lowTxt}${(wk && wk.note) || WKM.note}${poi.data.fail ? ` · 경로 미확인 ${poi.data.fail}곳은 뺌` : ''}${walkEff() < WALK_HI && walkEnv(poi.s)[0] > walkEff() && !empty ? ' · 위쪽 슬라이더로 넓혀 볼 수 있음' : ''}</p>`
+  const note = walk ? `<p class="w9note">${lowTxt}${(wk && wk.note) || WKM.note}${poi.data.fail ? ` · 경로 미확인 ${poi.data.fail}곳은 뺌` : ''}${walkSlider() < WALK_HI && !empty ? ' · 위쪽 슬라이더로 넓혀 볼 수 있음' : ''}</p>`
       : excl ? `<p class="w9note"><b>${excl}</b> · 직선 반경으로 보여 줌</p>` : '';
   const rc = walk ? recoBuild() : null, rh = rc ? rc.html : '';
   /* 11/22 v2: 도보 충전소 + 추천 표가 있으면 '주변' 탭 = 가로 카드 → 키워드 → 리스트(기존 도보 5분·10분 전체 목록은 뺌, 지도 칩·핀은 그대로) */
   if (rc){ el.innerHTML = rh + note; recoBind(el, rc); return; }
   if (!d.sum){ el.innerHTML = `${rh}<h4>${head}</h4>${note}<p class="hint">${empty ? '도보 10분 안 가게 없음' : rng + ' 안 상가 없음'}${!walk && poiR < 100 ? ' · 위쪽에서 100m로 넓혀 볼 수 있음' : ''}</p>`; return; }
-  el.innerHTML = rh + (walk ? `<h4>${rc && rc.r.cards.length ? '그 밖의 곳' : '주변 인프라'} 도보 편도 ${fmtMin(walkEff())}분 · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳${d.sum > full.length && poi.cat < 0 ? ' / ' + d.sum.toLocaleString('ko-KR') + '곳' : ''})</h4>${note}`
+  el.innerHTML = rh + (walk ? `<h4>${rc && rc.r.cards.length ? '그 밖의 곳' : '주변 인프라'} 도보 편도 ${fmtMin(walkSlider())}분 · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳${d.sum > full.length && poi.cat < 0 ? ' / ' + d.sum.toLocaleString('ko-KR') + '곳' : ''})</h4>${note}`
       : `<h4>주변 인프라 ${poiR}m · ${poi.cat < 0 ? '전체' : cats[poi.cat]} (가까운 순 ${full.length}곳)</h4>${note}
     ${d.more ? `<p class="hint">가게가 많아 가까운 ${d.sum}곳까지만 셈 (실제는 더 많음)</p>` : ''}`) +
     (list.map((x, k) => `<div class="prow" data-k="${k}"><span class="pin" style="background:${POI_COL[sk(shownCat(x))]}">${picon(sk(shownCat(x)), 17)}</span><div class="nm"><b>${x[0]}</b><span>${x[2]}${walk && x[8] ? ' · 카카오 도보 경로값' : ''}</span></div>` +
